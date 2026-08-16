@@ -1,4 +1,4 @@
-// ── /mockups/breach-map · the rules ──────────────────────────────────────────
+// ── /examples/breach · the rules ──────────────────────────────────────────
 // BREACH is a 2v2 tabletop skirmish played on the armornet globe. One side runs
 // a supply-chain intrusion; the other side runs the estate it is aimed at. The
 // board is the same four-territory sphere the console's overview draws, and the

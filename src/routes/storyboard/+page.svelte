@@ -257,7 +257,7 @@
 				<StoryboardFrame
 					step={3}
 					route="/ linked"
-					href="{base}/mockups/auth-flows"
+					href="{base}/mockups/realtime-refinement"
 					width={SIZES[frameSize].w}
 					height={SIZES[frameSize].h}
 				>
@@ -394,7 +394,9 @@
 			<StoryboardCanvas>
 				<SwimLane pill="WITH FOOTER" sub="Lane with a contextual footer link">
 					{#snippet footer()}
-						<a href="{base}/mockups/auth-flows" class="footer-link">→ view full auth flows mockup</a>
+						<a href="{base}/mockups/realtime-refinement" class="footer-link"
+							>→ view the full mockup</a
+						>
 					{/snippet}
 
 					<StoryboardFrame step={1} route="/ page-a" width={200} height={140}>

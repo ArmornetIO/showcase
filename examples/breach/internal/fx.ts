@@ -1,4 +1,4 @@
-// ── /mockups/breach-map · combat feel ────────────────────────────────────────
+// ── /examples/breach · combat feel ────────────────────────────────────────
 // Seventeen cards × four outcomes is an animation matrix nobody finishes. So
 // nothing here is per-card CODE — there are five primitives, and a card is a row
 // in a table that says which ones it uses and in what colour. Distinct feel,

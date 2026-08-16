@@ -37,32 +37,13 @@
 	});
 
 	const isBuilder = $derived(page.url.pathname.endsWith('/builder'));
-	// The installer is the whole app on the user's host — it owns the window.
-	const isInstaller = $derived(page.url.pathname.endsWith('/mockups/agent-installer'));
-	// The scene builder is a tool, not a gallery entry — palette, viewport,
-	// inspector and timeline dock already compete for the window.
-	const isSceneBuilder = $derived(page.url.pathname.endsWith('/mockups/scene-builder'));
-	// The player is a delivery surface — what an audience sees. Any shell chrome
-	// on top of it is a lie about what ships.
-	const isScenePlayer = $derived(page.url.pathname.endsWith('/mockups/scene-player'));
-	// Same reason as the player: this one is sized to a slide's whitespace, and it
-	// can only size itself honestly if the box it measures is the window rather
-	// than the window minus however much chrome the shell happened to take.
-	const isMeshLine = $derived(page.url.pathname.endsWith('/mockups/mesh-line'));
 	// A game board is a HUD: every readout is pinned to an edge of the window, and
 	// the action bar lives on the bottom one. Give it the shell's chrome to share
 	// and the first thing off the screen is the button you press to take a turn.
-	const isBreach = $derived(
-		/\/(mockups\/breach-arena|examples\/breach)$/.test(page.url.pathname)
-	);
-	const isFullScreen = $derived(
-		isBuilder ||
-			isInstaller ||
-			isSceneBuilder ||
-			isScenePlayer ||
-			isMeshLine ||
-			isBreach,
-	);
+	const isBreach = $derived(page.url.pathname.endsWith('/examples/breach'));
+	// A local mockup that wants the whole window adds itself here. Mockups are
+	// gitignored, so such a line is a local edit you keep out of your commits.
+	const isFullScreen = $derived(isBuilder || isBreach);
 
 	// Flags are shared with the marketing SPA via same-origin localStorage.
 	// This dogfoods the portable engine from `$lib/devcog` — the same one a

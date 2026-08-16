@@ -1,4 +1,4 @@
-// ── /mockups/breach-map · what the operator is holding ───────────────────────
+// ── /examples/breach · what the operator is holding ───────────────────────
 // The board draws a card being played as an arrow crossing a globe. That is the
 // SPECTATOR's picture, and it is the right one for them: three other people are
 // watching a map and need to know who did what to where.

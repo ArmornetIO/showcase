@@ -141,3 +141,10 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Local mockups — sketches that belong to the machine that made them. The
+# sidebar is built from whatever folders are present, so yours show up for you
+# and for nobody else. `realtime-refinement` is the committed exception: it is
+# the README for the directory, and it explains the rest.
+src/routes/mockups/*
+!src/routes/mockups/realtime-refinement/

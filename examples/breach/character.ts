@@ -1,4 +1,4 @@
-// ── /mockups/breach-map · the operators ──────────────────────────────────────
+// ── /examples/breach · the operators ──────────────────────────────────────
 // The first character pass. Everything standing on this board so far has been a
 // BUILDING — a Monopoly piece with a roof — and the four unit silhouettes have
 // been flat polygons. This is the same vocabulary turned on a person: convex

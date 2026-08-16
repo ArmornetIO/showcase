@@ -1,0 +1,58 @@
+{
+  "component": "ArticleCard",
+  "props": [
+    {
+      "name": "index",
+      "type": "number",
+      "optional": false
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "readTime",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "excerpt",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "author",
+      "type": "ArticleCardAuthor",
+      "optional": false
+    },
+    {
+      "name": "href",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "thumbHeight",
+      "type": "string",
+      "optional": true,
+      "default": "'38%'"
+    },
+    {
+      "name": "variant",
+      "type": "CardVariant",
+      "optional": true,
+      "default": "'cyan'"
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

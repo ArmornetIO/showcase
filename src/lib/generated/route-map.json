@@ -1,0 +1,191 @@
+{
+  "/actions": [
+    "ActionsMenu",
+    "ExportMenu",
+    "Icon"
+  ],
+  "/alert-blade": [
+    "AlertBladeHost",
+    "Icon"
+  ],
+  "/builder": [
+    "LayerControls",
+    "AlertBladeHost",
+    "ChatThread",
+    "Canvas",
+    "CompositorLayer",
+    "CameraControls",
+    "ThemeStudio",
+    "PropEditor"
+  ],
+  "/canvas": [
+    "Canvas",
+    "MeshStudio",
+    "CameraControls",
+    "Minimap"
+  ],
+  "/cards": [
+    "Card",
+    "CardStack"
+  ],
+  "/charts": [
+    "Chart",
+    "DonutChart"
+  ],
+  "/design-patterns": [
+    "LayoutHeader"
+  ],
+  "/dev": [
+    "DevCog"
+  ],
+  "/display": [
+    "PanelLoading",
+    "Canvas",
+    "CameraControls",
+    "DataTable",
+    "Ticker",
+    "Avatar",
+    "LogRow",
+    "StatTile",
+    "CountUp",
+    "PostureVerdict",
+    "MeshMembrane",
+    "Sparkline",
+    "PeerCard",
+    "CodeBlock",
+    "ConfigBlock",
+    "ConsensusBar",
+    "Timeline",
+    "SheetDrawer",
+    "Chip",
+    "TableFoot",
+    "Icon"
+  ],
+  "/docs": [
+    "DocsNav",
+    "DocsTOC",
+    "DocsMetadata",
+    "DocsBreadcrumbs",
+    "Prose",
+    "Icon"
+  ],
+  "/flourish": [
+    "Flourish",
+    "Icon",
+    "SidebarNav"
+  ],
+  "/frames": [
+    "StatTile",
+    "Chip",
+    "Panel",
+    "RadialProgress",
+    "PostureVerdict",
+    "Frame"
+  ],
+  "/icons": [
+    "Icon",
+    "ArmornetCrest",
+    "ArmornetCrestHub",
+    "ArmornetCrestChrome",
+    "Toggle"
+  ],
+  "/layout": [
+    "Button",
+    "Panel",
+    "Collapsible",
+    "Tabs",
+    "ActionBar",
+    "TableWrap",
+    "ViewToggle",
+    "IconToolbar",
+    "SelectionModal",
+    "RulePanel"
+  ],
+  "/modal": [
+    "Button",
+    "Modal",
+    "SelectionModal",
+    "Icon"
+  ],
+  "/model-explorer": [
+    "Icon",
+    "Button",
+    "Chip",
+    "StatusDot",
+    "SegmentGroup",
+    "ErdDiagram"
+  ],
+  "/model-explorer-parts": [
+    "ErdTableList",
+    "ErdToolbar",
+    "ErdInspector",
+    "ErdOverviewView",
+    "ErdLedgerView",
+    "ErdCapturesView",
+    "ErdEnvironmentsView",
+    "ErdCompareView"
+  ],
+  "/navigation": [
+    "Breadcrumbs"
+  ],
+  "/node-drawer": [
+    "NodeDrawer",
+    "Icon"
+  ],
+  "/overview": [
+    "Button",
+    "LayoutHeader"
+  ],
+  "/primitives": [
+    "Button",
+    "Chip",
+    "StatusDot",
+    "StatusBadge",
+    "Toggle",
+    "Input",
+    "Textarea",
+    "FormField",
+    "Select",
+    "Combobox",
+    "Tile",
+    "Tooltip",
+    "ViewToggle",
+    "SearchInput",
+    "CommandPalette",
+    "SectionBar",
+    "ActionsMenu",
+    "ExportMenu",
+    "Icon"
+  ],
+  "/progress": [
+    "ProgressBar",
+    "Icon"
+  ],
+  "/roadmap": [
+    "RoadmapStudio"
+  ],
+  "/storyboard": [
+    "StoryboardCanvas",
+    "SwimLane",
+    "StoryboardFrame",
+    "StoryboardArrow",
+    "StoryboardBranch"
+  ],
+  "/supply-chain-demo": [
+    "SupplyChainDemo"
+  ],
+  "/svg-fx": [
+    "Icon",
+    "ArmornetCrest",
+    "ArmornetCrestChrome",
+    "SvgFx",
+    "BreakoutStack",
+    "Toggle"
+  ],
+  "/theme": [
+    "ThemePicker"
+  ],
+  "/toolbar": [
+    "IconToolbar"
+  ]
+}

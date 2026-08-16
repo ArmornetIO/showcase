@@ -1,0 +1,48 @@
+{
+  "component": "StatCard",
+  "props": [
+    {
+      "name": "label",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "value",
+      "type": "string | number",
+      "optional": false
+    },
+    {
+      "name": "variant",
+      "type": "StatCardVariant",
+      "optional": true,
+      "default": "'default'"
+    },
+    {
+      "name": "size",
+      "type": "StatCardSize",
+      "optional": true,
+      "default": "'md'"
+    },
+    {
+      "name": "bracketColor",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "valueColor",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "labelColor",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

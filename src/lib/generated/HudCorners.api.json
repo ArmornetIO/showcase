@@ -1,0 +1,29 @@
+{
+  "component": "HudCorners",
+  "props": [
+    {
+      "name": "color",
+      "type": "string",
+      "optional": true,
+      "default": "'var(--accent)'"
+    },
+    {
+      "name": "size",
+      "type": "number",
+      "optional": true,
+      "default": "9"
+    },
+    {
+      "name": "offset",
+      "type": "number",
+      "optional": true,
+      "default": "6"
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

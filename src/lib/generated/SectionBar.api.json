@@ -1,0 +1,11 @@
+{
+  "component": "SectionBar",
+  "props": [
+    {
+      "name": "label",
+      "type": "string",
+      "optional": false
+    }
+  ],
+  "interfaces": []
+}

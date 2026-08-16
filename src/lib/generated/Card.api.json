@@ -1,0 +1,439 @@
+{
+  "component": "Card",
+  "props": [
+    {
+      "name": "type",
+      "type": "CardType",
+      "optional": false
+    },
+    {
+      "name": "variant",
+      "type": "CardVariant",
+      "optional": true,
+      "default": "'accent'"
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "eyebrow",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "items",
+      "type": "CompositeCardItem[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "split",
+      "type": "[number, number]",
+      "optional": true
+    },
+    {
+      "name": "index",
+      "type": "number",
+      "optional": true,
+      "default": "1"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "readTime",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "excerpt",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "author",
+      "type": "ArticleCardAuthor",
+      "optional": true
+    },
+    {
+      "name": "href",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "thumbHeight",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "mode",
+      "type": "DataInputMode",
+      "optional": true,
+      "default": "'form'"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "rows",
+      "type": "DataInputInfoRow[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "fields",
+      "type": "DataInputField[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "submitLabel",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "onsubmit",
+      "type": "(values: Record<string, string>) => void",
+      "optional": true
+    },
+    {
+      "name": "initials",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "role",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "bio",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "tags",
+      "type": "string[]",
+      "optional": true
+    },
+    {
+      "name": "profileLayout",
+      "type": "'horizontal' | 'vertical'",
+      "optional": true,
+      "default": "'horizontal'"
+    },
+    {
+      "name": "statVariant",
+      "type": "StatCardVariant",
+      "optional": true,
+      "default": "'default'"
+    },
+    {
+      "name": "size",
+      "type": "StatCardSize",
+      "optional": true,
+      "default": "'md'"
+    },
+    {
+      "name": "label",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "value",
+      "type": "string | number",
+      "optional": true,
+      "default": "0"
+    },
+    {
+      "name": "bracketColor",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "valueColor",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "labelColor",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "tag",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "meta",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "docStatus",
+      "type": "DocCardStatus",
+      "optional": true,
+      "default": "'draft'"
+    },
+    {
+      "name": "onclick",
+      "type": "(e: MouseEvent) => void",
+      "optional": true
+    },
+    {
+      "name": "metaSlot",
+      "type": "Snippet",
+      "optional": true
+    },
+    {
+      "name": "summaryItems",
+      "type": "SummaryItem[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "summaryColumns",
+      "type": "number",
+      "optional": true
+    },
+    {
+      "name": "windowLabel",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "ctaLabel",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "ctaHref",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "featured",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "tier",
+      "type": "string",
+      "optional": true,
+      "default": "''"
+    },
+    {
+      "name": "price",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "priceUnit",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "priceSub",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "priceItems",
+      "type": "string[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "pending",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "badge",
+      "type": "string",
+      "optional": true
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "CompositeCardItem",
+      "fields": [
+        {
+          "name": "label",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "headline",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "variant",
+          "type": "CardVariant",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ArticleCardAuthor",
+      "fields": [
+        {
+          "name": "initials",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "date",
+          "type": "string",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DataInputInfoRow",
+      "fields": [
+        {
+          "name": "icon",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "sublabel",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "variant",
+          "type": "CardVariant",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DataInputField",
+      "fields": [
+        {
+          "name": "type",
+          "type": "DataInputFieldType",
+          "optional": false
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "options",
+          "type": "string[]",
+          "optional": true
+        },
+        {
+          "name": "rows",
+          "type": "number",
+          "optional": true
+        },
+        {
+          "name": "span",
+          "type": "1 | 2",
+          "optional": true
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SummaryItem",
+      "fields": [
+        {
+          "name": "label",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "value",
+          "type": "number | string",
+          "optional": false
+        },
+        {
+          "name": "variant",
+          "type": "SummaryVariant",
+          "optional": true
+        },
+        {
+          "name": "highlight",
+          "type": "boolean",
+          "optional": true
+        }
+      ]
+    }
+  ]
+}

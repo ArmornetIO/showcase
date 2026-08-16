@@ -1,0 +1,22 @@
+{
+  "component": "FlowTimeline",
+  "props": [
+    {
+      "name": "topology",
+      "type": "FlowTopology | null",
+      "optional": false
+    },
+    {
+      "name": "flowName",
+      "type": "string | null",
+      "optional": false
+    },
+    {
+      "name": "activeStep",
+      "type": "number | null",
+      "optional": true,
+      "default": "$bindable(null as number | null)"
+    }
+  ],
+  "interfaces": []
+}

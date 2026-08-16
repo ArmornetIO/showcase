@@ -1,0 +1,1577 @@
+{
+  "sections": [
+    {
+      "title": "Breakpoints",
+      "exports": [
+        {
+          "symbols": [
+            "BREAKPOINTS"
+          ],
+          "types": [
+            "BreakpointKey"
+          ]
+        },
+        {
+          "symbols": [
+            "useBreakpoint"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Icons",
+      "exports": [
+        {
+          "component": "Icon",
+          "symbols": [
+            "ICONS"
+          ],
+          "types": [
+            "IconName"
+          ]
+        },
+        {
+          "component": "ArmornetCrest",
+          "note": [
+            "The brand mark at full fidelity — two-tone, hollowed core, mesh footprint.",
+            "`<Icon name=\"armornet\" />` is the single-weight version for small sizes."
+          ]
+        },
+        {
+          "component": "ArmornetCrestHub",
+          "note": [
+            "The same crest cut hub-and-spoke, out of the server/node glyph's language."
+          ]
+        },
+        {
+          "component": "ArmornetCrestChrome"
+        },
+        {
+          "symbols": [
+            "glyphForMode",
+            "labelForMode",
+            "TERMINAL_GLYPH"
+          ],
+          "note": [
+            "Agent-mode node silhouettes — resolve a mode string to its glyph markup",
+            "(defaults to the Terminal glyph when the mode has no assigned outline)."
+          ]
+        },
+        {
+          "symbols": [
+            "MODES",
+            "MODE_KEYS"
+          ],
+          "note": [
+            "The agent-mode catalog (generated from agent/modes.yaml) — key, label, desc,",
+            "colour and glyph per mode, so a consumer can represent every mode the platform",
+            "runs, not just the ones with live agents."
+          ],
+          "types": [
+            "ModeMeta"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Primitives",
+      "exports": [
+        {
+          "component": "Button",
+          "types": [
+            "ButtonVariant",
+            "ButtonSize",
+            "ButtonShape",
+            "ButtonTone"
+          ]
+        },
+        {
+          "component": "IconButton",
+          "types": [
+            "IconButtonVariant"
+          ]
+        },
+        {
+          "component": "ActionsMenu"
+        },
+        {
+          "symbols": [
+            "ACTIONS_MENU_DISMISS",
+            "resolveDismiss"
+          ],
+          "types": [
+            "ActionMenuItem",
+            "ActionMenuAction",
+            "ActionMenuHeader",
+            "ActionMenuSeparator",
+            "ActionsMenuPlacement",
+            "ActionsMenuDismiss",
+            "ActionsMenuDismissConfig",
+            "ActionsMenuExit"
+          ]
+        },
+        {
+          "component": "ExportMenu",
+          "types": [
+            "ExportFormat"
+          ]
+        },
+        {
+          "component": "Chip",
+          "types": [
+            "ChipColor",
+            "ChipLook"
+          ]
+        },
+        {
+          "component": "EdgeToolbarCard"
+        },
+        {
+          "component": "Tile",
+          "types": [
+            "TileVariant"
+          ]
+        },
+        {
+          "component": "StatCard",
+          "types": [
+            "StatCardVariant"
+          ],
+          "from": "./primitives/cards/StatCard.svelte"
+        },
+        {
+          "component": "DocCard",
+          "types": [
+            "DocCardColor",
+            "DocCardStatus",
+            "DocCardAuthor"
+          ],
+          "from": "./primitives/cards/DocCard.svelte"
+        },
+        {
+          "component": "HudCard"
+        },
+        {
+          "component": "CompositeCard"
+        },
+        {
+          "types": [
+            "CompositeCardItem"
+          ]
+        },
+        {
+          "component": "PricingCard"
+        },
+        {
+          "component": "StatusDot"
+        },
+        {
+          "component": "StatusBadge"
+        },
+        {
+          "types": [
+            "StatusLevel"
+          ],
+          "from": "./primitives/StatusDot.svelte"
+        },
+        {
+          "component": "Checkbox"
+        },
+        {
+          "component": "Toggle"
+        },
+        {
+          "types": [
+            "ToggleVariant"
+          ]
+        },
+        {
+          "component": "Input",
+          "types": [
+            "InputType"
+          ]
+        },
+        {
+          "component": "PasswordInput"
+        },
+        {
+          "component": "Textarea"
+        },
+        {
+          "component": "FormField"
+        },
+        {
+          "component": "ChipInput"
+        },
+        {
+          "component": "FileUpload"
+        },
+        {
+          "component": "ViewToggle",
+          "types": [
+            "ViewToggleOption"
+          ]
+        },
+        {
+          "component": "SearchInput"
+        },
+        {
+          "component": "CommandPalette",
+          "types": [
+            "CmdItem",
+            "CmdGroup"
+          ]
+        },
+        {
+          "component": "Select",
+          "types": [
+            "SelectOption",
+            "SelectOptGroup"
+          ]
+        },
+        {
+          "component": "SettingRow"
+        },
+        {
+          "component": "UserBlock"
+        },
+        {
+          "component": "StatStrip",
+          "types": [
+            "StatStripItem",
+            "StatStripColor"
+          ]
+        },
+        {
+          "component": "EcoTabBar",
+          "types": [
+            "EcoTab"
+          ]
+        },
+        {
+          "component": "DangerBanner"
+        },
+        {
+          "component": "EmptyState",
+          "types": [
+            "EmptyStateVariant"
+          ]
+        },
+        {
+          "component": "SectionBar"
+        },
+        {
+          "component": "HudCorners"
+        },
+        {
+          "component": "Canvas"
+        },
+        {
+          "component": "MeshMembrane",
+          "types": [
+            "MembraneRegistry",
+            "MembraneProxy",
+            "MembraneAgent"
+          ]
+        },
+        {
+          "component": "CameraControls"
+        },
+        {
+          "component": "Minimap"
+        },
+        {
+          "component": "SelectionBox"
+        },
+        {
+          "types": [
+            "CanvasCamera",
+            "TourStep",
+            "TourController",
+            "CanvasContextValue",
+            "SelectionHandler"
+          ]
+        },
+        {
+          "types": [
+            "MeshNodeType",
+            "NodeState",
+            "DataType",
+            "EdgeStyle",
+            "Port"
+          ]
+        },
+        {
+          "component": "MeshStudio",
+          "note": [
+            "Interactive mesh canvas — radial hub, drag/drop, closest-port line routing."
+          ]
+        },
+        {
+          "component": "GlobeFrame"
+        },
+        {
+          "component": "TerritoryCaps",
+          "types": [
+            "Territory",
+            "TerritoryStyle"
+          ]
+        },
+        {
+          "component": "NodePiece"
+        },
+        {
+          "symbols": [
+            "PIECES",
+            "box",
+            "gable",
+            "tooth",
+            "prism",
+            "octagon"
+          ],
+          "types": [
+            "Piece",
+            "Solid",
+            "PieceVert",
+            "PieceId"
+          ],
+          "from": "./mesh-studio/pieces/pieces.js"
+        },
+        {
+          "symbols": [
+            "pieceFacets",
+            "pieceProjector",
+            "studioFrame",
+            "band",
+            "PIECE_LIGHT"
+          ],
+          "types": [
+            "Facet",
+            "FacetOpts"
+          ]
+        },
+        {
+          "symbols": [
+            "ALL_PIECES",
+            "MODE_PIECES",
+            "pieceForMode"
+          ]
+        },
+        {
+          "symbols": [
+            "WORKS_PIECES",
+            "WORKS_MODE_PIECES"
+          ]
+        },
+        {
+          "symbols": [
+            "CIVIC_PIECES",
+            "CIVIC_MODE_PIECES"
+          ]
+        },
+        {
+          "types": [
+            "StudioNode",
+            "StudioEdge"
+          ]
+        },
+        {
+          "symbols": [
+            "glyphForModes",
+            "AGENT_GLYPH"
+          ]
+        },
+        {
+          "component": "RoadmapStudio",
+          "note": [
+            "Product roadmap — a second layer type on the same Canvas camera. The model",
+            "holds no coordinates; `layoutRoadmap` is pure and arranges it four ways."
+          ]
+        },
+        {
+          "component": "RoadmapMeshLayer"
+        },
+        {
+          "component": "RoadmapRibbonLayer"
+        },
+        {
+          "component": "RoadmapRoadLayer"
+        },
+        {
+          "component": "RoadmapMobiusLayer"
+        },
+        {
+          "component": "RoadmapSequence"
+        },
+        {
+          "component": "RoadmapLayer"
+        },
+        {
+          "component": "RoadmapControls"
+        },
+        {
+          "component": "RoadmapInspector"
+        },
+        {
+          "types": [
+            "RoadmapDisplay"
+          ]
+        },
+        {
+          "symbols": [
+            "layoutRoadmap",
+            "filterModel",
+            "dependencyClosure",
+            "dependencyDepths",
+            "packRows",
+            "summarize",
+            "boundsOf",
+            "wrapLabel",
+            "cardHeight",
+            "laneAccent",
+            "STATUS_ORDER",
+            "STATUS_COLOR",
+            "STATUS_LABEL",
+            "LANE_ACCENT",
+            "VIEW_LABEL",
+            "VIEW_BLURB",
+            "MESH_VIEWS",
+            "SEQUENCE_VIEWS"
+          ],
+          "types": [
+            "RoadmapModel",
+            "RoadmapItem",
+            "RoadmapLane",
+            "RoadmapColumn",
+            "RoadmapStatus",
+            "RoadmapView",
+            "RoadmapFilter",
+            "RoadmapLayout",
+            "RoadmapLayoutOptions",
+            "RoadmapBounds",
+            "RoadmapSummary",
+            "PlacedItem",
+            "RoadmapBand",
+            "RoadmapRing"
+          ]
+        },
+        {
+          "symbols": [
+            "frameRoadmap",
+            "inlineTokens",
+            "downloadRoadmapPng",
+            "downloadRoadmapSvg"
+          ],
+          "types": [
+            "RoadmapExportOptions"
+          ]
+        },
+        {
+          "symbols": [
+            "meshSeed",
+            "effortRadius"
+          ]
+        },
+        {
+          "symbols": [
+            "ribbonLayout",
+            "ribbonExtent",
+            "reorder"
+          ],
+          "types": [
+            "RibbonOptions",
+            "RibbonLayout",
+            "RibbonPlacement",
+            "RibbonSegment"
+          ]
+        },
+        {
+          "symbols": [
+            "roadLayout"
+          ],
+          "types": [
+            "RoadOptions",
+            "RoadLayout",
+            "RoadStop"
+          ]
+        },
+        {
+          "symbols": [
+            "mobiusLayout"
+          ],
+          "types": [
+            "MobiusOptions",
+            "MobiusLayout",
+            "MobiusPlacement",
+            "MobiusStroke"
+          ]
+        },
+        {
+          "types": [
+            "MeshSeed",
+            "MeshSeedItem",
+            "MeshSeedOptions",
+            "MeshShell"
+          ]
+        },
+        {
+          "symbols": [
+            "SAMPLE_ROADMAP"
+          ]
+        },
+        {
+          "symbols": [
+            "packingR",
+            "silhouetteR",
+            "labelBox",
+            "nodeR",
+            "arcGeom"
+          ],
+          "note": [
+            "Node sizing + ring placement — a consumer laying out a mesh must size nodes the",
+            "same way MeshStudio draws them, or they overlap."
+          ],
+          "types": [
+            "MetricOpts"
+          ]
+        },
+        {
+          "symbols": [
+            "packRing",
+            "solveRingRadius"
+          ],
+          "note": [
+            "Layout physics — pure geometry over circular bodies, with no knowledge of what",
+            "a body stands for. `packRing` seeds a feasible layout; `packInward` draws it in",
+            "around a hub, keeping bodies apart and links legible."
+          ],
+          "types": [
+            "RingOpts",
+            "RingPlacement"
+          ]
+        },
+        {
+          "symbols": [
+            "packSunflower",
+            "GOLDEN_ANGLE"
+          ]
+        },
+        {
+          "symbols": [
+            "packSphere",
+            "packSphereClusters",
+            "solveRadius",
+            "fibonacciDir",
+            "capDir",
+            "capField",
+            "capRing",
+            "capRingYaw",
+            "alignZ",
+            "spin",
+            "project",
+            "projectPoint",
+            "tangentFrame"
+          ]
+        },
+        {
+          "symbols": [
+            "makeTerrain",
+            "terrainLift",
+            "capMask",
+            "maskTerrain",
+            "shapeTerrain",
+            "contours"
+          ],
+          "note": [
+            "Ground on a sphere — an elevation field the globe, its nodes and the solids",
+            "standing on them all sample, so they agree about where the surface is."
+          ],
+          "types": [
+            "Terrain",
+            "TerrainOpts",
+            "Relief",
+            "ContourOpts",
+            "ContourLine",
+            "ContourSegment"
+          ]
+        },
+        {
+          "note": [
+            "ClusterOpts/ClusterPlacement are declared in both sphere.ts and",
+            "cluster.ts; the barrel has always meant cluster.ts, hence the pin."
+          ],
+          "from": "./physics/cluster.js",
+          "types": [
+            {
+              "name": "ClusterOpts",
+              "as": "SphereClusterOpts"
+            },
+            {
+              "name": "ClusterPlacement",
+              "as": "SphereClusterPlacement"
+            }
+          ]
+        },
+        {
+          "types": [
+            "Vec3",
+            "SphereOpts",
+            "SpherePlacement",
+            "Cap",
+            "Projection",
+            "TangentFrame",
+            "FrameOpts"
+          ],
+          "note": [
+            "The sphere's clustering types are named for the same idea as `cluster.ts`'s",
+            "2D ones, so they carry a Sphere prefix out here where both are in scope."
+          ]
+        },
+        {
+          "symbols": [
+            "orbitIntroPose",
+            "orbitIntroStart",
+            "playOrbitIntro",
+            "orbitConfigFor",
+            "ORBIT_PRESETS"
+          ],
+          "types": [
+            "CameraPose",
+            "OrbitIntroConfig",
+            "OrbitPreset"
+          ]
+        },
+        {
+          "symbols": [
+            "SURFACE_DISTANCE",
+            "cameraApproach",
+            "cameraLerp",
+            "diveFraming",
+            "divePose"
+          ],
+          "note": [
+            "Flying the camera from orbit down to somebody standing on the surface.",
+            "Public because a cutaway that dives into a figure is a thing consumers",
+            "build — `examples/breach` is the first, and it must reach these by the",
+            "package name rather than by path into `physics/`."
+          ]
+        },
+        {
+          "symbols": [
+            "globeRegistry",
+            "registerGlobe",
+            "unregisterGlobe"
+          ],
+          "types": [
+            "GlobeHandle"
+          ]
+        },
+        {
+          "component": "GlobeDevControls"
+        },
+        {
+          "symbols": [
+            "packClusters"
+          ]
+        },
+        {
+          "component": "SupplyChainDemo",
+          "note": [
+            "Software-supply-chain walkthrough — a hands-off ~32s kiosk piece built on the",
+            "globe. Its score is authored in source (not the Builder's tour recorder, which",
+            "only persists to localStorage) so a cold visitor plays the whole story."
+          ]
+        },
+        {
+          "symbols": [
+            "BEATS",
+            "RUN_MS",
+            "beatAt",
+            "beatEnd",
+            "beatProgressAt",
+            "spinElapsedAt",
+            "spinYawAt",
+            "SPIN_RATE",
+            "INTRO_MS",
+            "REST_POSE",
+            "phaseAtLeast",
+            "SCENE_NODES",
+            "PROXY_NODES",
+            "SCORECARD",
+            "DEPTH_COUNT",
+            "HUB_ID",
+            "THREAT_ID"
+          ],
+          "types": [
+            "Beat",
+            "BeatCamera",
+            "Phase",
+            "SceneNode",
+            "VisualId"
+          ],
+          "from": "./supply-chain/supply-chain-scene.js"
+        },
+        {
+          "symbols": [
+            "ECOSYSTEMS",
+            "ECOSYSTEM_BY_KEY",
+            "PACKAGE_GLYPH",
+            "COMPROMISED_GLYPH",
+            "PROXY_GLYPH",
+            "HUB_GLYPH"
+          ],
+          "types": [
+            "Ecosystem"
+          ]
+        },
+        {
+          "types": [
+            "ClusterOpts",
+            "ClusterPlacement"
+          ],
+          "from": "./physics/cluster.js"
+        },
+        {
+          "types": [
+            "SunflowerOpts",
+            "SunflowerPlacement"
+          ]
+        },
+        {
+          "symbols": [
+            "packInward",
+            "relax"
+          ],
+          "types": [
+            "Body",
+            "Lane",
+            "PackOpts",
+            "SolveOpts"
+          ]
+        },
+        {
+          "symbols": [
+            "MESH_LAYOUTS",
+            "solveMeshLayout"
+          ],
+          "note": [
+            "Shared mesh arrangement options (\"Grouped / Packed / Radial / Fan / Globe\") +",
+            "the 2D solver behind them, and the picker control that switches between them."
+          ],
+          "types": [
+            "MeshLayoutId",
+            "PlanarMeshLayoutId",
+            "MeshLayoutOption",
+            "SolveMeshLayoutOpts",
+            "Placeable"
+          ]
+        },
+        {
+          "component": "MeshLayoutPicker"
+        },
+        {
+          "component": "MeshCanvas",
+          "note": [
+            "The mesh canvas shell (Canvas + globe + placement) and its \"View\" popover, so a",
+            "consumer hands over logical nodes and gets the same interactive mesh every page",
+            "draws, without owning any geometry."
+          ]
+        },
+        {
+          "component": "MeshViewControls"
+        },
+        {
+          "symbols": [
+            "DEFAULT_TUNING"
+          ],
+          "note": [
+            "A consumer that lays out its own nodes must size them against the same tuning",
+            "MeshStudio renders them with."
+          ],
+          "types": [
+            "MeshTuning"
+          ]
+        },
+        {
+          "symbols": [
+            "MESH_NODE_COLOR",
+            "MESH_NODE_FILL",
+            "MESH_NODE_LABEL",
+            "DATA_TYPE_COLOR",
+            "DATA_TYPE_GLOW"
+          ]
+        },
+        {
+          "symbols": [
+            "getPortsForType",
+            "portSegments"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Layout",
+      "exports": [
+        {
+          "component": "Modal",
+          "types": [
+            "ModalVariant",
+            "ModalSize"
+          ]
+        },
+        {
+          "component": "SelectionModal",
+          "types": [
+            "SelectionItem"
+          ]
+        },
+        {
+          "component": "IconToolbar",
+          "types": [
+            "IconToolbarItem",
+            "IconToolbarButton",
+            "IconToolbarMenu",
+            "IconToolbarOrientation"
+          ]
+        },
+        {
+          "component": "Panel",
+          "types": [
+            "PanelTone"
+          ]
+        },
+        {
+          "component": "Tooltip",
+          "types": [
+            "TooltipPlacement"
+          ]
+        },
+        {
+          "component": "AppShell"
+        },
+        {
+          "component": "NavDrawer"
+        },
+        {
+          "component": "Collapsible"
+        },
+        {
+          "component": "LayoutHeader"
+        },
+        {
+          "component": "PagePanel"
+        },
+        {
+          "component": "Tabs",
+          "types": [
+            "Tab"
+          ]
+        },
+        {
+          "component": "SidebarNav",
+          "types": [
+            "NavItem",
+            "NavSection"
+          ]
+        },
+        {
+          "component": "ActionBar",
+          "types": [
+            "ActionBarAction"
+          ]
+        },
+        {
+          "component": "PageContextMenu",
+          "types": [
+            "CtxFilterOption",
+            "CtxFilterGroup",
+            "CtxSort",
+            "CtxChip",
+            "CtxAction"
+          ]
+        },
+        {
+          "component": "RiskRegister"
+        },
+        {
+          "component": "RiskEditor",
+          "types": [
+            "RiskEditorApi"
+          ]
+        },
+        {
+          "symbols": [
+            "reviewChecks"
+          ],
+          "types": [
+            "RiskRow",
+            "RiskInput",
+            "AppetiteView",
+            {
+              "name": "Override",
+              "as": "RiskOverride"
+            },
+            {
+              "name": "Level",
+              "as": "RiskLevel"
+            },
+            {
+              "name": "Status",
+              "as": "RiskStatus"
+            },
+            {
+              "name": "Treatment",
+              "as": "RiskTreatment"
+            },
+            "RiskCheck",
+            {
+              "name": "ReviewInput",
+              "as": "RiskReviewInput"
+            },
+            {
+              "name": "CheckArea",
+              "as": "RiskCheckArea"
+            },
+            {
+              "name": "CheckState",
+              "as": "RiskCheckState"
+            }
+          ]
+        },
+        {
+          "component": "TableWrap"
+        },
+        {
+          "component": "RulePanel",
+          "types": [
+            "RulePanelTab",
+            "RulePanelRule"
+          ]
+        },
+        {
+          "component": "PersonListPanel",
+          "types": [
+            "PersonListItem"
+          ]
+        },
+        {
+          "component": "SubFooter"
+        },
+        {
+          "component": "PageHero"
+        },
+        {
+          "component": "ClosingCTA"
+        }
+      ]
+    },
+    {
+      "title": "Navigation",
+      "exports": [
+        {
+          "component": "Breadcrumbs",
+          "types": [
+            "BreadcrumbItem"
+          ],
+          "from": "./navigation/Breadcrumbs.svelte"
+        }
+      ]
+    },
+    {
+      "title": "Display",
+      "exports": [
+        {
+          "component": "SummaryCards",
+          "types": [
+            "SummaryItem",
+            "SummaryVariant"
+          ],
+          "from": "./display/metric/SummaryCards.svelte"
+        },
+        {
+          "component": "PanelLoading"
+        },
+        {
+          "component": "DataTable",
+          "types": [
+            "KvRow",
+            "TableColumn"
+          ]
+        },
+        {
+          "component": "FilterToolbar"
+        },
+        {
+          "component": "TablePager",
+          "symbols": [
+            "pageWindow"
+          ]
+        },
+        {
+          "component": "BulkActionBar",
+          "types": [
+            "BulkAction"
+          ]
+        },
+        {
+          "component": "NodeDrawer",
+          "types": [
+            "DrawerPosition",
+            {
+              "name": "TabId",
+              "as": "NodeDrawerTabId"
+            }
+          ]
+        },
+        {
+          "component": "EntityOverviewTab",
+          "note": [
+            "Drawer tab bodies — a summary face, a verdict log and an activity log. Named",
+            "for what they draw rather than for any one host's domain, so the vocabulary",
+            "(an \"agent\", an \"intercept\") stays at the call site."
+          ],
+          "types": [
+            "OverviewStat",
+            "OverviewHighlight",
+            "OverviewCredential"
+          ]
+        },
+        {
+          "component": "OverviewDrawer",
+          "types": [
+            "OverviewDrawerStat"
+          ]
+        },
+        {
+          "component": "IncidentDrawer",
+          "types": [
+            "IncidentDrawerData"
+          ]
+        },
+        {
+          "component": "SheetDrawer",
+          "types": [
+            "SheetDrawerSize",
+            "SheetDrawerBody"
+          ]
+        },
+        {
+          "component": "VerdictLogTab",
+          "types": [
+            "VerdictStats",
+            "LogFilter",
+            "VerdictEntryVM"
+          ]
+        },
+        {
+          "component": "EventLogTab"
+        },
+        {
+          "symbols": [
+            "eventColor",
+            "eventIcon"
+          ],
+          "types": [
+            "LogEventVM",
+            "LogEventTone"
+          ]
+        },
+        {
+          "component": "LogRow",
+          "types": [
+            "LogLevel"
+          ]
+        },
+        {
+          "component": "AlertBladeHost",
+          "types": [
+            "BladePosition"
+          ]
+        },
+        {
+          "symbols": [
+            "alertBlade"
+          ],
+          "types": [
+            "AlertBladeItem",
+            "AlertBladeVariant",
+            "AlertBladeOptions"
+          ]
+        },
+        {
+          "component": "StatTile",
+          "types": [
+            "StatTileSubVariant",
+            "StatTileHalo",
+            "StatTileShape"
+          ]
+        },
+        {
+          "component": "CountUp"
+        },
+        {
+          "component": "PostureVerdict",
+          "types": [
+            "Verdict",
+            "PostureClause",
+            "PostureClauseTone"
+          ],
+          "from": "./display/metric/PostureVerdict.svelte"
+        },
+        {
+          "component": "Sparkline"
+        },
+        {
+          "component": "PeerCard"
+        },
+        {
+          "component": "CodeBlock"
+        },
+        {
+          "component": "ConfigBlock"
+        },
+        {
+          "component": "Timeline",
+          "types": [
+            "TimelineEvent",
+            "TimelineTone",
+            "TimelineVariant"
+          ]
+        },
+        {
+          "component": "Avatar"
+        },
+        {
+          "component": "ConsensusBar"
+        },
+        {
+          "component": "TerminalBlock"
+        },
+        {
+          "component": "FaqAccordion",
+          "types": [
+            "FaqItem"
+          ]
+        },
+        {
+          "component": "HexShield"
+        },
+        {
+          "component": "ProgressBar",
+          "types": [
+            "ProgressType",
+            "ProgressVariant",
+            "ProgressSize"
+          ]
+        },
+        {
+          "component": "SteppedProgress",
+          "types": [
+            "StepStyle"
+          ]
+        },
+        {
+          "component": "RadialProgress"
+        },
+        {
+          "component": "StackedBar",
+          "types": [
+            "StackedSegment"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Choice lists",
+      "exports": [
+        {
+          "component": "SegmentGroup",
+          "note": [
+            "Generic form controls. They lived under `assessment/` until the vendor-",
+            "assessment components moved to app-ui; `theme/ThemePicker` uses CheckboxList,",
+            "so these were never domain-specific in the first place."
+          ]
+        },
+        {
+          "component": "RadioList"
+        },
+        {
+          "component": "CheckboxList"
+        },
+        {
+          "types": [
+            "ChoiceOption"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Docs",
+      "exports": [
+        {
+          "component": "DocsNav",
+          "types": [
+            "DocNavGroup",
+            "DocNavCard"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chat",
+      "exports": [
+        {
+          "component": "ChatMessage",
+          "types": [
+            "ChatRole"
+          ]
+        },
+        {
+          "component": "ChatThread",
+          "types": [
+            "ChatEntry"
+          ]
+        },
+        {
+          "component": "Ticker"
+        },
+        {
+          "component": "ProfileCard"
+        },
+        {
+          "component": "GlowOutline"
+        },
+        {
+          "component": "SvgFx",
+          "note": [
+            "Apply a chrome / emboss / outline / glow / engrave treatment to ANY vector",
+            "art. Reads only the source alpha, so it works on art never authored for it —",
+            "unlike the crests in icons/, whose metal is painted onto their own geometry."
+          ]
+        },
+        {
+          "types": [
+            "SvgFxType",
+            "SvgFxTuning"
+          ]
+        },
+        {
+          "symbols": [
+            "FX_DEFAULTS",
+            "FX_KNOBS",
+            "FX_BLURB",
+            "resolveFx",
+            "fxRegion"
+          ]
+        },
+        {
+          "component": "BreakoutStack",
+          "note": [
+            "Layout counterpart: a container whose overlay is allowed to escape it."
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Builder utilities",
+      "exports": [
+        {
+          "component": "LayerControls"
+        }
+      ]
+    },
+    {
+      "title": "Chart",
+      "exports": [
+        {
+          "component": "Chart"
+        },
+        {
+          "component": "ChartLegend"
+        },
+        {
+          "component": "DonutChart",
+          "types": [
+            "DonutSlice"
+          ]
+        },
+        {
+          "component": "DonutLegend"
+        },
+        {
+          "component": "DonutPopover"
+        },
+        {
+          "types": [
+            "ChartConfig",
+            "ChartSeries",
+            "ChartPoint",
+            "ChartType",
+            "ChartAnnotation",
+            "AxisConfig",
+            "AxisType",
+            "LegendConfig",
+            "TooltipConfig",
+            "ColorFn",
+            "GradientStop"
+          ]
+        },
+        {
+          "symbols": [
+            "CHART_PALETTE",
+            "seriesColor"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Theme",
+      "exports": [
+        {
+          "component": "ThemePicker",
+          "note": [
+            "THE RULE: a store is exported from this barrel if and only if a host app needs",
+            "it to drive a component this barrel also exports. Library behaviour is public;",
+            "the state behind showcase's own pages and tools is not.",
+            "",
+            "  public   theme, advancedSettings, alertBlade, frameControl, frameLatency,",
+            "           perfBudget, globeRegistry — each one is the state behind an",
+            "           exported component (ThemePicker, ActionsMenu, AlertBladeHost,",
+            "           Frame, PerfPanel, GlobeDevControls), and app-ui drives several",
+            "           directly.",
+            "  private  builder (the mockup builder's document), docsLayout (showcase's",
+            "           own DocsShell, which is not exported — app-ui has its own),",
+            "           showcaseState (the doc-page scroll spy).",
+            "",
+            "`store-exports.spec.ts` enforces this both ways: adding a store without",
+            "exporting it fails, and so does exporting one that belongs to the app.",
+            "Remember that app-ui aliases `showcase` to this source tree, so anything here",
+            "is live API for a second package — see `store-exports.spec.ts` before cutting",
+            "an export that looks unused."
+          ]
+        },
+        {
+          "symbols": [
+            "theme"
+          ]
+        },
+        {
+          "symbols": [
+            "THEMES",
+            "getTheme",
+            "resolveChoice"
+          ],
+          "types": [
+            "Theme",
+            "ThemeKey",
+            "ThemeChoice",
+            "ThemeMode"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Storyboard",
+      "exports": [
+        {
+          "component": "StoryboardCanvas"
+        },
+        {
+          "component": "SwimLane"
+        },
+        {
+          "component": "StoryboardFrame"
+        },
+        {
+          "component": "StoryboardArrow"
+        },
+        {
+          "component": "StoryboardBranch"
+        }
+      ]
+    },
+    {
+      "title": "Dev",
+      "exports": [
+        {
+          "component": "DevCog"
+        },
+        {
+          "types": [
+            "FlagSnapshot"
+          ]
+        },
+        {
+          "symbols": [
+            "createFlagStore"
+          ],
+          "types": [
+            "FlagStore",
+            "FlagStoreConfig",
+            "FlagSource",
+            "DevRuntime"
+          ]
+        },
+        {
+          "symbols": [
+            "loadNits",
+            "saveNits",
+            "parseNits",
+            "getCssPath",
+            "buildAIPrompt",
+            "DEFAULT_NIT_CONFIG"
+          ],
+          "types": [
+            "Nit",
+            "NitConfig"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ItemFrames (pre-load scaffolds)",
+      "exports": [
+        {
+          "symbols": [
+            "Frame",
+            "FrameDevControls",
+            "FrameNumber",
+            "FRAME_MAP",
+            "FRAME_ATTR",
+            "buildFrameCss",
+            "getFrameState",
+            "frameControl",
+            "frameLatency"
+          ],
+          "types": [
+            "FrameSpec"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Motion",
+      "exports": [
+        {
+          "symbols": [
+            "Flourish",
+            "FLOURISHES",
+            "normalizeFlourish"
+          ],
+          "types": [
+            "FlourishKind",
+            "FlourishOption"
+          ]
+        },
+        {
+          "symbols": [
+            "collapse",
+            "collapseCss",
+            "readMetrics",
+            "COLLAPSE_DURATION"
+          ],
+          "types": [
+            "CollapseParams",
+            "CollapseMetrics"
+          ]
+        },
+        {
+          "symbols": [
+            "vanish",
+            "vanishCss",
+            "VANISH_DURATION",
+            "VANISH_DEFAULTS",
+            "prefersReducedMotion"
+          ],
+          "types": [
+            "VanishParams",
+            "VanishGeometry"
+          ]
+        },
+        {
+          "symbols": [
+            "implode",
+            "implodeCss",
+            "IMPLODE_DURATION",
+            "IMPLODE_DEFAULTS"
+          ],
+          "note": [
+            "The global catalogue of overlay exit motions — what a primitive resolves",
+            "against instead of hardcoding an animation or taking an `exit` prop."
+          ],
+          "types": [
+            "ImplodeParams",
+            "ImplodeGeometry"
+          ]
+        },
+        {
+          "symbols": [
+            "EXITS",
+            "EXIT_SPECS",
+            "DEFAULT_EXIT",
+            "cut",
+            "normalizeExit",
+            "exitSpec"
+          ],
+          "types": [
+            "ExitKind",
+            "ExitOption",
+            "ExitSpec",
+            "MotionExit"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Settings (client-side cache)",
+      "exports": [
+        {
+          "symbols": [
+            "advancedSettings"
+          ],
+          "types": [
+            "AdvancedSettings"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Perf",
+      "exports": [
+        {
+          "symbols": [
+            "perfBudget"
+          ],
+          "types": [
+            "PerfTier"
+          ]
+        },
+        {
+          "component": "PerfPanel"
+        },
+        {
+          "symbols": [
+            "frameProbe"
+          ],
+          "types": [
+            "FrameStats",
+            "Quantiles"
+          ]
+        },
+        {
+          "symbols": [
+            "serializeSvg",
+            "downloadSvg",
+            "downloadPng",
+            "rasterSize"
+          ],
+          "note": [
+            "Lift a live SVG off the page as a file. Written for showcase's own tuning",
+            "controls, but nothing in it is showcase-specific — a consuming app's dev tools",
+            "want the same thing when a canvas state is worth sharing without a screenshot."
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+	"extends": "./.svelte-kit/tsconfig.json",
+	"include": [
+		".svelte-kit/ambient.d.ts",
+		".svelte-kit/non-ambient.d.ts",
+		".svelte-kit/types/**/$types.d.ts",
+		"vite.config.ts",
+		"src/**/*.js",
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		"test/**/*.js",
+		"test/**/*.ts",
+		"test/**/*.svelte",
+		"tests/**/*.js",
+		"tests/**/*.ts",
+		"tests/**/*.svelte"
+	],
+	"compilerOptions": {
+		// Re-declares the generated `$lib`/`$app` mappings, because `paths` in an
+		// extending config REPLACES the parent's rather than merging with it.
+		//
+		// `examples/**` is deliberately NOT in `include`: each example is a
+		// standalone Vite app with `moduleResolution: "bundler"`, and checking it
+		// under this project's `nodenext` reports errors that are not errors where
+		// the code actually runs. Each example owns its own `npm run check`.
+		"paths": {
+			"$lib": ["./src/lib"],
+			"$lib/*": ["./src/lib/*"],
+			"$app/types": ["./.svelte-kit/types/index.d.ts"],
+			"showcase": ["./src/lib/index.ts"],
+			"$examples/*": ["./examples/*"]
+		},
+		"rewriteRelativeImportExtensions": true,
+		"allowJs": true,
+		"checkJs": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"types": ["node"],
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext"
+	},
+	"exclude": ["**/*.spec.ts", "**/*.test.ts", "node_modules"]
+}

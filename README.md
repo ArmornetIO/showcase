@@ -231,16 +231,7 @@ built and battle-tested inside a production security platform:
   mode, live topology rendering
 - **`physics/`** — orbit simulation with real spec coverage
 - **`chart/`** — a composable chart engine: shared context, scales, axis,
-  crosshair, legend, tooltip, annotations, and 12 pluggable renderers
-- **`assessment/` `risk/` `supply-chain/` `roadmap/`** — domain surfaces that
-  prove the primitives compose at real complexity
-- **`model-explorer/` `perf/` `settings/` `docs/`** — application chrome:
-  docs shell, TOC, breadcrumbs, prose, nav
-- **`auth/`** (`showcase/auth`) — sign-in surfaces as a separate entry point
 
-Plus `/mockups` — 37 full-page compositions, from onboarding wizards to breach
-maps to policy authoring, each one a working proof that the system holds up past
-the storybook.
 
 ---
 
@@ -271,19 +262,5 @@ npm run build        # build app + package the library (svelte-package + publint
 
 The parity and coverage specs will tell you which of these you forgot.
 
----
 
-## Status
-
-Pre-1.0 and moving fast. The component set is stable enough to build products
-on — it already carries one — but exports may shift before the first tagged
-release. Pin exactly if that matters to you.
-
-**Contributions welcome**, with one house rule: if a change makes the library
-harder for a machine to read, it needs a very good reason. Generated contracts
-stay generated. Registry invariants stay enforced. Tokens stay the only source
-of color.
-
----
-
-*Built with Claude. Tuned by hand. Designed to be handed back.*
+*Built with AI. Tuned by hand. Designed to be handed back.*

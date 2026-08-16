@@ -37,6 +37,10 @@ bower_components
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
+# SvelteKit build output — copied into server/ui/static-showcase at build time
+/build/*
+!/build/.gitkeep
+
 # Dependency directories
 node_modules/
 jspm_packages/

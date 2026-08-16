@@ -1,0 +1,469 @@
+/*
+ * ── Breakpoints (for reference — use Tailwind prefixes in components) ─────────
+ *    sm  ≥ 640px   md  ≥ 768px   lg  ≥ 1024px  (mobile-first, base = 0px)
+ */
+
+/* Armornet UI — design tokens
+   Import once in the consuming app's root layout or app.css:
+     @import 'showcase/tokens.css';
+   All components reference these variables; no color values are hardcoded
+   inside component files (except semantic status colors: teal/amber/rose). */
+
+/* Establish cascade-layer order up front so `base` sits BELOW `utilities` —
+   otherwise the button reset below would out-rank intentional `bg-*` utilities. */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+
+/* Preflight isn't imported here, so bare <button>s fall back to the UA gray
+   button face (that "ugly gray" on any control without an explicit bg-*). This
+   is the one reset we need from preflight: sits in `base`, below `utilities`,
+   so intentional `bg-[…]` utilities still win. */
+@layer base {
+	button,
+	[type='button'],
+	[type='reset'],
+	[type='submit'] {
+		-webkit-appearance: none;
+		appearance: none;
+		background-color: transparent;
+		background-image: none;
+		/* Zero the UA "2px outset" button border but keep style `solid`, so Tailwind
+		   `border`/`border-<color>` utilities (higher layer) render normally. */
+		border-width: 0;
+		border-style: solid;
+	}
+}
+
+/* ── dark (default) ─────────────────────────────────────────────────────── */
+:root {
+	--bg: #06070b;
+	--bg-elev: #0a0b10;
+	--fg: #e5edf0;
+	--fg-muted: #8a969c;
+	--fg-dim: #6c777e;
+	--accent: #5eead4;
+	--accent-bright: #7af0d8;
+	--accent-deep: #04221f;
+	--accent-faint: rgba(94, 234, 212, 0.06);
+	--accent-soft: #7ff0dc;
+    --accent-emerald: #34d399;
+    --text-onaccent: #001a13;
+	--accent-faint-strong: rgba(94, 234, 212, 0.12);
+	--accent-glow: rgba(94, 234, 212, 0.4);
+	--accent-line: rgba(94, 234, 212, 0.04);
+	--accent-link-underline: rgba(94, 234, 212, 0.4);
+	--border: rgba(255, 255, 255, 0.08);
+	--border-strong: rgba(255, 255, 255, 0.14);
+	--border-accent: rgba(94, 234, 212, 0.2);
+	--surface-raised: rgba(255, 255, 255, 0.018);
+	--surface-strong: rgba(255, 255, 255, 0.025);
+	--input-bg: rgba(0, 0, 0, 0.25);
+	--page-bg:
+		radial-gradient(ellipse at top, rgba(94, 234, 212, 0.06) 0%, transparent 55%),
+		radial-gradient(ellipse at 15% 80%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
+		radial-gradient(ellipse at 90% 30%, rgba(52, 211, 153, 0.03) 0%, transparent 50%),
+		#06070b;
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(94, 234, 212, 0.08), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(94, 234, 212, 0.05), transparent 60%);
+	--terminal-bg: rgba(8, 10, 14, 0.85);
+	--selection-bg: rgba(94, 234, 212, 0.35);
+	--selection-fg: var(--accent-deep);
+	--btn-primary-fg: var(--accent-deep);
+	--shadow-card: 0 30px 80px -30px rgba(0, 0, 0, 0.8), 0 0 60px -20px rgba(94, 234, 212, 0.3);
+	--method-get-fg: var(--accent);
+	--method-get-bg: rgba(94, 234, 212, 0.1);
+	--method-post-fg: #f0d59e;
+	--method-post-bg: rgba(240, 213, 158, 0.1);
+	--method-delete-fg: #ff8e8e;
+	--method-delete-bg: rgba(255, 142, 142, 0.08);
+	--method-patch-fg: #c4a8ff;
+	--method-patch-bg: rgba(196, 168, 255, 0.08);
+	--mono: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', monospace;
+	--mono-display: 'Orbitron', 'SF Mono', monospace;
+	--sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	--sans-brand: 'Rajdhani', 'Inter', sans-serif;
+	/* ── Secondary palette — design-system accent colors (theme-invariant) ── */
+	--palette-cyan:      #22D3EE;
+	--palette-cyan-l:    #67E8F9;
+	--palette-emerald:   #34D399;
+	--palette-emerald-l: #6EE7B7;
+	--palette-blue:      #38BDF8;
+	--palette-blue-l:    #7DD3FC;
+	--palette-amber:     #FCD34D;
+	--palette-amber-l:   #FDE68A;
+	--palette-orange:    #FB923C;
+	--palette-orange-l:  #FDBA74;
+	--palette-red:       #FCA5A5;
+	--palette-red-l:     #FECACA;
+	--palette-violet:    #C4B5FD;
+	--palette-violet-l:  #DDD6FE;
+
+	/* ── Terminal surface — theme-invariant, because the terminal is ─────────
+	   deliberately dark in EVERY theme (`--terminal-bg` is #1c2126 even in
+	   light). Text on it must NOT use --fg/--accent: those inverse with the
+	   theme and would render dark-on-dark. These are the palette for that one
+	   permanently-dark surface. */
+	--terminal-fg:     #e5edf0;
+	--terminal-accent: #5eead4;  /* prompt, ok, keyword */
+	--terminal-dim:    #6c777e;  /* dim, comment */
+	--terminal-string: #f0d59e;
+
+	/* ── Neutral scale — opaque zinc, theme-invariant, for material controls ── */
+	--neutral-950: #0A0A0B;
+	--neutral-900: #18181B;
+	--neutral-800: #27272A;
+	--neutral-700: #3F3F46;
+	--neutral-600: #52525B;
+
+	/* ── Control tokens — semantic aliases for hardware-style toggle components ── */
+	--control-bg:       #111113;
+	--control-chassis:  #18181B;
+	--control-border:   #27272A;
+	--control-inactive: #3F3F46;
+	--control-surface:  #27272A;
+
+	color-scheme: dark;
+}
+
+@media (max-width: 639px) {
+	:root {
+		--touch-target: 44px; /* minimum tap target for buttons / icon buttons */
+		--page-x: 1rem; /* tighter horizontal page padding on mobile */
+	}
+}
+
+/* ── light ──────────────────────────────────────────────────────────────── */
+[data-theme='light'] {
+	--bg: #f7f8fa;
+	--bg-elev: #eef0f4;
+	--fg: #0d1417;
+	--fg-muted: #475259;
+	--fg-dim: #6b757b;
+	--accent: #0e7868;
+	--accent-bright: #0a8978;
+	--accent-deep: #e9faf7;
+	--accent-faint: rgba(14, 120, 104, 0.06);
+	--accent-soft: #14a08a;
+    --accent-emerald: #059669;
+    --text-onaccent: #ffffff;
+	--accent-faint-strong: rgba(14, 120, 104, 0.12);
+	--accent-glow: rgba(14, 120, 104, 0.25);
+	--accent-line: rgba(14, 120, 104, 0.06);
+	--accent-link-underline: rgba(14, 120, 104, 0.4);
+	--border: rgba(13, 20, 23, 0.1);
+	--border-strong: rgba(13, 20, 23, 0.18);
+	--border-accent: rgba(14, 120, 104, 0.2);
+	--surface-raised: rgba(13, 20, 23, 0.025);
+	--surface-strong: rgba(13, 20, 23, 0.04);
+	--input-bg: #ffffff;
+	--page-bg: linear-gradient(#f7f8fa, #eef0f4);
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(14, 120, 104, 0.06), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(14, 120, 104, 0.04), transparent 60%);
+	--terminal-bg: #1c2126;
+	--selection-bg: rgba(14, 120, 104, 0.25);
+	--selection-fg: #0d1417;
+	--btn-primary-fg: #ffffff;
+	--shadow-card: 0 30px 80px -30px rgba(13, 20, 23, 0.18), 0 0 60px -20px rgba(14, 120, 104, 0.25);
+	--method-get-fg: #0e7868;
+	--method-get-bg: rgba(14, 120, 104, 0.1);
+	--method-post-fg: #8a6500;
+	--method-post-bg: rgba(138, 101, 0, 0.1);
+	--method-delete-fg: #b32424;
+	--method-delete-bg: rgba(179, 36, 36, 0.08);
+	--method-patch-fg: #5b3aaa;
+	--method-patch-bg: rgba(91, 58, 170, 0.08);
+	color-scheme: light;
+}
+
+/* ── oled ───────────────────────────────────────────────────────────────── */
+[data-theme='oled'] {
+	--bg: #000000;
+	--bg-elev: #050505;
+	--page-bg:
+		radial-gradient(ellipse at top, rgba(94, 234, 212, 0.06) 0%, transparent 55%),
+		radial-gradient(ellipse at 15% 80%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
+		radial-gradient(ellipse at 90% 30%, rgba(52, 211, 153, 0.03) 0%, transparent 50%),
+		#000000;
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(94, 234, 212, 0.06), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(94, 234, 212, 0.04), transparent 60%);
+	--surface-raised: rgba(255, 255, 255, 0.03);
+	--surface-strong: rgba(255, 255, 255, 0.05);
+	--input-bg: rgba(0, 0, 0, 0.6);
+	--shadow-card: 0 30px 80px -30px rgba(0, 0, 0, 1), 0 0 60px -20px rgba(94, 234, 212, 0.25);
+	color-scheme: dark;
+}
+
+/* ── high-contrast ──────────────────────────────────────────────────────── */
+[data-theme='high-contrast'] {
+	--bg: #000000;
+	--bg-elev: #000000;
+	--fg: #ffffff;
+	--fg-muted: #ffffff;
+	--fg-dim: #cccccc;
+	--accent: #ffff00;
+	--accent-bright: #ffff66;
+	--accent-deep: #000000;
+	--accent-faint: rgba(255, 255, 0, 0.12);
+	--accent-soft: #ffff66;
+    --accent-emerald: #ffff00;
+    --text-onaccent: #000000;
+	--accent-faint-strong: rgba(255, 255, 0, 0.2);
+	--accent-glow: rgba(255, 255, 0, 0.6);
+	--accent-line: rgba(255, 255, 0, 0.18);
+	--accent-link-underline: #ffff00;
+	--border: #ffffff;
+	--border-strong: #ffffff;
+	--border-accent: #ffff00;
+	--surface-raised: #000000;
+	--surface-strong: #0a0a0a;
+	--input-bg: #000000;
+	--page-bg: linear-gradient(#000000, #000000);
+	--page-glow-1: none;
+	--page-glow-2: none;
+	--terminal-bg: #000000;
+	--selection-bg: #ffff00;
+	--selection-fg: #000000;
+	--btn-primary-fg: #000000;
+	--shadow-card: none;
+	--method-get-fg: #ffff00;
+	--method-get-bg: rgba(255, 255, 0, 0.18);
+	--method-post-fg: #ffff66;
+	--method-post-bg: rgba(255, 255, 0, 0.12);
+	--method-delete-fg: #ff6666;
+	--method-delete-bg: rgba(255, 102, 102, 0.18);
+	--method-patch-fg: #66ffff;
+	--method-patch-bg: rgba(102, 255, 255, 0.18);
+	color-scheme: dark;
+}
+
+[data-theme='high-contrast'] a:not([class*='btn']):not([class*='brand']) {
+	text-decoration: underline;
+}
+[data-theme='high-contrast'] :focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 3px;
+}
+
+/* ── base reset ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--bg);
+	color: var(--fg);
+	font-family: var(--sans);
+	-webkit-font-smoothing: antialiased;
+}
+
+::selection {
+	background: var(--selection-bg);
+	color: var(--selection-fg);
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		transition-duration: 0.001ms !important;
+	}
+}
+
+/* ── Keyframe animations ─────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50%       { opacity: 0.45; transform: scale(0.85); }
+}
+
+@keyframes blink {
+	0%, 49%   { opacity: 1; }
+	50%, 100% { opacity: 0; }
+}
+
+@keyframes signal-pulse {
+	0%   { stroke-dashoffset: 0; opacity: 0; }
+	15%  { opacity: 1; }
+	85%  { opacity: 1; }
+	100% { stroke-dashoffset: -120; opacity: 0; }
+}
+
+@keyframes ring-pulse {
+	0%, 100% { opacity: 0.3; transform: scale(1); }
+	50%      { opacity: 0.8; transform: scale(1.04); }
+}
+
+@keyframes scan-y {
+	0%   { transform: translateY(-20%); opacity: 0; }
+	10%  { opacity: 1; }
+	90%  { opacity: 1; }
+	100% { transform: translateY(420px); opacity: 0; }
+}
+
+@keyframes rotate-slow {
+	from { transform: rotate(0deg); }
+	to   { transform: rotate(360deg); }
+}
+
+@keyframes rotate-rev {
+	from { transform: rotate(360deg); }
+	to   { transform: rotate(0deg); }
+}
+
+@keyframes bubble-float {
+	0%, 100% { transform: translateY(0); }
+	50%      { transform: translateY(-8px); }
+}
+
+@keyframes bubble-pop {
+	0%   { transform: scale(0); opacity: 0; }
+	80%  { transform: scale(1.08); opacity: 1; }
+	100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Animation utility classes ───────────────────────────────────────────── */
+.pulse-dot    { animation: pulse-dot 1.8s ease-in-out infinite; }
+.blink-cursor { animation: blink 1s step-end infinite; }
+.rotate-slow  { animation: rotate-slow 30s linear infinite; }
+
+/* ── Showcase page utilities ─────────────────────────────────────────────── */
+.component-name {
+	font-family: var(--mono);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--fg);
+	margin: 0 0 4px;
+}
+
+.component-desc {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--fg-muted);
+	line-height: 1.55;
+}
+
+/* ── Blueprint grid overlay ─────────────────────────────────────────────── */
+.grid-overlay {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 0;
+	opacity: 0.5;
+	background-image:
+		linear-gradient(rgba(94, 234, 212, 0.07) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(94, 234, 212, 0.07) 1px, transparent 1px);
+	background-size: 56px 56px;
+	mask-image: radial-gradient(ellipse at center, black 30%, transparent 90%);
+	-webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 90%);
+}
+.grid-overlay::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background-image:
+		linear-gradient(rgba(94, 234, 212, 0.03) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(94, 234, 212, 0.03) 1px, transparent 1px);
+	background-size: 14px 14px;
+	mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+	-webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+/* ── Scanline sweep ──────────────────────────────────────────────────────── */
+.scanline-host {
+	position: relative;
+	overflow: hidden;
+}
+.scanline-host::after {
+	content: '';
+	position: absolute;
+	left: 0; right: 0; top: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 5%, rgba(94, 234, 212, 0.5) 50%, transparent 95%);
+	box-shadow: 0 0 8px rgba(94, 234, 212, 0.4);
+	animation: scan-y 8s ease-in-out infinite;
+	pointer-events: none;
+	z-index: 1;
+}
+
+/* ── Corner L-bracket accents ───────────────────────────────────────────── */
+.corner-accent {
+	position: absolute;
+	width: 9px;
+	height: 9px;
+	pointer-events: none;
+}
+.corner-accent.tl {
+	top: 6px; left: 6px;
+	border-top: 1px solid rgba(94, 234, 212, 0.55);
+	border-left: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.tr {
+	top: 6px; right: 6px;
+	border-top: 1px solid rgba(94, 234, 212, 0.55);
+	border-right: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.bl {
+	bottom: 6px; left: 6px;
+	border-bottom: 1px solid rgba(94, 234, 212, 0.55);
+	border-left: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.br {
+	bottom: 6px; right: 6px;
+	border-bottom: 1px solid rgba(94, 234, 212, 0.55);
+	border-right: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.amber.tl,
+.corner-accent.amber.tr {
+	border-top-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.amber.tl,
+.corner-accent.amber.bl {
+	border-left-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.amber.br,
+.corner-accent.amber.bl {
+	border-bottom-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.amber.br,
+.corner-accent.amber.tr {
+	border-right-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.red.tl,
+.corner-accent.red.tr { border-top-color: rgba(252, 165, 165, 0.6); }
+.corner-accent.red.tl,
+.corner-accent.red.bl { border-left-color: rgba(252, 165, 165, 0.6); }
+.corner-accent.red.br,
+.corner-accent.red.bl { border-bottom-color: rgba(252, 165, 165, 0.6); }
+.corner-accent.red.br,
+.corner-accent.red.tr { border-right-color: rgba(252, 165, 165, 0.6); }
+
+/* ── Halo hover ──────────────────────────────────────────────────────────── */
+.halo {
+	--halo-rgb: 94, 234, 212;
+	transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+}
+.halo:hover {
+	border-color: rgba(var(--halo-rgb), 0.4) !important;
+	box-shadow:
+		0 0 0 1px rgba(var(--halo-rgb), 0.25),
+		0 6px 24px -8px rgba(var(--halo-rgb), 0.3);
+}
+.halo-cyan    { --halo-rgb: 34, 211, 238; }
+.halo-emerald { --halo-rgb: 52, 211, 153; }
+.halo-blue    { --halo-rgb: 56, 189, 248; }
+.halo-amber   { --halo-rgb: 252, 211, 77; }
+.halo-red     { --halo-rgb: 252, 165, 165; }

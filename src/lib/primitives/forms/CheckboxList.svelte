@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Multi-select list of assessment options. The box itself lives in
 	// primitives/Checkbox — this owns the options and the selection, not the look.
-	import Checkbox from '../primitives/Checkbox.svelte';
+	import Checkbox from './Checkbox.svelte';
 	import type { ChoiceOption } from './choice.types.js';
 
 	interface Props {

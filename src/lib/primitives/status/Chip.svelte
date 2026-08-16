@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import GlowOutline from './GlowOutline.svelte';
+	import GlowOutline from '../chrome/GlowOutline.svelte';
 
 	export type ChipColor =
 		| 'default'

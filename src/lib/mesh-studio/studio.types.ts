@@ -10,7 +10,7 @@
  *
  * Mirrors the `canvas.types.ts` convention next door in `primitives/`.
  */
-import type { MeshNodeType, NodeState, EdgeStyle, Port } from '../primitives/canvas.types.js';
+import type { MeshNodeType, NodeState, EdgeStyle, Port } from '../primitives/canvas/canvas.types.js';
 import type { TangentFrame } from '../physics/sphere.js';
 
 export interface StudioNode {

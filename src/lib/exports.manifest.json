@@ -172,7 +172,7 @@
           "types": [
             "StatusLevel"
           ],
-          "from": "./primitives/StatusDot.svelte"
+          "from": "./primitives/status/StatusDot.svelte"
         },
         {
           "component": "Checkbox"
@@ -891,62 +891,7 @@
           ]
         },
         {
-          "component": "RiskRegister"
-        },
-        {
-          "component": "RiskEditor",
-          "types": [
-            "RiskEditorApi"
-          ]
-        },
-        {
-          "symbols": [
-            "reviewChecks"
-          ],
-          "types": [
-            "RiskRow",
-            "RiskInput",
-            "AppetiteView",
-            {
-              "name": "Override",
-              "as": "RiskOverride"
-            },
-            {
-              "name": "Level",
-              "as": "RiskLevel"
-            },
-            {
-              "name": "Status",
-              "as": "RiskStatus"
-            },
-            {
-              "name": "Treatment",
-              "as": "RiskTreatment"
-            },
-            "RiskCheck",
-            {
-              "name": "ReviewInput",
-              "as": "RiskReviewInput"
-            },
-            {
-              "name": "CheckArea",
-              "as": "RiskCheckArea"
-            },
-            {
-              "name": "CheckState",
-              "as": "RiskCheckState"
-            }
-          ]
-        },
-        {
           "component": "TableWrap"
-        },
-        {
-          "component": "RulePanel",
-          "types": [
-            "RulePanelTab",
-            "RulePanelRule"
-          ]
         },
         {
           "component": "PersonListPanel",

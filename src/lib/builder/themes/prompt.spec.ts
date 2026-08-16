@@ -60,7 +60,7 @@ describe('buildPrompt', () => {
 
 	it('points at the real source file', () => {
 		const out = buildPrompt({ ...base, overrides: { '--accent': '#ff0000' } });
-		expect(out).toContain('showcase/src/lib/primitives/Button.svelte');
+		expect(out).toContain('showcase/src/lib/primitives/actions/Button.svelte');
 	});
 
 	it('falls back to a glob for a component with no mapped file', () => {

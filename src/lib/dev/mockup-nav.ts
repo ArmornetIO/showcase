@@ -1,4 +1,4 @@
-import type { NavSection } from '$lib/layout/SidebarNav.svelte';
+import type { NavSection } from '$lib/navigation/SidebarNav.svelte';
 import type { IconName } from '$lib/icons/Icon.svelte';
 
 /**

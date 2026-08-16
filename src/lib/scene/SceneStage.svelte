@@ -9,7 +9,7 @@
 	// card stays glued to its spot and a glow stays glued to its node through a
 	// pan, a zoom or a fly-to without either of them knowing that happened.
 	import { getContext, onDestroy } from 'svelte';
-	import { CANVAS_CTX, type CanvasContextValue } from '../primitives/canvas-camera.js';
+	import { CANVAS_CTX, type CanvasContextValue } from '../primitives/canvas/canvas-camera.js';
 	import ComponentRenderer from '../builder/ComponentRenderer.svelte';
 	import Flourish from '../motion/Flourish.svelte';
 	import type { SceneObject, ActiveBurst } from './types.js';

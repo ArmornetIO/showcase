@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import type { BreadcrumbItem } from '../navigation/Breadcrumbs.svelte';
+	import type { BreadcrumbItem } from '../../navigation/Breadcrumbs.svelte';
 
 	interface LayoutHeaderProps {
 		/** Short label shown beside the chevron toggle (e.g. "// vendor management"). */

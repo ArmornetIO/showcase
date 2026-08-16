@@ -2,14 +2,12 @@
 	// Containers and chrome. The two that take children (Panel, and anything
 	// with a header snippet) render a `__children` string rather than nesting
 	// real canvas items — the builder has no nesting model.
-	import Panel from '$lib/layout/Panel.svelte';
-	import Tabs from '$lib/layout/Tabs.svelte';
-	import type { Tab } from '$lib/layout/Tabs.svelte';
-	import LayoutHeader from '$lib/layout/LayoutHeader.svelte';
-	import ActionBar from '$lib/layout/ActionBar.svelte';
-	import type { ActionBarAction } from '$lib/layout/ActionBar.svelte';
-	import RulePanel from '$lib/layout/RulePanel.svelte';
-	import type { RulePanelRule, RulePanelTab } from '$lib/layout/RulePanel.svelte';
+	import Panel from '$lib/primitives/chrome/Panel.svelte';
+	import Tabs from '$lib/navigation/Tabs.svelte';
+	import type { Tab } from '$lib/navigation/Tabs.svelte';
+	import LayoutHeader from '$lib/primitives/chrome/LayoutHeader.svelte';
+	import ActionBar from '$lib/primitives/actions/ActionBar.svelte';
+	import type { ActionBarAction } from '$lib/primitives/actions/ActionBar.svelte';
 	import IconToolbar from '$lib/layout/IconToolbar.svelte';
 	import { accessors, parseJson } from './accessors.js';
 	import type { RendererProps } from './types.js';
@@ -32,30 +30,6 @@
 		])
 	);
 
-	const RULE_TABS: RulePanelTab[] = [
-		{ id: 'all', label: 'All' },
-		{ id: 'licenses', label: 'Licenses' },
-		{ id: 'packages', label: 'Packages' }
-	];
-
-	const RULES: RulePanelRule[] = [
-		{
-			id: '1',
-			name: 'Block GPL-3.0 in production deps',
-			category: 'licenses',
-			meta: '4 ecosystems',
-			action: 'block',
-			icon: 'file-text'
-		},
-		{
-			id: '2',
-			name: 'Allow internal scope @armornet/*',
-			category: 'packages',
-			meta: 'NPM',
-			action: 'allow',
-			icon: 'shield-check'
-		}
-	];
 </script>
 
 {#if componentId === 'Panel'}
@@ -80,9 +54,6 @@
 			onclick: () => {}
 		}))}
 	/>
-
-{:else if componentId === 'RulePanel'}
-	<RulePanel title={s('title', 'All Rules')} tabs={RULE_TABS} rules={RULES} onAddRule={() => {}} />
 
 {:else if componentId === 'IconToolbar'}
 	<IconToolbar

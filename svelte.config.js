@@ -11,7 +11,12 @@ const config = {
 			fallback: 'index.html'
 		}),
 		paths: {
-			base: '/showcase'
+			// Vitest browser mode serves its harness from `/__vitest__/`. The base
+			// rewrites those asset URLs to `/showcase/__vitest__/`, which 404s, so the
+			// harness page never boots and every browser spec dies on a closed
+			// connection. Builds and dev are unaffected — VITEST is only set by the
+			// test runner.
+			base: process.env.VITEST ? '' : '/showcase'
 		}
 	}
 };

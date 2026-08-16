@@ -5,7 +5,7 @@
 	// operator gets), so it lives here. Anything page-specific — folding, status /
 	// mode filters — is a snippet the caller drops in below the picker.
 	import type { Snippet } from 'svelte';
-	import Button from '../../primitives/Button.svelte';
+	import Button from '../../primitives/actions/Button.svelte';
 	import Icon from '../../icons/Icon.svelte';
 	import MeshLayoutPicker from './MeshLayoutPicker.svelte';
 	import type { MeshLayoutId } from './mesh-layout.js';

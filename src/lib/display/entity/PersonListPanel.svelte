@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { ChipColor } from '../primitives/Chip.svelte';
+	import type { ChipColor } from '../../primitives/status/Chip.svelte';
 
 	/** A single row in a PersonListPanel — a person (or handle) plus optional scope metadata. */
 	export interface PersonListItem {
@@ -15,11 +15,11 @@
 </script>
 
 <script lang="ts">
-	import Panel from './Panel.svelte';
-	import Button from '../primitives/Button.svelte';
-	import Chip from '../primitives/Chip.svelte';
-	import Input from '../primitives/Input.svelte';
-	import Icon, { type IconName } from '../icons/Icon.svelte';
+	import Panel from '../../primitives/chrome/Panel.svelte';
+	import Button from '../../primitives/actions/Button.svelte';
+	import Chip from '../../primitives/status/Chip.svelte';
+	import Input from '../../primitives/forms/Input.svelte';
+	import Icon, { type IconName } from '../../icons/Icon.svelte';
 
 	interface PersonListPanelProps {
 		/** Header label. */

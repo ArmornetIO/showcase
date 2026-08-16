@@ -4,8 +4,8 @@
 	// so the fixtures don't drown the markup.
 	import DataTable from '$lib/display/table/DataTable.svelte';
 	import type { TableColumn } from '$lib/display/table/DataTable.svelte';
-	import Timeline from '$lib/display/Timeline.svelte';
-	import type { TimelineEvent } from '$lib/display/Timeline.svelte';
+	import Timeline from '$lib/display/content/Timeline.svelte';
+	import type { TimelineEvent } from '$lib/display/content/Timeline.svelte';
 	import Sparkline from '$lib/display/metric/Sparkline.svelte';
 	import Chart from '$lib/chart/Chart.svelte';
 	import DonutChart from '$lib/chart/DonutChart.svelte';

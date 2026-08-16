@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
 	import Card from '$lib/primitives/cards/Card.svelte';
-	import CardStack from '$lib/layout/CardStack.svelte';
+	import CardStack from '$lib/primitives/chrome/CardStack.svelte';
 	import type { CardType, DataInputField, DataInputInfoRow, SummaryItem } from '$lib/primitives/cards/Card.svelte';
 
 	let cardType = $state<CardType>('composite');

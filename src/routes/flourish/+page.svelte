@@ -6,8 +6,8 @@
 	import Flourish from '$lib/motion/Flourish.svelte';
 	import { FLOURISHES, type FlourishKind } from '$lib/motion/effects.js';
 	import Icon from '$lib/icons/Icon.svelte';
-	import SidebarNav from '$lib/layout/SidebarNav.svelte';
-	import type { NavSection } from '$lib/layout/SidebarNav.svelte';
+	import SidebarNav from '$lib/navigation/SidebarNav.svelte';
+	import type { NavSection } from '$lib/navigation/SidebarNav.svelte';
 	import { advancedSettings } from '$lib/settings/store.svelte.js';
 
 	// Per-target replay counters — one namespace per demo so nothing collides.

@@ -1,24 +1,24 @@
 <script lang="ts">
 	// Buttons, badges, cards and the other atoms. Everything here is a leaf —
 	// no nested layout, no data fixtures beyond a menu's sample items.
-	import Button from '$lib/primitives/Button.svelte';
-	import IconButton from '$lib/primitives/IconButton.svelte';
-	import Chip from '$lib/primitives/Chip.svelte';
+	import Button from '$lib/primitives/actions/Button.svelte';
+	import IconButton from '$lib/primitives/actions/IconButton.svelte';
+	import Chip from '$lib/primitives/status/Chip.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import type { IconName } from '$lib/icons/Icon.svelte';
-	import StatusDot from '$lib/primitives/StatusDot.svelte';
-	import StatusBadge from '$lib/primitives/StatusBadge.svelte';
-	import Avatar from '$lib/display/Avatar.svelte';
+	import StatusDot from '$lib/primitives/status/StatusDot.svelte';
+	import StatusBadge from '$lib/primitives/status/StatusBadge.svelte';
+	import Avatar from '$lib/display/entity/Avatar.svelte';
 	import Card from '$lib/primitives/cards/Card.svelte';
-	import HudCorners from '$lib/primitives/HudCorners.svelte';
-	import SectionBar from '$lib/primitives/SectionBar.svelte';
-	import StatStrip from '$lib/primitives/StatStrip.svelte';
-	import type { StatStripItem } from '$lib/primitives/StatStrip.svelte';
-	import DangerBanner from '$lib/primitives/DangerBanner.svelte';
-	import EmptyState from '$lib/primitives/EmptyState.svelte';
-	import UserBlock from '$lib/primitives/UserBlock.svelte';
-	import ActionsMenu from '$lib/primitives/ActionsMenu.svelte';
-	import ExportMenu from '$lib/primitives/ExportMenu.svelte';
+	import HudCorners from '$lib/primitives/chrome/HudCorners.svelte';
+	import SectionBar from '$lib/primitives/chrome/SectionBar.svelte';
+	import StatStrip from '$lib/primitives/chrome/StatStrip.svelte';
+	import type { StatStripItem } from '$lib/primitives/chrome/StatStrip.svelte';
+	import DangerBanner from '$lib/primitives/status/DangerBanner.svelte';
+	import EmptyState from '$lib/primitives/status/EmptyState.svelte';
+	import UserBlock from '$lib/primitives/cards/UserBlock.svelte';
+	import ActionsMenu from '$lib/primitives/actions/ActionsMenu.svelte';
+	import ExportMenu from '$lib/primitives/actions/ExportMenu.svelte';
 	import TriggerOverlays from './TriggerOverlays.svelte';
 	import { Trigger } from './trigger.svelte.js';
 	import { accessors, parseJson } from './accessors.js';

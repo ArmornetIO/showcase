@@ -84,7 +84,7 @@ export const RENDER_GROUPS: readonly RenderGroup[] = [
 		label: 'Layout',
 		file: 'LayoutRenderer.svelte',
 		component: LayoutRenderer,
-		ids: ['Panel', 'Tabs', 'LayoutHeader', 'ActionBar', 'RulePanel', 'IconToolbar']
+		ids: ['Panel', 'Tabs', 'LayoutHeader', 'ActionBar', 'IconToolbar']
 	},
 	{
 		id: 'navigation',

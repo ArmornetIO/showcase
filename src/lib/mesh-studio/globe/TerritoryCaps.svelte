@@ -35,7 +35,7 @@
 	//
 	// Drawn AFTER GlobeFrame and BEFORE MeshStudio, so nodes always paint on top.
 	import { getContext } from 'svelte';
-	import { CANVAS_CTX, type CanvasContextValue } from '../../primitives/canvas-camera.js';
+	import { CANVAS_CTX, type CanvasContextValue } from '../../primitives/canvas/canvas-camera.js';
 	import { alignZ, spin, project, type Cap, type Vec3 } from '../../physics/sphere.js';
 	import { contours, type Terrain, type Relief } from '../../physics/terrain.js';
 

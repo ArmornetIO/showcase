@@ -98,32 +98,13 @@
     "TableWrap",
     "ViewToggle",
     "IconToolbar",
-    "SelectionModal",
-    "RulePanel"
+    "SelectionModal"
   ],
   "/modal": [
     "Button",
     "Modal",
     "SelectionModal",
     "Icon"
-  ],
-  "/model-explorer": [
-    "Icon",
-    "Button",
-    "Chip",
-    "StatusDot",
-    "SegmentGroup",
-    "ErdDiagram"
-  ],
-  "/model-explorer-parts": [
-    "ErdTableList",
-    "ErdToolbar",
-    "ErdInspector",
-    "ErdOverviewView",
-    "ErdLedgerView",
-    "ErdCapturesView",
-    "ErdEnvironmentsView",
-    "ErdCompareView"
   ],
   "/navigation": [
     "Breadcrumbs"
@@ -161,23 +142,12 @@
     "ProgressBar",
     "Icon"
   ],
-  "/roadmap": [
-    "RoadmapStudio"
-  ],
   "/storyboard": [
     "StoryboardCanvas",
     "SwimLane",
     "StoryboardFrame",
     "StoryboardArrow",
     "StoryboardBranch"
-  ],
-  "/svg-fx": [
-    "Icon",
-    "ArmornetCrest",
-    "ArmornetCrestChrome",
-    "SvgFx",
-    "BreakoutStack",
-    "Toggle"
   ],
   "/theme": [
     "ThemePicker"

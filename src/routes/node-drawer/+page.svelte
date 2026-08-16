@@ -2,7 +2,7 @@
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
 	import NodeDrawer from '$lib/display/drawer/NodeDrawer.svelte';
 	import type { DrawerPosition } from '$lib/display/drawer/NodeDrawer.svelte';
-	import type { MeshNodeType, NodeState } from '$lib/primitives/canvas.types.js';
+	import type { MeshNodeType, NodeState } from '$lib/primitives/canvas/canvas.types.js';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	const DRAWER_META: Record<MeshNodeType, { icon: string; title: string; nodeId: string }> = {

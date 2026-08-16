@@ -25,7 +25,7 @@
 	// disposition + hand-off controls (status, send-to-tracker, create-rule) so the
 	// drawer itself carries no workflow state.
 	import type { Snippet } from 'svelte';
-	import Chip from '../../primitives/Chip.svelte';
+	import Chip from '../../primitives/status/Chip.svelte';
 	import Icon from '../../icons/Icon.svelte';
 
 	interface Props {

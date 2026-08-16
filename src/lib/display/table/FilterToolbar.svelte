@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import SearchInput from '../../primitives/SearchInput.svelte';
+	import SearchInput from '../../primitives/forms/SearchInput.svelte';
 
 	interface FilterToolbarProps {
 		/** Bindable search text. */

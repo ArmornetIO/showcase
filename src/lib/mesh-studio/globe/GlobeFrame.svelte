@@ -11,8 +11,8 @@
 	// half stretches, and an ellipse would drift off the nodes it is meant to be
 	// carrying. Sampling is exact by construction and costs nothing at this size.
 	import { getContext } from 'svelte';
-	import { CANVAS_CTX } from '../../primitives/canvas-camera.js';
-	import type { CanvasContextValue } from '../../primitives/canvas-camera.js';
+	import { CANVAS_CTX } from '../../primitives/canvas/canvas-camera.js';
+	import type { CanvasContextValue } from '../../primitives/canvas/canvas-camera.js';
 	import { spin, project, type Vec3 } from '../../physics/sphere.js';
 	import type { Terrain } from '../../physics/terrain.js';
 

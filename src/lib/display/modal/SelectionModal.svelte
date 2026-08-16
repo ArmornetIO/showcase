@@ -8,8 +8,8 @@
 
 <script lang="ts">
 	import Modal from './Modal.svelte';
-	import Button from '../primitives/Button.svelte';
-	import Icon from '../icons/Icon.svelte';
+	import Button from '../../primitives/actions/Button.svelte';
+	import Icon from '../../icons/Icon.svelte';
 
 	interface SelectionModalProps {
 		open: boolean;

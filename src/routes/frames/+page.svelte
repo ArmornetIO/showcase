@@ -1,7 +1,7 @@
 <script lang="ts">
 	import StatTile from '$lib/display/metric/StatTile.svelte';
-	import Chip from '$lib/primitives/Chip.svelte';
-	import Panel from '$lib/layout/Panel.svelte';
+	import Chip from '$lib/primitives/status/Chip.svelte';
+	import Panel from '$lib/primitives/chrome/Panel.svelte';
 	import RadialProgress from '$lib/display/progress/RadialProgress.svelte';
 	import PostureVerdict from '$lib/display/metric/PostureVerdict.svelte';
 	import Frame from '$lib/frames/Frame.svelte';

@@ -8,7 +8,7 @@
 	// does not do: the anchor id, the scroll offset under the sticky toolbar, and
 	// the observer.
 	import type { Snippet } from 'svelte';
-	import Panel from '$lib/layout/Panel.svelte';
+	import Panel from '$lib/primitives/chrome/Panel.svelte';
 	import { showcaseState } from './showcaseState.svelte.js';
 
 	let {

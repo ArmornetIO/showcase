@@ -16,7 +16,7 @@
 	// the SVG drawn on top of it, and that is the failure mode this whole port has
 	// to avoid.
 	import { getContext } from 'svelte';
-	import { CANVAS_CTX, type CanvasContextValue } from '../../primitives/canvas-camera.js';
+	import { CANVAS_CTX, type CanvasContextValue } from '../../primitives/canvas/canvas-camera.js';
 	import type { StudioNode } from '../studio.types.js';
 	import { createGlContext, createProgram, createBuffer, type GlContext } from '../gl/context.js';
 	import { PIECE_VERT, PIECE_FRAG, PIECE_PASSES, PIECE_ATTRIBS } from '../gl/piece-shaders.js';

@@ -20,7 +20,7 @@
 	import SceneCaptions from './SceneCaptions.svelte';
 	import { REGISTRY } from '../builder/registry.js';
 	import { MESH_LAYOUTS } from '../mesh-studio/layout/mesh-layout.js';
-	import type { CanvasCamera } from '../primitives/canvas-camera.js';
+	import type { CanvasCamera } from '../primitives/canvas/canvas-camera.js';
 
 	let {
 		initial = SAMPLE_SCENE,

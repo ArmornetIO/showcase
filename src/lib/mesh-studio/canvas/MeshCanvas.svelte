@@ -13,8 +13,8 @@
   // One node is the HUB (`hubId`): the crest the mesh arranges around. It is the
   // fixed point of every planar layout and the centre of the globe — never placed,
   // never spun.
-  import Canvas from "../../primitives/Canvas.svelte";
-  import type { CanvasCamera } from "../../primitives/canvas-camera.js";
+  import Canvas from "../../primitives/canvas/Canvas.svelte";
+  import type { CanvasCamera } from "../../primitives/canvas/canvas-camera.js";
   import MeshStudio from "../MeshStudio.svelte";
   import type { StudioNode, StudioEdge } from "../studio.types.js";
   import type { ShapeConcept } from "../node-shapes.js";

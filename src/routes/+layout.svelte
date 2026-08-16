@@ -13,8 +13,8 @@
 	import { mockupSections } from '$lib/dev/mockup-nav.js';
 	import ShowcaseSidebar from '$lib/dev/ShowcaseSidebar.svelte';
 	import AppShell from '$lib/layout/AppShell.svelte';
-	import SidebarNav from '$lib/layout/SidebarNav.svelte';
-	import type { NavSection } from '$lib/layout/SidebarNav.svelte';
+	import SidebarNav from '$lib/navigation/SidebarNav.svelte';
+	import type { NavSection } from '$lib/navigation/SidebarNav.svelte';
 	import ThemePicker from '$lib/theme/ThemePicker.svelte';
 	import '$lib/tokens.css';
 

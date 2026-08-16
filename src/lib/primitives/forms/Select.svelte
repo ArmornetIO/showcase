@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Icon, { type IconName } from '../icons/Icon.svelte';
+	import Icon, { type IconName } from '../../icons/Icon.svelte';
 
 	export interface SelectOption {
 		value: string;

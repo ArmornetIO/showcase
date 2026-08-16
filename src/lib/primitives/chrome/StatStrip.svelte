@@ -9,7 +9,7 @@
 </script>
 
 <script lang="ts">
-	import FrameNumber from '../frames/FrameNumber.svelte';
+	import FrameNumber from '../../frames/FrameNumber.svelte';
 
 	interface Props {
 		items: StatStripItem[];

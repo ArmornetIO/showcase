@@ -8,10 +8,10 @@
 	import ChatThread from '$lib/display/chat/ChatThread.svelte';
 	import type { ChatEntry } from '$lib/display/chat/ChatThread.svelte';
 	import type { CanvasItem, Group } from '$lib/builder/store.svelte.js';
-	import type { CanvasCamera, TourController, TourStep } from '$lib/primitives/canvas-camera.js';
-	import Canvas from '$lib/primitives/Canvas.svelte';
-	import CompositorLayer from '$lib/primitives/CompositorLayer.svelte';
-	import CameraControls from '$lib/primitives/CameraControls.svelte';
+	import type { CanvasCamera, TourController, TourStep } from '$lib/primitives/canvas/canvas-camera.js';
+	import Canvas from '$lib/primitives/canvas/Canvas.svelte';
+	import CompositorLayer from '$lib/primitives/canvas/CompositorLayer.svelte';
+	import CameraControls from '$lib/primitives/canvas/CameraControls.svelte';
 	import ThemeStudio from '$lib/builder/themes/ThemeStudio.svelte';
 	import PropEditor from '$lib/builder/PropEditor.svelte';
 

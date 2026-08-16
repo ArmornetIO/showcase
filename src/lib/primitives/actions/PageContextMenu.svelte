@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { IconName } from '../icons/Icon.svelte';
+	import type { IconName } from '../../icons/Icon.svelte';
 
 	export interface CtxFilterOption {
 		v: string;
@@ -34,8 +34,8 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Icon from '../icons/Icon.svelte';
-	import ActionsMenu, { type ActionMenuItem } from '../primitives/ActionsMenu.svelte';
+	import Icon from '../../icons/Icon.svelte';
+	import ActionsMenu, { type ActionMenuItem } from './ActionsMenu.svelte';
 
 	// Standardized per-page contextual menu, rendered in a page's LayoutHeader
 	// `eyebrowActions` snippet: active-filter chips · Filter dropdown (search +

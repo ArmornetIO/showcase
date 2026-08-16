@@ -1,4 +1,4 @@
-import type { Port, MeshNodeType } from './canvas.types.js';
+import type { Port, MeshNodeType } from '../primitives/canvas/canvas.types.js';
 
 // ── Port templates per MeshNodeType ──────────────────────────────────────
 // Angles: 0=right · 90=bottom · 180=left · 270=top

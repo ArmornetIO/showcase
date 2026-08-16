@@ -13,7 +13,7 @@
 // Angle convention matches canvas-ports.ts: degrees, 0=right · 90=bottom (SVG y
 // points down) · 180=left · 270=top.
 
-import type { MeshNodeType, NodeState } from '../primitives/canvas.types.js';
+import type { MeshNodeType, NodeState } from '../primitives/canvas/canvas.types.js';
 
 export type ShapeConcept = 'signet' | 'instrument';
 

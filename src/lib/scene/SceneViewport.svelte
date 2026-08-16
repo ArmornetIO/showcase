@@ -8,13 +8,13 @@
 	// dragging (it already knows how); this listens for the release and converts
 	// the node from solver-owned to operator-placed.
 	import type { Snippet } from 'svelte';
-	import Canvas from '../primitives/Canvas.svelte';
-	import CameraControls from '../primitives/CameraControls.svelte';
+	import Canvas from '../primitives/canvas/Canvas.svelte';
+	import CameraControls from '../primitives/canvas/CameraControls.svelte';
 	import GlobeFrame from '../mesh-studio/globe/GlobeFrame.svelte';
 	import MeshStudio from '../mesh-studio/MeshStudio.svelte';
 	import type { StudioNode, StudioEdge } from '../mesh-studio/studio.types.js';
 	import SceneStage from './SceneStage.svelte';
-	import type { CanvasCamera } from '../primitives/canvas-camera.js';
+	import type { CanvasCamera } from '../primitives/canvas/canvas-camera.js';
 	import type { Scene, SceneObject, ActiveBurst } from './types.js';
 	import type { Placed } from './place.js';
 

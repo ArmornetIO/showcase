@@ -1,9 +1,9 @@
 <script lang="ts">
 	// Full-bleed marketing sections. These size themselves off the viewport, so
 	// on the canvas they read as a band rather than a card.
-	import PageHero from '$lib/layout/PageHero.svelte';
-	import ClosingCTA from '$lib/layout/ClosingCTA.svelte';
-	import FaqAccordion from '$lib/display/FaqAccordion.svelte';
+	import PageHero from '$lib/primitives/cards/PageHero.svelte';
+	import ClosingCTA from '$lib/primitives/cards/ClosingCTA.svelte';
+	import FaqAccordion from '$lib/display/content/FaqAccordion.svelte';
 	import { accessors, parseJson } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

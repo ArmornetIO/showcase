@@ -782,18 +782,6 @@ export const REGISTRY: ComponentMeta[] = [
 
 	// ── Layout ──────────────────────────────────────────────────────────────────
 	{
-		id: 'RulePanel',
-		label: 'Rule Panel',
-		category: 'Layout',
-		defaultW: 480,
-		defaultH: 0,
-		resizable: true,
-		placeable: true,
-		props: {
-			title: { kind: 'text', label: 'Title', default: 'All Rules' }
-		}
-	},
-	{
 		id: 'Panel',
 		label: 'Panel',
 		category: 'Layout',

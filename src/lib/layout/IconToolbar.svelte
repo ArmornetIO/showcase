@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import type { IconName } from '../icons/Icon.svelte';
-	import type { ActionMenuItem } from '../primitives/ActionsMenu.svelte';
+	import type { ActionMenuItem } from '../primitives/actions/ActionsMenu.svelte';
 
 	export type IconToolbarOrientation = 'vertical' | 'horizontal';
 
@@ -26,8 +26,8 @@
 
 <script lang="ts">
 	import Icon from '../icons/Icon.svelte';
-	import Tooltip from '../primitives/Tooltip.svelte';
-	import ActionsMenu from '../primitives/ActionsMenu.svelte';
+	import Tooltip from '../primitives/status/Tooltip.svelte';
+	import ActionsMenu from '../primitives/actions/ActionsMenu.svelte';
 
 	interface IconToolbarProps {
 		items: IconToolbarItem[];

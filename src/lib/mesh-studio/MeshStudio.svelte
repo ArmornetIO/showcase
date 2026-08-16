@@ -9,11 +9,11 @@
 	// same Canvas camera and share canvas.types + canvas-ports + glyph-sample; edge
 	// COLOURS differ by design (MeshStudio live tuning, GraphLayer fixed palette).
 	import { getContext, onMount } from 'svelte';
-	import { CANVAS_CTX } from '../primitives/canvas-camera.js';
-	import type { CanvasContextValue } from '../primitives/canvas-camera.js';
-	import type { MeshNodeType, NodeState, EdgeStyle, Port } from '../primitives/canvas.types.js';
-	import { MESH_NODE_COLOR, MESH_NODE_FILL, MESH_NODE_LABEL, DATA_TYPE_COLOR, EDGE_STYLE_DASH, EDGE_STATE_DASH } from '../primitives/canvas.types.js';
-	import { getPortsForType, portSegments } from '../primitives/canvas-ports.js';
+	import { CANVAS_CTX } from '../primitives/canvas/canvas-camera.js';
+	import type { CanvasContextValue } from '../primitives/canvas/canvas-camera.js';
+	import type { MeshNodeType, NodeState, EdgeStyle, Port } from '../primitives/canvas/canvas.types.js';
+	import { MESH_NODE_COLOR, MESH_NODE_FILL, MESH_NODE_LABEL, DATA_TYPE_COLOR, EDGE_STYLE_DASH, EDGE_STATE_DASH } from '../primitives/canvas/canvas.types.js';
+	import { getPortsForType, portSegments } from './canvas-ports.js';
 	import { shapeForType, withState, silhouettePath, boundaryPoint, shapeArcPath } from './node-shapes.js';
 	import type { ShapeConcept, ShapeSpec } from './node-shapes.js';
 	import { CUSTOM_SHAPES } from './custom-shapes.js';

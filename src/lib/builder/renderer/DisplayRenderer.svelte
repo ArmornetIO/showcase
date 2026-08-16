@@ -1,10 +1,10 @@
 <script lang="ts">
 	// Read-only display surfaces that aren't a metric, a dataset or a code block:
 	// loading states, feeds, rows, cards and the chat transcript.
-	import PanelLoading from '$lib/display/PanelLoading.svelte';
+	import PanelLoading from '$lib/display/feedback/PanelLoading.svelte';
 	import Ticker from '$lib/display/metric/Ticker.svelte';
 	import LogRow from '$lib/display/code/LogRow.svelte';
-	import PeerCard from '$lib/display/PeerCard.svelte';
+	import PeerCard from '$lib/display/entity/PeerCard.svelte';
 	import ChatMessage from '$lib/display/chat/ChatMessage.svelte';
 	import ChatThread from '$lib/display/chat/ChatThread.svelte';
 	import type { ChatEntry } from '$lib/display/chat/ChatThread.svelte';

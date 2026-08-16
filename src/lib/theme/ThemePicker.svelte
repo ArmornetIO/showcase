@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { theme } from './store.svelte.js';
 	import { THEMES, type ThemeChoice } from './themes.js';
-	import CheckboxList from '../primitives/CheckboxList.svelte';
+	import CheckboxList from '../primitives/forms/CheckboxList.svelte';
 	import { FLOURISHES } from '../motion/effects.js';
 	import { EXITS, type ExitKind } from '../motion/exits.js';
 	import { advancedSettings } from '../settings/store.svelte.js';

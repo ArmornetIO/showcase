@@ -8,8 +8,8 @@
 	 *              For a live stream in a narrow column. */
 	export type TimelineVariant = 'rail' | 'feed';
 
-	import Icon from '../icons/Icon.svelte';
-	import type { IconName } from '../icons/Icon.svelte';
+	import Icon from '../../icons/Icon.svelte';
+	import type { IconName } from '../../icons/Icon.svelte';
 
 	export interface TimelineEvent {
 		id?: string;

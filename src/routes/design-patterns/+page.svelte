@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LayoutHeader from '$lib/layout/LayoutHeader.svelte';
+	import LayoutHeader from '$lib/primitives/chrome/LayoutHeader.svelte';
 	import PatternSpec from './PatternSpec.svelte';
 	import PatternSection from './PatternSection.svelte';
 	import ControlCenterCorrect from './demos/ControlCenterCorrect.svelte';

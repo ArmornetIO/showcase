@@ -16,7 +16,7 @@
 // 'blocked' and 'scanning', which does not exist.
 
 import type { ObjectKind } from './types.js';
-import { EDGE_STYLE_DASH } from '../primitives/canvas.types.js';
+import { EDGE_STYLE_DASH } from '../primitives/canvas/canvas.types.js';
 import { COMPONENT_CHANNELS, channelsForComponent } from './component-channels.js';
 
 export type ChannelType = 'lerp' | 'step';

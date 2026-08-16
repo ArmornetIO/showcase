@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Button from '$lib/primitives/Button.svelte';
-	import LayoutHeader from '$lib/layout/LayoutHeader.svelte';
+	import Button from '$lib/primitives/actions/Button.svelte';
+	import LayoutHeader from '$lib/primitives/chrome/LayoutHeader.svelte';
 	import { base } from '$app/paths';
 
 	const sections = [

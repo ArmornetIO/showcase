@@ -7,9 +7,9 @@
 	// it owns no input, no dropdown and no keyboard handling.
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import SearchInput from '$lib/primitives/SearchInput.svelte';
-	import CommandPalette from '$lib/primitives/CommandPalette.svelte';
-	import type { CmdGroup, CmdItem } from '$lib/primitives/CommandPalette.svelte';
+	import SearchInput from '$lib/primitives/forms/SearchInput.svelte';
+	import CommandPalette from '$lib/primitives/actions/CommandPalette.svelte';
+	import type { CmdGroup, CmdItem } from '$lib/primitives/actions/CommandPalette.svelte';
 	import routeMap from '$lib/generated/route-map.json' with { type: 'json' };
 
 	type SearchEntry = { name: string; route: string; id: string; section: string };

@@ -18,8 +18,8 @@
 
 <script lang="ts">
 	import ActionsMenu from './ActionsMenu.svelte';
-	import Icon from '../icons/Icon.svelte';
-	import type { IconName } from '../icons/Icon.svelte';
+	import Icon from '../../icons/Icon.svelte';
+	import type { IconName } from '../../icons/Icon.svelte';
 
 	interface ExportMenuProps {
 		/** Formats to include. Defaults to all four. */

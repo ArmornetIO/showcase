@@ -6,10 +6,10 @@
 	// is not a sketch — it is the instructions, and it doubles as the thing it
 	// describes. Ask Claude Code to change this page and you are doing the loop
 	// it is telling you about.
-	import Panel from '$lib/layout/Panel.svelte';
-	import SectionBar from '$lib/primitives/SectionBar.svelte';
+	import Panel from '$lib/primitives/chrome/Panel.svelte';
+	import SectionBar from '$lib/primitives/chrome/SectionBar.svelte';
 	import CodeBlock from '$lib/display/code/CodeBlock.svelte';
-	import Chip from '$lib/primitives/Chip.svelte';
+	import Chip from '$lib/primitives/status/Chip.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import StatTile from '$lib/display/metric/StatTile.svelte';
 	import type { IconName } from '$lib/icons/Icon.svelte';

@@ -1,8 +1,8 @@
 <script lang="ts" module>
-	import type { IconName } from '../icons/Icon.svelte';
-	import type { MotionExit } from '../motion/exits.js';
-	import type { FlourishKind } from '../motion/effects.js';
-	import { advancedSettings } from '../settings/store.svelte.js';
+	import type { IconName } from '../../icons/Icon.svelte';
+	import type { MotionExit } from '../../motion/exits.js';
+	import type { FlourishKind } from '../../motion/effects.js';
+	import { advancedSettings } from '../../settings/store.svelte.js';
 
 	/** A clickable row — the default when `kind` is omitted. */
 	export interface ActionMenuAction {
@@ -121,8 +121,8 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Icon from '../icons/Icon.svelte';
-	import Flourish from '../motion/Flourish.svelte';
+	import Icon from '../../icons/Icon.svelte';
+	import Flourish from '../../motion/Flourish.svelte';
 	// `advancedSettings` is imported by the module script above — the two scripts
 	// share one scope, so importing it again here is a redeclaration.
 

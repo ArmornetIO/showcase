@@ -35,17 +35,17 @@ export { MODES, MODE_KEYS } from './mesh-studio/modes.gen.js';
 export type { ModeMeta } from './mesh-studio/modes.gen.js';
 
 // ── Primitives ───────────────────────────────────────────────────────────────
-export { default as Button } from './primitives/Button.svelte';
+export { default as Button } from './primitives/actions/Button.svelte';
 export type {
 	ButtonVariant,
 	ButtonSize,
 	ButtonShape,
 	ButtonTone
-} from './primitives/Button.svelte';
-export { default as IconButton } from './primitives/IconButton.svelte';
-export type { IconButtonVariant } from './primitives/IconButton.svelte';
-export { default as ActionsMenu } from './primitives/ActionsMenu.svelte';
-export { ACTIONS_MENU_DISMISS, resolveDismiss } from './primitives/ActionsMenu.svelte';
+} from './primitives/actions/Button.svelte';
+export { default as IconButton } from './primitives/actions/IconButton.svelte';
+export type { IconButtonVariant } from './primitives/actions/IconButton.svelte';
+export { default as ActionsMenu } from './primitives/actions/ActionsMenu.svelte';
+export { ACTIONS_MENU_DISMISS, resolveDismiss } from './primitives/actions/ActionsMenu.svelte';
 export type {
 	ActionMenuItem,
 	ActionMenuAction,
@@ -55,14 +55,14 @@ export type {
 	ActionsMenuDismiss,
 	ActionsMenuDismissConfig,
 	ActionsMenuExit
-} from './primitives/ActionsMenu.svelte';
-export { default as ExportMenu } from './primitives/ExportMenu.svelte';
-export type { ExportFormat } from './primitives/ExportMenu.svelte';
-export { default as Chip } from './primitives/Chip.svelte';
-export type { ChipColor, ChipLook } from './primitives/Chip.svelte';
-export { default as EdgeToolbarCard } from './primitives/EdgeToolbarCard.svelte';
-export { default as Tile } from './primitives/Tile.svelte';
-export type { TileVariant } from './primitives/Tile.svelte';
+} from './primitives/actions/ActionsMenu.svelte';
+export { default as ExportMenu } from './primitives/actions/ExportMenu.svelte';
+export type { ExportFormat } from './primitives/actions/ExportMenu.svelte';
+export { default as Chip } from './primitives/status/Chip.svelte';
+export type { ChipColor, ChipLook } from './primitives/status/Chip.svelte';
+export { default as EdgeToolbarCard } from './primitives/cards/EdgeToolbarCard.svelte';
+export { default as Tile } from './primitives/chrome/Tile.svelte';
+export type { TileVariant } from './primitives/chrome/Tile.svelte';
 export { default as StatCard } from './primitives/cards/StatCard.svelte';
 export type { StatCardVariant } from './primitives/cards/StatCard.svelte';
 export { default as DocCard } from './primitives/cards/DocCard.svelte';
@@ -71,61 +71,61 @@ export { default as HudCard } from './primitives/cards/HudCard.svelte';
 export { default as CompositeCard } from './primitives/cards/CompositeCard.svelte';
 export type { CompositeCardItem } from './primitives/cards/card.types.js';
 export { default as PricingCard } from './primitives/cards/PricingCard.svelte';
-export { default as StatusDot } from './primitives/StatusDot.svelte';
-export { default as StatusBadge } from './primitives/StatusBadge.svelte';
-export type { StatusLevel } from './primitives/StatusDot.svelte';
-export { default as Checkbox } from './primitives/Checkbox.svelte';
-export { default as Toggle } from './primitives/Toggle.svelte';
-export type { ToggleVariant } from './primitives/toggle.types.js';
-export { default as Input } from './primitives/Input.svelte';
-export type { InputType } from './primitives/Input.svelte';
-export { default as PasswordInput } from './primitives/PasswordInput.svelte';
-export { default as Textarea } from './primitives/Textarea.svelte';
-export { default as FormField } from './primitives/FormField.svelte';
-export { default as ChipInput } from './primitives/ChipInput.svelte';
-export { default as FileUpload } from './primitives/FileUpload.svelte';
-export { default as ViewToggle } from './primitives/ViewToggle.svelte';
-export type { ViewToggleOption } from './primitives/ViewToggle.svelte';
-export { default as SearchInput } from './primitives/SearchInput.svelte';
-export { default as CommandPalette } from './primitives/CommandPalette.svelte';
-export type { CmdItem, CmdGroup } from './primitives/CommandPalette.svelte';
-export { default as Select } from './primitives/Select.svelte';
-export type { SelectOption, SelectOptGroup } from './primitives/Select.svelte';
-export { default as SettingRow } from './primitives/SettingRow.svelte';
-export { default as UserBlock } from './primitives/UserBlock.svelte';
-export { default as StatStrip } from './primitives/StatStrip.svelte';
-export type { StatStripItem, StatStripColor } from './primitives/StatStrip.svelte';
-export { default as EcoTabBar } from './primitives/EcoTabBar.svelte';
-export type { EcoTab } from './primitives/EcoTabBar.svelte';
-export { default as DangerBanner } from './primitives/DangerBanner.svelte';
-export { default as EmptyState } from './primitives/EmptyState.svelte';
-export type { EmptyStateVariant } from './primitives/EmptyState.svelte';
-export { default as SectionBar } from './primitives/SectionBar.svelte';
-export { default as HudCorners } from './primitives/HudCorners.svelte';
-export { default as Canvas } from './primitives/Canvas.svelte';
+export { default as StatusDot } from './primitives/status/StatusDot.svelte';
+export { default as StatusBadge } from './primitives/status/StatusBadge.svelte';
+export type { StatusLevel } from './primitives/status/StatusDot.svelte';
+export { default as Checkbox } from './primitives/forms/Checkbox.svelte';
+export { default as Toggle } from './primitives/forms/Toggle.svelte';
+export type { ToggleVariant } from './primitives/forms/toggle.types.js';
+export { default as Input } from './primitives/forms/Input.svelte';
+export type { InputType } from './primitives/forms/Input.svelte';
+export { default as PasswordInput } from './primitives/forms/PasswordInput.svelte';
+export { default as Textarea } from './primitives/forms/Textarea.svelte';
+export { default as FormField } from './primitives/forms/FormField.svelte';
+export { default as ChipInput } from './primitives/forms/ChipInput.svelte';
+export { default as FileUpload } from './primitives/forms/FileUpload.svelte';
+export { default as ViewToggle } from './primitives/actions/ViewToggle.svelte';
+export type { ViewToggleOption } from './primitives/actions/ViewToggle.svelte';
+export { default as SearchInput } from './primitives/forms/SearchInput.svelte';
+export { default as CommandPalette } from './primitives/actions/CommandPalette.svelte';
+export type { CmdItem, CmdGroup } from './primitives/actions/CommandPalette.svelte';
+export { default as Select } from './primitives/forms/Select.svelte';
+export type { SelectOption, SelectOptGroup } from './primitives/forms/Select.svelte';
+export { default as SettingRow } from './primitives/forms/SettingRow.svelte';
+export { default as UserBlock } from './primitives/cards/UserBlock.svelte';
+export { default as StatStrip } from './primitives/chrome/StatStrip.svelte';
+export type { StatStripItem, StatStripColor } from './primitives/chrome/StatStrip.svelte';
+export { default as EcoTabBar } from './primitives/chrome/EcoTabBar.svelte';
+export type { EcoTab } from './primitives/chrome/EcoTabBar.svelte';
+export { default as DangerBanner } from './primitives/status/DangerBanner.svelte';
+export { default as EmptyState } from './primitives/status/EmptyState.svelte';
+export type { EmptyStateVariant } from './primitives/status/EmptyState.svelte';
+export { default as SectionBar } from './primitives/chrome/SectionBar.svelte';
+export { default as HudCorners } from './primitives/chrome/HudCorners.svelte';
+export { default as Canvas } from './primitives/canvas/Canvas.svelte';
 export { default as MeshMembrane } from './mesh-studio/membrane/MeshMembrane.svelte';
 export type {
 	MembraneRegistry,
 	MembraneProxy,
 	MembraneAgent
 } from './mesh-studio/membrane/MeshMembrane.svelte';
-export { default as CameraControls } from './primitives/CameraControls.svelte';
-export { default as Minimap } from './primitives/Minimap.svelte';
-export { default as SelectionBox } from './primitives/SelectionBox.svelte';
+export { default as CameraControls } from './primitives/canvas/CameraControls.svelte';
+export { default as Minimap } from './primitives/canvas/Minimap.svelte';
+export { default as SelectionBox } from './primitives/canvas/SelectionBox.svelte';
 export type {
 	CanvasCamera,
 	TourStep,
 	TourController,
 	CanvasContextValue,
 	SelectionHandler
-} from './primitives/canvas-camera.js';
+} from './primitives/canvas/canvas-camera.js';
 export type {
 	MeshNodeType,
 	NodeState,
 	DataType,
 	EdgeStyle,
 	Port
-} from './primitives/canvas.types.js';
+} from './primitives/canvas/canvas.types.js';
 
 // Interactive mesh canvas — radial hub, drag/drop, closest-port line routing.
 export { default as MeshStudio } from './mesh-studio/MeshStudio.svelte';
@@ -289,14 +289,14 @@ export {
 	MESH_NODE_LABEL,
 	DATA_TYPE_COLOR,
 	DATA_TYPE_GLOW
-} from './primitives/canvas.types.js';
-export { getPortsForType, portSegments } from './primitives/canvas-ports.js';
+} from './primitives/canvas/canvas.types.js';
+export { getPortsForType, portSegments } from './mesh-studio/canvas-ports.js';
 
 // ── Layout ───────────────────────────────────────────────────────────────────
-export { default as Modal } from './layout/Modal.svelte';
-export type { ModalVariant, ModalSize } from './layout/Modal.svelte';
-export { default as SelectionModal } from './layout/SelectionModal.svelte';
-export type { SelectionItem } from './layout/SelectionModal.svelte';
+export { default as Modal } from './display/modal/Modal.svelte';
+export type { ModalVariant, ModalSize } from './display/modal/Modal.svelte';
+export { default as SelectionModal } from './display/modal/SelectionModal.svelte';
+export type { SelectionItem } from './display/modal/SelectionModal.svelte';
 export { default as IconToolbar } from './layout/IconToolbar.svelte';
 export type {
 	IconToolbarItem,
@@ -304,37 +304,35 @@ export type {
 	IconToolbarMenu,
 	IconToolbarOrientation
 } from './layout/IconToolbar.svelte';
-export { default as Panel } from './layout/Panel.svelte';
-export type { PanelTone } from './layout/Panel.svelte';
-export { default as Tooltip } from './primitives/Tooltip.svelte';
-export type { TooltipPlacement } from './primitives/Tooltip.svelte';
+export { default as Panel } from './primitives/chrome/Panel.svelte';
+export type { PanelTone } from './primitives/chrome/Panel.svelte';
+export { default as Tooltip } from './primitives/status/Tooltip.svelte';
+export type { TooltipPlacement } from './primitives/status/Tooltip.svelte';
 export { default as AppShell } from './layout/AppShell.svelte';
-export { default as NavDrawer } from './layout/NavDrawer.svelte';
-export { default as Collapsible } from './layout/Collapsible.svelte';
-export { default as LayoutHeader } from './layout/LayoutHeader.svelte';
-export { default as PagePanel } from './layout/PagePanel.svelte';
-export { default as Tabs } from './layout/Tabs.svelte';
-export type { Tab } from './layout/Tabs.svelte';
-export { default as SidebarNav } from './layout/SidebarNav.svelte';
-export type { NavItem, NavSection } from './layout/SidebarNav.svelte';
-export { default as ActionBar } from './layout/ActionBar.svelte';
-export type { ActionBarAction } from './layout/ActionBar.svelte';
-export { default as PageContextMenu } from './layout/PageContextMenu.svelte';
+export { default as NavDrawer } from './navigation/NavDrawer.svelte';
+export { default as Collapsible } from './primitives/chrome/Collapsible.svelte';
+export { default as LayoutHeader } from './primitives/chrome/LayoutHeader.svelte';
+export { default as PagePanel } from './primitives/chrome/PagePanel.svelte';
+export { default as Tabs } from './navigation/Tabs.svelte';
+export type { Tab } from './navigation/Tabs.svelte';
+export { default as SidebarNav } from './navigation/SidebarNav.svelte';
+export type { NavItem, NavSection } from './navigation/SidebarNav.svelte';
+export { default as ActionBar } from './primitives/actions/ActionBar.svelte';
+export type { ActionBarAction } from './primitives/actions/ActionBar.svelte';
+export { default as PageContextMenu } from './primitives/actions/PageContextMenu.svelte';
 export type {
 	CtxFilterOption,
 	CtxFilterGroup,
 	CtxSort,
 	CtxChip,
 	CtxAction
-} from './layout/PageContextMenu.svelte';
+} from './primitives/actions/PageContextMenu.svelte';
 export { default as TableWrap } from './display/table/TableWrap.svelte';
-export { default as RulePanel } from './layout/RulePanel.svelte';
-export type { RulePanelTab, RulePanelRule } from './layout/RulePanel.svelte';
-export { default as PersonListPanel } from './layout/PersonListPanel.svelte';
-export type { PersonListItem } from './layout/PersonListPanel.svelte';
-export { default as SubFooter } from './layout/SubFooter.svelte';
-export { default as PageHero } from './layout/PageHero.svelte';
-export { default as ClosingCTA } from './layout/ClosingCTA.svelte';
+export { default as PersonListPanel } from './display/entity/PersonListPanel.svelte';
+export type { PersonListItem } from './display/entity/PersonListPanel.svelte';
+export { default as SubFooter } from './primitives/chrome/SubFooter.svelte';
+export { default as PageHero } from './primitives/cards/PageHero.svelte';
+export { default as ClosingCTA } from './primitives/cards/ClosingCTA.svelte';
 
 // ── Navigation ───────────────────────────────────────────────────────────────
 export { default as Breadcrumbs } from './navigation/Breadcrumbs.svelte';
@@ -343,7 +341,7 @@ export type { BreadcrumbItem } from './navigation/Breadcrumbs.svelte';
 // ── Display ──────────────────────────────────────────────────────────────────
 export { default as SummaryCards } from './display/metric/SummaryCards.svelte';
 export type { SummaryItem, SummaryVariant } from './display/metric/SummaryCards.svelte';
-export { default as PanelLoading } from './display/PanelLoading.svelte';
+export { default as PanelLoading } from './display/feedback/PanelLoading.svelte';
 export { default as DataTable } from './display/table/DataTable.svelte';
 export type { KvRow, TableColumn } from './display/table/DataTable.svelte';
 export { default as FilterToolbar } from './display/table/FilterToolbar.svelte';
@@ -356,23 +354,23 @@ export type { DrawerPosition, TabId as NodeDrawerTabId } from './display/drawer/
 // Drawer tab bodies — a summary face, a verdict log and an activity log. Named
 // for what they draw rather than for any one host's domain, so the vocabulary
 // (an "agent", an "intercept") stays at the call site.
-export { default as EntityOverviewTab } from './display/EntityOverviewTab.svelte';
+export { default as EntityOverviewTab } from './display/tabs/EntityOverviewTab.svelte';
 export type {
 	OverviewStat,
 	OverviewHighlight,
 	OverviewCredential
-} from './display/EntityOverviewTab.svelte';
+} from './display/tabs/EntityOverviewTab.svelte';
 export { default as OverviewDrawer } from './display/drawer/OverviewDrawer.svelte';
 export type { OverviewDrawerStat } from './display/drawer/OverviewDrawer.svelte';
 export { default as IncidentDrawer } from './display/drawer/IncidentDrawer.svelte';
 export type { IncidentDrawerData } from './display/drawer/IncidentDrawer.svelte';
 export { default as SheetDrawer } from './display/drawer/SheetDrawer.svelte';
 export type { SheetDrawerSize, SheetDrawerBody } from './display/drawer/SheetDrawer.svelte';
-export { default as VerdictLogTab } from './display/VerdictLogTab.svelte';
-export type { VerdictStats, LogFilter, VerdictEntryVM } from './display/VerdictLogTab.svelte';
-export { default as EventLogTab } from './display/EventLogTab.svelte';
-export { eventColor, eventIcon } from './display/eventLog.js';
-export type { LogEventVM, LogEventTone } from './display/eventLog.js';
+export { default as VerdictLogTab } from './display/tabs/VerdictLogTab.svelte';
+export type { VerdictStats, LogFilter, VerdictEntryVM } from './display/tabs/VerdictLogTab.svelte';
+export { default as EventLogTab } from './display/tabs/EventLogTab.svelte';
+export { eventColor, eventIcon } from './display/tabs/eventLog.js';
+export type { LogEventVM, LogEventTone } from './display/tabs/eventLog.js';
 export { default as LogRow } from './display/code/LogRow.svelte';
 export type { LogLevel } from './display/code/LogRow.svelte';
 export { default as AlertBladeHost } from './display/drawer/AlertBladeHost.svelte';
@@ -397,17 +395,17 @@ export type {
 	PostureClauseTone
 } from './display/metric/PostureVerdict.svelte';
 export { default as Sparkline } from './display/metric/Sparkline.svelte';
-export { default as PeerCard } from './display/PeerCard.svelte';
+export { default as PeerCard } from './display/entity/PeerCard.svelte';
 export { default as CodeBlock } from './display/code/CodeBlock.svelte';
 export { default as ConfigBlock } from './display/code/ConfigBlock.svelte';
-export { default as Timeline } from './display/Timeline.svelte';
-export type { TimelineEvent, TimelineTone, TimelineVariant } from './display/Timeline.svelte';
-export { default as Avatar } from './display/Avatar.svelte';
+export { default as Timeline } from './display/content/Timeline.svelte';
+export type { TimelineEvent, TimelineTone, TimelineVariant } from './display/content/Timeline.svelte';
+export { default as Avatar } from './display/entity/Avatar.svelte';
 export { default as ConsensusBar } from './display/progress/ConsensusBar.svelte';
 export { default as TerminalBlock } from './display/code/TerminalBlock.svelte';
-export { default as FaqAccordion } from './display/FaqAccordion.svelte';
-export type { FaqItem } from './display/FaqAccordion.svelte';
-export { default as HexShield } from './display/HexShield.svelte';
+export { default as FaqAccordion } from './display/content/FaqAccordion.svelte';
+export type { FaqItem } from './display/content/FaqAccordion.svelte';
+export { default as HexShield } from './display/feedback/HexShield.svelte';
 export { default as ProgressBar } from './display/progress/ProgressBar.svelte';
 export type {
 	ProgressType,
@@ -425,10 +423,10 @@ export type { StackedSegment } from './display/progress/StackedBar.svelte';
 // Generic form controls. They lived under `assessment/` until the vendor-
 // assessment components moved to app-ui; `theme/ThemePicker` uses CheckboxList,
 // so these were never domain-specific in the first place.
-export { default as SegmentGroup } from './primitives/SegmentGroup.svelte';
-export { default as RadioList } from './primitives/RadioList.svelte';
-export { default as CheckboxList } from './primitives/CheckboxList.svelte';
-export type { ChoiceOption } from './primitives/choice.types.js';
+export { default as SegmentGroup } from './primitives/actions/SegmentGroup.svelte';
+export { default as RadioList } from './primitives/forms/RadioList.svelte';
+export { default as CheckboxList } from './primitives/forms/CheckboxList.svelte';
+export type { ChoiceOption } from './primitives/forms/choice.types.js';
 
 // ── Docs ─────────────────────────────────────────────────────────────────────
 export { default as DocsNav } from './docs/DocsNav.svelte';
@@ -441,7 +439,7 @@ export { default as ChatThread } from './display/chat/ChatThread.svelte';
 export type { ChatEntry } from './display/chat/ChatThread.svelte';
 export { default as Ticker } from './display/metric/Ticker.svelte';
 export { default as ProfileCard } from './primitives/cards/ProfileCard.svelte';
-export { default as GlowOutline } from './primitives/GlowOutline.svelte';
+export { default as GlowOutline } from './primitives/chrome/GlowOutline.svelte';
 
 // Apply a chrome / emboss / outline / glow / engrave treatment to ANY vector
 // art. Reads only the source alpha, so it works on art never authored for it —
@@ -457,7 +455,7 @@ export {
 } from './primitives/svg-fx/svg-fx.js';
 
 // Layout counterpart: a container whose overlay is allowed to escape it.
-export { default as BreakoutStack } from './primitives/BreakoutStack.svelte';
+export { default as BreakoutStack } from './primitives/chrome/BreakoutStack.svelte';
 
 // ── Builder utilities ────────────────────────────────────────────────────────
 export { default as LayerControls } from './builder/LayerControls.svelte';

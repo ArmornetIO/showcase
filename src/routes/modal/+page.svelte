@@ -1,10 +1,10 @@
 <script lang="ts">
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
-	import Button from '$lib/primitives/Button.svelte';
-	import Modal from '$lib/layout/Modal.svelte';
-	import SelectionModal from '$lib/layout/SelectionModal.svelte';
+	import Button from '$lib/primitives/actions/Button.svelte';
+	import Modal from '$lib/display/modal/Modal.svelte';
+	import SelectionModal from '$lib/display/modal/SelectionModal.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
-	import type { SelectionItem } from '$lib/layout/SelectionModal.svelte';
+	import type { SelectionItem } from '$lib/display/modal/SelectionModal.svelte';
 
 	let modalDefault = $state(false);
 	let modalDanger = $state(false);

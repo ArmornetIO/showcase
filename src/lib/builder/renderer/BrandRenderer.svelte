@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Marks and emblems. Pure SVG/CSS — no data, just geometry props.
-	import HexShield from '$lib/display/HexShield.svelte';
+	import HexShield from '$lib/display/feedback/HexShield.svelte';
 	import ArmornetCrest from '$lib/icons/ArmornetCrest.svelte';
 	import ArmornetCrestHub from '$lib/icons/ArmornetCrestHub.svelte';
 	import ArmornetCrestChrome from '$lib/icons/ArmornetCrestChrome.svelte';

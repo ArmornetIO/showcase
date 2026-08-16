@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Canvas from '$lib/primitives/Canvas.svelte';
+	import Canvas from '$lib/primitives/canvas/Canvas.svelte';
 	import MeshStudio from '$lib/mesh-studio/MeshStudio.svelte';
 	import type { StudioNode, StudioEdge } from '$lib/mesh-studio/studio.types.js';
-	import CameraControls from '$lib/primitives/CameraControls.svelte';
-	import Minimap from '$lib/primitives/Minimap.svelte';
-	import SelectionBox from '$lib/primitives/SelectionBox.svelte';
+	import CameraControls from '$lib/primitives/canvas/CameraControls.svelte';
+	import Minimap from '$lib/primitives/canvas/Minimap.svelte';
+	import SelectionBox from '$lib/primitives/canvas/SelectionBox.svelte';
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
 
 	// ── Mesh topology demo — free layout, full mesh nodes ─────────────────────

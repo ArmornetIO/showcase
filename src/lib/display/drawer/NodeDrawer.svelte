@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { MeshNodeType, NodeState } from '../../primitives/canvas.types.js';
-	import { MESH_NODE_COLOR, MESH_NODE_LABEL } from '../../primitives/canvas.types.js';
+	import type { MeshNodeType, NodeState } from '../../primitives/canvas/canvas.types.js';
+	import { MESH_NODE_COLOR, MESH_NODE_LABEL } from '../../primitives/canvas/canvas.types.js';
 	import { useBreakpoint } from '../../useBreakpoint.svelte.js';
 
 	export type { MeshNodeType, NodeState };

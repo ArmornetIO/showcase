@@ -3,7 +3,7 @@
 	import ArmornetCrest from '$lib/icons/ArmornetCrest.svelte';
 	import ArmornetCrestHub from '$lib/icons/ArmornetCrestHub.svelte';
 	import ArmornetCrestChrome from '$lib/icons/ArmornetCrestChrome.svelte';
-	import Toggle from '$lib/primitives/Toggle.svelte';
+	import Toggle from '$lib/primitives/forms/Toggle.svelte';
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
 	import { downloadPng, downloadSvg, rasterSize } from '$lib/dev/svg-export.js';
 

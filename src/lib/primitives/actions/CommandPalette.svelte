@@ -1,6 +1,6 @@
 <script module lang="ts">
 	export interface CmdItem {
-		icon?: import('../icons/Icon.svelte').IconName;
+		icon?: import('../../icons/Icon.svelte').IconName;
 		label: string;
 		/** Secondary line under the label — e.g. an entity's type/context in search results. */
 		sublabel?: string;
@@ -14,7 +14,7 @@
 </script>
 
 <script lang="ts">
-	import Icon from '../icons/Icon.svelte';
+	import Icon from '../../icons/Icon.svelte';
 
 	interface CommandPaletteProps {
 		open?: boolean;

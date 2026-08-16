@@ -1,9 +1,9 @@
 <script lang="ts">
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
-	import ActionsMenu from '$lib/primitives/ActionsMenu.svelte';
-	import ExportMenu from '$lib/primitives/ExportMenu.svelte';
-	import type { ActionMenuItem } from '$lib/primitives/ActionsMenu.svelte';
-	import type { ExportFormat } from '$lib/primitives/ExportMenu.svelte';
+	import ActionsMenu from '$lib/primitives/actions/ActionsMenu.svelte';
+	import ExportMenu from '$lib/primitives/actions/ExportMenu.svelte';
+	import type { ActionMenuItem } from '$lib/primitives/actions/ActionsMenu.svelte';
+	import type { ExportFormat } from '$lib/primitives/actions/ExportMenu.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	let lastAction = $state('');

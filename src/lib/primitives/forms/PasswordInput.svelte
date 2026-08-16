@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Input from './Input.svelte';
-	import Icon from '../icons/Icon.svelte';
+	import Icon from '../../icons/Icon.svelte';
 	import type { InputStatus, InputSize } from './Input.svelte';
 
 	interface PasswordInputProps {

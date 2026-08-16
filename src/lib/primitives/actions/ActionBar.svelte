@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Button from '../primitives/Button.svelte';
-	import type { ButtonVariant, ButtonSize } from '../primitives/Button.svelte';
+	import Button from './Button.svelte';
+	import type { ButtonVariant, ButtonSize } from './Button.svelte';
 
 	export interface ActionBarAction {
 		label: string;

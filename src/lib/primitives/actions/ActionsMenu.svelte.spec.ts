@@ -6,8 +6,8 @@ import ActionsMenu, {
   resolveDismiss,
   type ActionMenuItem,
 } from "./ActionsMenu.svelte";
-import { exitSpec } from "../motion/exits.js";
-import { advancedSettings } from "../settings/store.svelte.js";
+import { exitSpec } from "../../motion/exits.js";
+import { advancedSettings } from "../../settings/store.svelte.js";
 
 const items: ActionMenuItem[] = [
   { label: "Edit", icon: "pencil", onclick: () => {} },

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { NodeState } from '../../primitives/canvas.types.js';
+	import type { NodeState } from '../../primitives/canvas/canvas.types.js';
 
 	export interface MembraneRegistry {
 		id: string;
@@ -38,13 +38,13 @@
 </script>
 
 <script lang="ts">
-	import Canvas from '../../primitives/Canvas.svelte';
+	import Canvas from '../../primitives/canvas/Canvas.svelte';
 	import MeshStudio from '../MeshStudio.svelte';
 	import type { StudioNode, StudioEdge } from '../studio.types.js';
 	import Icon, { ICONS } from '../../icons/Icon.svelte';
 	import type { IconName } from '../../icons/Icon.svelte';
 	import CountUp from '../../display/metric/CountUp.svelte';
-	import type { MeshNodeType } from '../../primitives/canvas.types.js';
+	import type { MeshNodeType } from '../../primitives/canvas/canvas.types.js';
 	import {
 		solveMeshLayout,
 		MESH_LAYOUTS,

@@ -9,8 +9,8 @@
 	import { showcaseState } from './showcaseState.svelte.js';
 	import ApiTable from '$lib/dev/ApiTable.svelte';
 	import CodeBlock from '$lib/display/code/CodeBlock.svelte';
-	import EmptyState from '$lib/primitives/EmptyState.svelte';
-	import SectionBar from '$lib/primitives/SectionBar.svelte';
+	import EmptyState from '$lib/primitives/status/EmptyState.svelte';
+	import SectionBar from '$lib/primitives/chrome/SectionBar.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	function toggle() {

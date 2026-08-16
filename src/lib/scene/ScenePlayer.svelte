@@ -12,7 +12,7 @@
 	import { planPlacement, placementAt, globePoseAt, type PlacementPlan } from './place.js';
 	import SceneViewport from './SceneViewport.svelte';
 	import SceneCaptions from './SceneCaptions.svelte';
-	import type { CanvasCamera } from '../primitives/canvas-camera.js';
+	import type { CanvasCamera } from '../primitives/canvas/canvas-camera.js';
 
 	let {
 		scene,

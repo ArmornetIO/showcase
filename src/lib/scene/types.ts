@@ -14,7 +14,7 @@ import type {
 	NodeState,
 	DataType,
 	EdgeStyle,
-} from '../primitives/canvas.types.js';
+} from '../primitives/canvas/canvas.types.js';
 import type { MeshLayoutId } from '../mesh-studio/layout/mesh-layout.js';
 
 export type ObjectKind = 'mesh.node' | 'mesh.edge' | 'component';

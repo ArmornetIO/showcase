@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Icon from '../icons/Icon.svelte';
-	import type { IconName } from '../icons/Icon.svelte';
+	import Icon from '../../icons/Icon.svelte';
+	import type { IconName } from '../../icons/Icon.svelte';
 
 	export type IconButtonVariant = 'default' | 'primary' | 'danger' | 'bordered';
 	export type IconButtonSize = 'sm' | 'md' | 'lg';

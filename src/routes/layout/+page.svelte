@@ -1,19 +1,17 @@
 <script lang="ts">
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
-	import Button from '$lib/primitives/Button.svelte';
-	import Panel from '$lib/layout/Panel.svelte';
-	import Collapsible from '$lib/layout/Collapsible.svelte';
-	import Tabs from '$lib/layout/Tabs.svelte';
-	import ActionBar from '$lib/layout/ActionBar.svelte';
-	import type { ActionBarAction } from '$lib/layout/ActionBar.svelte';
+	import Button from '$lib/primitives/actions/Button.svelte';
+	import Panel from '$lib/primitives/chrome/Panel.svelte';
+	import Collapsible from '$lib/primitives/chrome/Collapsible.svelte';
+	import Tabs from '$lib/navigation/Tabs.svelte';
+	import ActionBar from '$lib/primitives/actions/ActionBar.svelte';
+	import type { ActionBarAction } from '$lib/primitives/actions/ActionBar.svelte';
 	import TableWrap from '$lib/display/table/TableWrap.svelte';
-	import ViewToggle from '$lib/primitives/ViewToggle.svelte';
+	import ViewToggle from '$lib/primitives/actions/ViewToggle.svelte';
 	import IconToolbar from '$lib/layout/IconToolbar.svelte';
 	import type { IconToolbarItem } from '$lib/layout/IconToolbar.svelte';
-	import SelectionModal from '$lib/layout/SelectionModal.svelte';
-	import type { SelectionItem } from '$lib/layout/SelectionModal.svelte';
-	import RulePanel from '$lib/layout/RulePanel.svelte';
-	import type { RulePanelRule, RulePanelTab } from '$lib/layout/RulePanel.svelte';
+	import SelectionModal from '$lib/display/modal/SelectionModal.svelte';
+	import type { SelectionItem } from '$lib/display/modal/SelectionModal.svelte';
 
 	let activePanel = $state<string | null>(null);
 	let selOpen = $state(false);
@@ -52,21 +50,6 @@
 	];
 
 	let activeTab = $state('overview');
-
-	const rpTabs: RulePanelTab[] = [
-		{ id: 'all', label: 'All' },
-		{ id: 'licenses', label: 'Licenses' },
-		{ id: 'publishers', label: 'Publishers' },
-		{ id: 'packages', label: 'Packages' }
-	];
-
-	const rpRules: RulePanelRule[] = [
-		{ id: '1', name: 'Block GPL-3.0 in production deps', category: 'licenses', meta: '4 ecosystems', action: 'block', icon: 'file-text' },
-		{ id: '2', name: 'Require signed publisher identity', category: 'publishers', meta: 'all ecosystems', action: 'warn', icon: 'user' },
-		{ id: '3', name: 'Allow internal scope @armornet/*', category: 'packages', meta: 'NPM', action: 'allow', icon: 'shield-check' },
-		{ id: '4', name: 'Block event-stream < 3.3.6', category: 'packages', meta: 'NPM', action: 'block', icon: 'shield-check' },
-		{ id: '5', name: 'Warn on missing license field', category: 'licenses', meta: 'PIP, Go', action: 'warn', icon: 'file-text' }
-	];
 
 	const tabs = [
 		{ id: 'overview', label: 'Overview' },
@@ -265,32 +248,6 @@
 		</div>
 	</ShowcaseBlock>
 
-	<!-- RulePanel -->
-	<ShowcaseBlock component="RulePanel">
-		<h3 class="component-name">RulePanel</h3>
-		<p class="component-desc">Filterable list panel with a titled header, attached segment tabs, and typed rule rows (icon · name · category · action tag). Tabs filter rows by <code class="demo-code">category</code>. Pass <code class="demo-code">onAddRule</code> to show the footer with count and "New rule" button.</p>
-
-		<div class="demo-row demo-row--top">
-			<span class="demo-label">populated</span>
-			<div class="demo-items--wide">
-				<RulePanel title="All Rules" tabs={rpTabs} rules={rpRules} onAddRule={() => {}} />
-			</div>
-		</div>
-
-		<div class="demo-row demo-row--top">
-			<span class="demo-label">empty state</span>
-			<div class="demo-items--wide">
-				<RulePanel title="All Rules" tabs={rpTabs} rules={[]} onAddRule={() => {}} />
-			</div>
-		</div>
-
-		<div class="demo-row demo-row--top">
-			<span class="demo-label">no tabs</span>
-			<div class="demo-items--wide">
-				<RulePanel title="DNS Rules" rules={rpRules.slice(0, 2)} />
-			</div>
-		</div>
-	</ShowcaseBlock>
 </div>
 
 <SelectionModal

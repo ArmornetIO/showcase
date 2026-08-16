@@ -6,7 +6,7 @@
 	// prompt text in prompt.ts, the palettes in defaults.ts, and each region of
 	// the chrome in its own component.
 	//
-	// It uses a bare <dialog> rather than layout/Modal.svelte because Modal is
+	// It uses a bare <dialog> rather than display/modal/Modal.svelte because Modal is
 	// shaped around a title + body + footer at a fixed size, and this is a
 	// full-bleed workspace whose header carries the theme picker. The part worth
 	// reusing is the native element itself, which brings the focus trap and

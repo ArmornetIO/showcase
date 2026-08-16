@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import NavDrawer from './NavDrawer.svelte';
-	import IconButton from '../primitives/IconButton.svelte';
-	import PagePanel from './PagePanel.svelte';
+	import NavDrawer from '../navigation/NavDrawer.svelte';
+	import IconButton from '../primitives/actions/IconButton.svelte';
+	import PagePanel from '../primitives/chrome/PagePanel.svelte';
 
 	interface AppShellProps {
 		children: Snippet;

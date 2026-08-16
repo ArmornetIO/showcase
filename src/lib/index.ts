@@ -322,33 +322,6 @@ export { packClusters } from './physics/cluster.js';
 // Software-supply-chain walkthrough — a hands-off ~32s kiosk piece built on the
 // globe. Its score is authored in source (not the Builder's tour recorder, which
 // only persists to localStorage) so a cold visitor plays the whole story.
-export { default as SupplyChainDemo } from './supply-chain/SupplyChainDemo.svelte';
-export {
-	BEATS,
-	RUN_MS,
-	beatAt,
-	beatEnd,
-	beatProgressAt,
-	spinElapsedAt,
-	spinYawAt,
-	SPIN_RATE,
-	INTRO_MS,
-	REST_POSE,
-	phaseAtLeast,
-	SCENE_NODES,
-	PROXY_NODES,
-	SCORECARD,
-	DEPTH_COUNT,
-	HUB_ID,
-	THREAT_ID
-} from './supply-chain/supply-chain-scene.js';
-export type {
-	Beat,
-	BeatCamera,
-	Phase,
-	SceneNode,
-	VisualId
-} from './supply-chain/supply-chain-scene.js';
 export {
 	ECOSYSTEMS,
 	ECOSYSTEM_BY_KEY,

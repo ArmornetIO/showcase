@@ -37,12 +37,8 @@
 	});
 
 	const isBuilder = $derived(page.url.pathname.endsWith('/builder'));
-	const isModelExplorer = $derived(page.url.pathname.endsWith('/model-explorer'));
 	// The installer is the whole app on the user's host — it owns the window.
 	const isInstaller = $derived(page.url.pathname.endsWith('/mockups/agent-installer'));
-	// The supply-chain demo is a QR landing page: it paints edge to edge and owns
-	// the window, so the shell would only be something for it to cover up.
-	const isSupplyChain = $derived(page.url.pathname.endsWith('/supply-chain-demo'));
 	// The scene builder is a tool, not a gallery entry — palette, viewport,
 	// inspector and timeline dock already compete for the window.
 	const isSceneBuilder = $derived(page.url.pathname.endsWith('/mockups/scene-builder'));
@@ -61,9 +57,7 @@
 	);
 	const isFullScreen = $derived(
 		isBuilder ||
-			isModelExplorer ||
 			isInstaller ||
-			isSupplyChain ||
 			isSceneBuilder ||
 			isScenePlayer ||
 			isMeshLine ||
@@ -173,13 +167,10 @@
 		{
 			title: 'Apps',
 			items: [
-				{ label: 'Model Explorer', href: `${base}/model-explorer`, icon: 'table-2' },
-				{ label: 'Model Explorer · Parts', href: `${base}/model-explorer-parts`, icon: 'panel-right' },
 				{ label: 'Layout Builder', href: `${base}/builder`, icon: 'layout-grid' },
 				// Points at ?edit deliberately: from inside the showcase you want the
 				// score controls and a way back. The bare URL stays a pristine kiosk,
 				// because that is what a QR visitor lands on.
-				{ label: 'Supply Chain Demo', href: `${base}/supply-chain-demo?edit`, icon: 'package' }
 			]
 		},
 		{
@@ -281,18 +272,7 @@
 									<rect x="13.5" y="12" width="5.5" height="6.5" rx="1"/>
 								</svg>
 							</a>
-							<a
-								href="{base}/model-explorer"
-								class="flex items-center justify-center w-7 h-7 rounded text-[var(--fg-dim)] hover:text-[var(--accent)] hover:bg-[var(--surface-raised)] transition-[color,background] duration-150"
-								title="Armornet Model Explorer"
-							>
-								<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<ellipse cx="12" cy="5" rx="8" ry="3"/>
-									<path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/>
-									<path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/>
-								</svg>
-							</a>
-						</div>
+													</div>
 					</div>
 				</div>
 			{/snippet}

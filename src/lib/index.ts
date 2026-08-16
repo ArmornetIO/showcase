@@ -149,81 +149,6 @@ export { CIVIC_PIECES, CIVIC_MODE_PIECES } from './mesh-studio/pieces/pieces-civ
 export type { StudioNode, StudioEdge } from './mesh-studio/studio.types.js';
 export { glyphForModes, AGENT_GLYPH } from './icons/mode-tool-icons.js';
 
-// Product roadmap — a second layer type on the same Canvas camera. The model
-// holds no coordinates; `layoutRoadmap` is pure and arranges it four ways.
-export { default as RoadmapStudio } from './roadmap/RoadmapStudio.svelte';
-export { default as RoadmapMeshLayer } from './roadmap/RoadmapMeshLayer.svelte';
-export { default as RoadmapRibbonLayer } from './roadmap/RoadmapRibbonLayer.svelte';
-export { default as RoadmapRoadLayer } from './roadmap/RoadmapRoadLayer.svelte';
-export { default as RoadmapMobiusLayer } from './roadmap/RoadmapMobiusLayer.svelte';
-export { default as RoadmapSequence } from './roadmap/RoadmapSequence.svelte';
-export { default as RoadmapLayer } from './roadmap/RoadmapLayer.svelte';
-export { default as RoadmapControls } from './roadmap/RoadmapControls.svelte';
-export { default as RoadmapInspector } from './roadmap/RoadmapInspector.svelte';
-export type { RoadmapDisplay } from './roadmap/RoadmapControls.svelte';
-export {
-	layoutRoadmap,
-	filterModel,
-	dependencyClosure,
-	dependencyDepths,
-	packRows,
-	summarize,
-	boundsOf,
-	wrapLabel,
-	cardHeight,
-	laneAccent,
-	STATUS_ORDER,
-	STATUS_COLOR,
-	STATUS_LABEL,
-	LANE_ACCENT,
-	VIEW_LABEL,
-	VIEW_BLURB,
-	MESH_VIEWS,
-	SEQUENCE_VIEWS
-} from './roadmap/roadmap-model.js';
-export type {
-	RoadmapModel,
-	RoadmapItem,
-	RoadmapLane,
-	RoadmapColumn,
-	RoadmapStatus,
-	RoadmapView,
-	RoadmapFilter,
-	RoadmapLayout,
-	RoadmapLayoutOptions,
-	RoadmapBounds,
-	RoadmapSummary,
-	PlacedItem,
-	RoadmapBand,
-	RoadmapRing
-} from './roadmap/roadmap-model.js';
-export {
-	frameRoadmap,
-	inlineTokens,
-	downloadRoadmapPng,
-	downloadRoadmapSvg
-} from './roadmap/roadmap-export.js';
-export type { RoadmapExportOptions } from './roadmap/roadmap-export.js';
-export { meshSeed, effortRadius } from './roadmap/roadmap-mesh.js';
-export { ribbonLayout, ribbonExtent, reorder } from './roadmap/roadmap-ribbon.js';
-export type {
-	RibbonOptions,
-	RibbonLayout,
-	RibbonPlacement,
-	RibbonSegment
-} from './roadmap/roadmap-ribbon.js';
-export { roadLayout } from './roadmap/roadmap-road.js';
-export type { RoadOptions, RoadLayout, RoadStop } from './roadmap/roadmap-road.js';
-export { mobiusLayout } from './roadmap/roadmap-mobius.js';
-export type {
-	MobiusOptions,
-	MobiusLayout,
-	MobiusPlacement,
-	MobiusStroke
-} from './roadmap/roadmap-mobius.js';
-export type { MeshSeed, MeshSeedItem, MeshSeedOptions, MeshShell } from './roadmap/roadmap-mesh.js';
-export { SAMPLE_ROADMAP } from './roadmap/roadmap-sample.js';
-
 // Node sizing + ring placement — a consumer laying out a mesh must size nodes the
 // same way MeshStudio draws them, or they overlap.
 export {
@@ -402,23 +327,6 @@ export type {
 	CtxChip,
 	CtxAction
 } from './layout/PageContextMenu.svelte';
-export { default as RiskRegister } from './risk/RiskRegister.svelte';
-export { default as RiskEditor } from './risk/RiskEditor.svelte';
-export type { RiskEditorApi } from './risk/RiskEditor.svelte';
-export { reviewChecks } from './risk/risk-model.js';
-export type {
-	RiskRow,
-	RiskInput,
-	AppetiteView,
-	Override as RiskOverride,
-	Level as RiskLevel,
-	Status as RiskStatus,
-	Treatment as RiskTreatment,
-	RiskCheck,
-	ReviewInput as RiskReviewInput,
-	CheckArea as RiskCheckArea,
-	CheckState as RiskCheckState
-} from './risk/risk-model.js';
 export { default as TableWrap } from './display/table/TableWrap.svelte';
 export { default as RulePanel } from './layout/RulePanel.svelte';
 export type { RulePanelTab, RulePanelRule } from './layout/RulePanel.svelte';

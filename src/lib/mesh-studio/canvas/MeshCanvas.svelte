@@ -18,7 +18,7 @@
   import MeshStudio from "../MeshStudio.svelte";
   import type { StudioNode, StudioEdge } from "../studio.types.js";
   import type { ShapeConcept } from "../node-shapes.js";
-  import GlobeFrame from "../globe/GlobeFrame.svelte";
+  import GlobeShell from "../globe/GlobeShell.svelte";
   import Icon from "../../icons/Icon.svelte";
   import MeshLayoutPicker from "../layout/MeshLayoutPicker.svelte";
   import { solveMeshLayout, type MeshLayoutId } from "../layout/mesh-layout.js";
@@ -657,8 +657,8 @@
         // The silhouette does not depend on which contents face you. `limb` is
         // its closed form: under perspective you see slightly less than a
         // hemisphere, but it projects WIDER than the sphere's own radius, by
-        // R·k/√(k²−1) for a camera k radii out. Same expression GlobeFrame draws
-        // its edge with, so the fit and the drawn edge cannot disagree.
+        // R·k/√(k²−1) for a camera k radii out. Same expression `shellLimb` draws
+        // the edge with, so the fit and the drawn edge cannot disagree.
         const hub = hubNode();
         if (isGlobe && camera && globeRadius > 0) {
           const k = Math.max(1.2, meshViewDistance);
@@ -1555,7 +1555,7 @@
 			     only worth drawing if it is the sphere the nodes are actually on. Left
 			     upright, or left at a fixed dolly while the intro flies the camera in,
 			     it drifts off them and reads as a bug. -->
-      <GlobeFrame
+      <GlobeShell
         cx={hubNode()?.x ?? CX}
         cy={hubNode()?.y ?? CY}
         radius={globeRadius}

@@ -1,0 +1,12 @@
+{
+  "name": "breach-v2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BREACH, short match: 2v2, six rounds, four buildings, three moves a seat.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}

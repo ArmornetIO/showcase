@@ -1,0 +1,44 @@
+{
+  "component": "Chip",
+  "props": [
+    {
+      "name": "look",
+      "type": "ChipLook",
+      "optional": true,
+      "default": "'ghost'"
+    },
+    {
+      "name": "color",
+      "type": "ChipColor",
+      "optional": true,
+      "default": "'default'"
+    },
+    {
+      "name": "pulse",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "href",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "target",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "rel",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "children",
+      "type": "Snippet",
+      "optional": false
+    }
+  ],
+  "interfaces": []
+}

@@ -1,0 +1,82 @@
+{
+  "component": "PricingCard",
+  "props": [
+    {
+      "name": "tier",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "tagline",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "price",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "priceUnit",
+      "type": "string",
+      "optional": true,
+      "default": "'/mo'"
+    },
+    {
+      "name": "priceSub",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "items",
+      "type": "string[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "ctaLabel",
+      "type": "string",
+      "optional": true,
+      "default": "'Get started'"
+    },
+    {
+      "name": "ctaHref",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "onCta",
+      "type": "() => void",
+      "optional": true
+    },
+    {
+      "name": "pending",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "badge",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "featured",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "variant",
+      "type": "CardVariant",
+      "optional": true,
+      "default": "'accent'"
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

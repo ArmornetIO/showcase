@@ -1,0 +1,66 @@
+{
+  "component": "Input",
+  "props": [
+    {
+      "name": "type",
+      "type": "InputType",
+      "optional": true,
+      "default": "'text'"
+    },
+    {
+      "name": "value",
+      "type": "string",
+      "optional": true,
+      "default": "$bindable('')"
+    },
+    {
+      "name": "placeholder",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "disabled",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "required",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "readonly",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "oninput",
+      "type": "(e: Event & { currentTarget: HTMLInputElement }) => void",
+      "optional": true
+    },
+    {
+      "name": "onchange",
+      "type": "(e: Event & { currentTarget: HTMLInputElement }) => void",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

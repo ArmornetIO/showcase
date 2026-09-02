@@ -1,0 +1,60 @@
+{
+  "component": "DataInputCard",
+  "props": [
+    {
+      "name": "mode",
+      "type": "DataInputMode",
+      "optional": false
+    },
+    {
+      "name": "eyebrow",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "rows",
+      "type": "DataInputInfoRow[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "fields",
+      "type": "DataInputField[]",
+      "optional": true,
+      "default": "[]"
+    },
+    {
+      "name": "submitLabel",
+      "type": "string",
+      "optional": true,
+      "default": "'Submit'"
+    },
+    {
+      "name": "onsubmit",
+      "type": "(values: Record<string, string>) => void",
+      "optional": true
+    },
+    {
+      "name": "variant",
+      "type": "CardVariant",
+      "optional": true,
+      "default": "'accent'"
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

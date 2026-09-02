@@ -1,0 +1,18 @@
+{
+  "component": "StatusDot",
+  "props": [
+    {
+      "name": "status",
+      "type": "StatusLevel",
+      "optional": false
+    },
+    {
+      "name": "glow",
+      "type": "boolean",
+      "optional": true,
+      "description": "Show a glow shadow on healthy state. Defaults true for agent status, false for tool health.",
+      "default": "true"
+    }
+  ],
+  "interfaces": []
+}

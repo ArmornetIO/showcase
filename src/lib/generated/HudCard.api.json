@@ -1,0 +1,68 @@
+{
+  "component": "HudCard",
+  "props": [
+    {
+      "name": "eyebrow",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "num",
+      "type": "string | number",
+      "optional": true
+    },
+    {
+      "name": "windowLabel",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "ctaLabel",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "ctaHref",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "featured",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "variant",
+      "type": "CardVariant",
+      "optional": true,
+      "default": "'accent'"
+    },
+    {
+      "name": "icon",
+      "type": "Snippet",
+      "optional": true
+    },
+    {
+      "name": "children",
+      "type": "Snippet",
+      "optional": true
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

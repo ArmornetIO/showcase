@@ -1,0 +1,33 @@
+{
+  "component": "FormField",
+  "props": [
+    {
+      "name": "label",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "name": "hint",
+      "type": "string",
+      "optional": true
+    },
+    {
+      "name": "required",
+      "type": "boolean",
+      "optional": true,
+      "default": "false"
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "optional": true,
+      "description": "Should match the id on the child input for label association."
+    },
+    {
+      "name": "children",
+      "type": "Snippet",
+      "optional": false
+    }
+  ],
+  "interfaces": []
+}

@@ -8,6 +8,28 @@
 			name="description"
 			content="A 2v2 supply-chain skirmish: two seats attack, two defend, twelve rounds."
 		/>
+		<!--
+			The dark, before there is any CSS to say so.
+
+			`--bg` lives in `tokens.css`, which `app.css` imports and `main.ts`
+			imports in turn — so in dev it is a stylesheet the browser has not been
+			told about until a module graph has executed, and in a build it is a
+			file that still has to be fetched. Until then the page is painted with
+			the UA default, which is WHITE, and the game's first frame is a flash.
+			It ran 450ms on the lobby, which boots the board and the wasm before it
+			can paint anything.
+
+			So the value is inlined here and duplicated on purpose: a literal is the
+			only form of it that exists before the token does. It is the dark theme's
+			`--bg` and has to be changed with it — anything else shows as a one-frame
+			seam when the real stylesheet lands.
+		-->
+		<style>
+			html,
+			body {
+				background: #05080d;
+			}
+		</style>
 	</head>
 	<body>
 		<div id="app"></div>

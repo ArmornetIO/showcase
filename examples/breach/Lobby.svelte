@@ -4,9 +4,10 @@
 	// screens own their own layout and `BreachLobby` owns every rule about who
 	// may do what.
 	//
-	//   TITLE    the mark forging itself, once, in front of the setup screen. Not
-	//            a screen you can be sent back to and not a decision — it is the
-	//            curtain, and it is over the moment anybody touches anything.
+	//   TITLE    the mark forging itself, once, and then the game's name on the
+	//            held frame. Not a screen you can be sent back to and not a
+	//            decision — it is the curtain, and it is over the moment anybody
+	//            touches anything.
 	//   SETUP    the game master alone, before the room exists. Size and mode are
 	//            settled here because settling them later means changing the game
 	//            under people who already agreed to the last one. Ends with the
@@ -22,12 +23,14 @@
 	// yourself around, with the size and mode sitting beside three people who
 	// had already sat down. Splitting it is the whole change.
 
+	import { cubicOut } from 'svelte/easing';
 	import { Backdrop, Button, LogoForge, Panel, prefersReducedMotion } from 'showcase';
 	import { BreachLobby } from './internal/lobby.svelte.js';
 	import type { AssignmentMode } from './internal/lobby.svelte.js';
 	import type { Faction, MatchSize } from './internal/rules.js';
 	import ConnectionBanner from './hud/ConnectionBanner.svelte';
 	import HostSetup from './lobby/HostSetup.svelte';
+	import WelcomeCard from './lobby/WelcomeCard.svelte';
 	import TeamPicker from './lobby/TeamPicker.svelte';
 	import AgentSelect from './lobby/AgentSelect.svelte';
 	import { arrivedOnLink, inviteURL, openTable } from './api.js';
@@ -90,6 +93,12 @@
 	 * title would play over a room three people are waiting in.
 	 */
 	let titleDone = $state(prefersReducedMotion());
+
+	/** Whether the forge has finished and the name is being said over the held
+	 *  frame. A second flag rather than a stage, because it is not a place: it
+	 *  runs INSIDE the curtain, and every way out of the curtain is also a way
+	 *  out of this. */
+	let welcoming = $state(false);
 
 	/** Somebody following an invitation lands here with the table in the query,
 	 *  and has no setup step at all — the rules were settled before they were
@@ -198,6 +207,29 @@
 	}
 
 	const isHost = $derived(!socket || socket.isHost);
+
+	/**
+	 * How the curtain leaves.
+	 *
+	 * An `out:` and nothing else — the setup screen is already mounted underneath
+	 * and needs no entrance of its own. Two things fading at once against each
+	 * other is a dissolve nobody asked for; one thing getting out of the way reads
+	 * as the camera moving on.
+	 *
+	 * The scale is the whole trick and it is deliberately small. A title that only
+	 * dims has been switched off; a title that also pushes very slightly toward
+	 * the reader has been passed through. Any more than a few percent and it stops
+	 * being a move and becomes a zoom.
+	 *
+	 * Reduced motion never reaches this: `titleDone` starts true there, so the
+	 * curtain is never mounted and has nothing to leave.
+	 */
+	const curtain = (_node: Element) => ({
+		duration: 460,
+		easing: cubicOut,
+		// `u` runs 1 → 0 on the way out.
+		css: (u: number) => `opacity: ${u}; transform: scale(${1 + (1 - u) * 0.035});`
+	});
 </script>
 
 <!-- Any key drops the curtain. Bound on the window rather than on the overlay
@@ -234,29 +266,13 @@
 		</div>
 	{/if}
 
-	{#if titleUp}
-		<!-- The curtain. Over the backdrop and the banner both — it is the first
-		     thing on screen and there is nothing behind it worth reading yet. It
-		     ends itself on `oncomplete`; everything else here is the way out. -->
-		<div class="absolute inset-0 z-40">
-			<LogoForge oncomplete={() => (titleDone = true)} />
-			<!-- A real button spanning the frame rather than a click handler on a
-			     div: it is the same target either way for a pointer, and this one
-			     is also reachable by the reader who never sees the scene. -->
-			<button
-				class="absolute inset-0 cursor-default"
-				aria-label="Skip the title"
-				onclick={() => (titleDone = true)}
-			></button>
-			<span
-				class="pointer-events-none absolute right-6 bottom-5 font-mono text-[0.58rem]
-				       tracking-[0.16em] text-[var(--fg-dim)] uppercase opacity-70"
-			>
-				press any key to skip
-			</span>
-		</div>
-	{:else if stage === 'setup'}
-		<div class="relative z-10 min-h-full grid">
+	{#if stage === 'setup'}
+		<!-- Mounted UNDER the curtain rather than after it. The curtain used to be
+		     the first arm of this chain, which meant there was nothing behind it to
+		     fade to and the only way off the title was a cut. `inert` is what makes
+		     that safe: the screen is on the page for the whole of the intro, and
+		     without it the tab key reaches a form nobody can see. -->
+		<div class="relative z-10 min-h-full grid" inert={titleUp}>
 			<HostSetup
 				{size}
 				{mode}
@@ -310,5 +326,38 @@
 				</Panel>
 			</div>
 		{/if}
+	{/if}
+
+	<!-- The curtain. Over the backdrop, the banner and whichever screen is behind
+	     it — it is the first thing on screen and there is nothing back there worth
+	     reading yet. It ends itself on the card; everything else here is the way
+	     out, and every one of them leaves through the same fade. -->
+	{#if titleUp}
+		<div class="absolute inset-0 z-40" out:curtain>
+			<!-- The forge hands off to the card rather than to the setup screen: it
+			     is the mark ARRIVING, and cutting away on the frame it arrives at
+			     spends nine seconds of build on nothing. `oncomplete` already waits
+			     out the lamp, so the held frame is lit before the name lands on it. -->
+			<LogoForge oncomplete={() => (welcoming = true)} />
+			<!-- A real button spanning the frame rather than a click handler on a
+			     div: it is the same target either way for a pointer, and this one
+			     is also reachable by the reader who never sees the scene. -->
+			<button
+				class="absolute inset-0 cursor-default"
+				aria-label="Skip the title"
+				onclick={() => (titleDone = true)}
+			></button>
+			<!-- After the button, so the type paints over it, and inert so the frame
+			     stays one big skip target for the whole of the curtain. -->
+			{#if welcoming}
+				<WelcomeCard oncomplete={() => (titleDone = true)} />
+			{/if}
+			<span
+				class="pointer-events-none absolute right-6 bottom-5 font-mono text-[0.58rem]
+				       tracking-[0.16em] text-[var(--fg-dim)] uppercase opacity-70"
+			>
+				press any key to skip
+			</span>
+		</div>
 	{/if}
 </div>

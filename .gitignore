@@ -193,5 +193,24 @@ src/routes/mockups/*
 # down to sub-second ordering during checkout.
 .install-stamp
 
-# Playwright scratch screenshots — see the note in the parent .gitignore.
+# Playwright scratch screenshots — throwaway output from verifying a screen
+# locally.
 .shots/
+
+# macOS Finder metadata.
+.DS_Store
+
+# The breach rules engine and the agent harness, compiled to wasm. Built outside
+# this repo (armornet's `make build-breach-wasm`), which also installs the
+# matching `wasm_exec` shim straight out of the Go/TinyGo toolchain — so the
+# shim is generated too, and `make clean` deletes both.
+*.wasm
+examples/breach/public/wasm_exec.js
+examples/breach/public/wasm_exec_tinygo.js
+
+# One-off Playwright drivers — written to check a single screen once and never
+# run again. Same rule as .shots/ above: they belong to the machine that wrote
+# them, not to the repo.
+/d.mjs
+/breach-verify.mjs
+**/overlay-tmp.mjs

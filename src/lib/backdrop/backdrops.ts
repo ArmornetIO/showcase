@@ -24,6 +24,7 @@ import CurrentField from './CurrentField.svelte';
 import DriftStrata from './DriftStrata.svelte';
 import IsolineTerrain from './IsolineTerrain.svelte';
 import LongScan from './LongScan.svelte';
+import ShearWeave from './ShearWeave.svelte';
 import { PRESET_IDS, type PresetId } from './presets.js';
 
 export type FamilyId =
@@ -31,7 +32,8 @@ export type FamilyId =
 	| 'long-scan'
 	| 'drift-strata'
 	| 'isoline-terrain'
-	| 'current-field';
+	| 'current-field'
+	| 'shear-weave';
 
 /** Everything selectable, `none` included. */
 export type BackdropId = 'none' | FamilyId | PresetId;
@@ -60,7 +62,8 @@ export const FAMILIES: Record<FamilyId, Component<Record<string, number>>> = {
 	'long-scan': LongScan as Component<Record<string, number>>,
 	'drift-strata': DriftStrata as Component<Record<string, number>>,
 	'isoline-terrain': IsolineTerrain as Component<Record<string, number>>,
-	'current-field': CurrentField as Component<Record<string, number>>
+	'current-field': CurrentField as Component<Record<string, number>>,
+	'shear-weave': ShearWeave as Component<Record<string, number>>
 };
 
 const FAMILY_META: BackdropMeta[] = [
@@ -93,6 +96,12 @@ const FAMILY_META: BackdropMeta[] = [
 		label: 'Current field',
 		description: 'Ink trails on a flow field. The only one that runs every frame.',
 		cost: 'heavy'
+	},
+	{
+		id: 'shear-weave',
+		label: 'Shear weave',
+		description: 'A diagonal accent pool under an off-square lattice, slowly shearing.',
+		cost: 'free'
 	}
 ];
 

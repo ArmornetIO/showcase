@@ -292,6 +292,39 @@ export const FAMILY_KNOBS: Record<FamilyId, Knob[]> = {
 		{
 			kind: 'param',
 			group: 'shape',
+			prop: 'turn',
+			label: 'Turbulence',
+			hint: 'THE chaos knob, in multiples of π. At 2 everything drifts together; higher folds the same smooth field through itself until neighbours run opposite ways. Raises disorder without ever putting a corner in a trail — reach for this before Flow rate.',
+			value: 6,
+			min: 2,
+			max: 12,
+			step: 0.5
+		},
+		{
+			kind: 'param',
+			group: 'shape',
+			prop: 'swirl',
+			label: 'Swirl scale',
+			hint: 'Spatial frequency. LOWER IS BIGGER — a particle stays inside one swirl longer, which is what reads as a current. Past ~0.003 the cells are shorter than a trail and the ink goes to fuzz.',
+			value: 0.0011,
+			min: 0.0004,
+			max: 0.003,
+			step: 0.0001
+		},
+		{
+			kind: 'param',
+			group: 'motion',
+			prop: 'churn',
+			label: 'Field churn',
+			hint: 'How fast the current itself rewrites — the third noise axis, not the particles. Zero freezes the field into a fixed pattern the ink just traces.',
+			value: 0.00012,
+			min: 0,
+			max: 0.0006,
+			step: 0.00002
+		},
+		{
+			kind: 'param',
+			group: 'shape',
 			prop: 'decay',
 			label: 'Trail decay',
 			hint: 'How fast old ink fades. This IS the image: lower and trails smear forever, higher and they read as dashes rather than current.',
@@ -310,6 +343,72 @@ export const FAMILY_KNOBS: Record<FamilyId, Knob[]> = {
 			min: 0.1,
 			max: 4,
 			step: 0.1
+		}
+	],
+	'shear-weave': [
+		ground(),
+		{
+			kind: 'color',
+			group: 'colour',
+			token: '--shear-pool',
+			label: 'Pool',
+			hint: 'The diagonal wash of accent this family was built around. Alpha well under 0.1 — it is light in the panel, not a fill on it.',
+			value: 'rgba(94, 234, 212, 0.055)'
+		},
+		{
+			kind: 'color',
+			group: 'colour',
+			token: '--shear-line',
+			label: 'Lattice',
+			hint: 'One thread. Both sets take it, so the weave never reads as two different materials crossing.',
+			value: 'rgba(94, 234, 212, 0.05)'
+		},
+		{
+			kind: 'param',
+			group: 'shape',
+			prop: 'gap',
+			label: 'Thread spacing',
+			hint: 'Distance between threads. Under ~14px the two sets fuse into flat tone and the moiré is gone.',
+			value: 26,
+			min: 14,
+			max: 90,
+			step: 2,
+			unit: 'px'
+		},
+		{
+			kind: 'param',
+			group: 'shape',
+			prop: 'angle',
+			label: 'Bias',
+			hint: 'Angle of the first set. The second sits 74° off it — off-square on purpose, since 90° reads as graph paper.',
+			value: 22,
+			min: 0,
+			max: 90,
+			step: 1,
+			unit: '°'
+		},
+		{
+			kind: 'range',
+			group: 'shape',
+			token: '--shear-weave',
+			label: 'Thread strength',
+			hint: 'Opacity of both line sets. The pool underneath is unaffected.',
+			value: 0.6,
+			min: 0,
+			max: 1,
+			step: 0.02
+		},
+		{
+			kind: 'range',
+			group: 'motion',
+			token: '--shear-period',
+			label: 'Shear period',
+			hint: 'Seconds for one thread of travel. LOWER IS FASTER. The second set runs at 1.42× this, and that ratio is why the moiré never repeats.',
+			value: 34,
+			min: 8,
+			max: 180,
+			step: 2,
+			unit: 's'
 		}
 	]
 };

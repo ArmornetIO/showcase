@@ -55,11 +55,19 @@
 		type TangentFrame
 	} from 'showcase';
 	import { UNIT_BUILD } from './internal/fx.js';
-	import { CREEP, creepPose, peekPose, snapPose, stilledPose } from './internal/gait.js';
+	import {
+		CREEP,
+		STROLL,
+		creepPose,
+		peekPose,
+		snapPose,
+		stilledPose
+	} from './internal/gait.js';
 	import { lensDrift } from './internal/optics.js';
 	import type { Lineup, ShotKind } from './internal/cinema.js';
 	import Blackout from './Blackout.svelte';
 	import Unmask from './Unmask.svelte';
+	import Implant from './Implant.svelte';
 
 	/** The slice of MeshCanvas a scene needs. Structural rather than imported so
 	 *  this file does not drag the whole canvas in — and so a test can hand it six
@@ -210,6 +218,16 @@
 		 */
 		watchDistance?: number;
 		watchTilt?: number;
+
+		// ── The implant shot ─────────────────────────────────────────────────
+		/** Walking in. Unhurried — see `STROLL`. */
+		walkMs?: number;
+		/** The block converting. The centrepiece, and the longest beat of the
+		 *  four shots: it is the only one where the thing being watched is TEXT,
+		 *  and text needs time in a way a movement does not. */
+		composeMs?: number;
+		/** The payload going in. */
+		injectMs?: number;
 	}
 
 	let {
@@ -236,7 +254,10 @@
 		siftMs = 1700,
 		nameMs = 620,
 		watchDistance = 1.62,
-		watchTilt = 0.5
+		watchTilt = 0.5,
+		walkMs = 1150,
+		composeMs = 2100,
+		injectMs = 780
 	}: Props = $props();
 
 	/**
@@ -245,6 +266,7 @@
 	 *   insert    establish → dive → turn → hold → rise
 	 *   blackout  spot → creep → flank → reach → snap → hold → rise
 	 *   unmask    watch → sift → name → hold → rise
+	 *   implant   walk → compose → inject → hold → rise
 	 *
 	 * Shared because they are genuinely the same two moments — the shot standing
 	 * open while the board plays underneath, and the camera being handed back —
@@ -264,6 +286,9 @@
 		| 'watch'
 		| 'sift'
 		| 'name'
+		| 'walk'
+		| 'compose'
+		| 'inject'
 		| 'hold'
 		| 'rise';
 
@@ -513,6 +538,7 @@
 	export async function enter(s: Scene): Promise<void> {
 		if (s.shot === 'blackout') return enterBlackout(s);
 		if (s.shot === 'unmask') return enterUnmask(s);
+		if (s.shot === 'implant') return enterImplant(s);
 		return enterInsert(s);
 	}
 
@@ -803,6 +829,95 @@
 		sustain();
 	}
 
+	/**
+	 * ── The implant staging ─────────────────────────────────────────────────
+	 *
+	 * Structurally the blackout's twin, and the two are meant to be compared:
+	 * both close ground on foot and then do something with their hands. The
+	 * differences are all editorial and all deliberate.
+	 *
+	 * `STROLL` rather than `CREEP`. The Maintainer's passive is `nobody audits a
+	 * friend` and their best stat is social 3 — they are not breaking in, they
+	 * have commit access and two years of goodwill. Staging this as a sneak would
+	 * flatter it into a heist and lose what makes the card frightening, which is
+	 * that it looks like an ordinary afternoon.
+	 *
+	 * And no `flank`. There is nothing to check around a corner when you are
+	 * allowed to be here; the walk goes straight into the work.
+	 */
+	async function enterImplant(s: Scene): Promise<void> {
+		if (!mesh || !camera) return;
+		const on = standId(s);
+		const meet = mesh.poseFacing(on, { tilt: spotTilt, distance: spotDistance });
+		const aim = mesh.poseFacing(s.structureId, { tilt: eyeTilt, distance: SURFACE_DISTANCE });
+		if (!meet || !aim) return;
+
+		cut();
+		scene = s;
+		release = mesh.seizeCamera();
+		entryPose = mesh.cameraPose();
+		aimPose = aim;
+		wide = framingNow();
+		readMarks(s);
+
+		// ── Walk ─────────────────────────────────────────────────────────────
+		// Straight from wherever the camera was to standing at the building. One
+		// beat, not two: the blackout spends a `spot` on showing you the operator
+		// because a crouched figure at a distance is information. A person walking
+		// in normally is not, and dwelling on them would be inventing suspense the
+		// card does not have.
+		const from0 = entryPose;
+		phase = 'walk';
+		await drive(walkMs, (t) => {
+			p = t;
+			const k = ease(t);
+			mesh!.setCameraPose(creepPose(cameraLerp(cameraApproach(from0, meet, k), aim, k), elapsed, STROLL));
+			readMarks(s);
+			const a = mesh!.nodeScreen(on);
+			const b = mesh!.nodeScreen(s.structureId);
+			if (a && b) {
+				frameOnPoint(
+					a.x + (b.x - a.x) * k,
+					a.y + (b.y - a.y) * k,
+					wide + (tightFor(s.structureId) - wide) * k
+				);
+			}
+		});
+		if (phase !== 'walk') return;
+
+		// ── Compose ──────────────────────────────────────────────────────────
+		// The camera goes still and stays still for two seconds, which is longer
+		// than anything else in any of the four shots holds. It has to: the thing
+		// being watched is TEXT, and a camera that keeps moving over text asks the
+		// eye to do two jobs at once and it will drop the reading one.
+		const walkEnd = elapsed;
+		phase = 'compose';
+		await drive(composeMs, (t) => {
+			p = t;
+			mesh!.setCameraPose(breathe(aim, walkEnd + elapsed));
+			readMarks(s);
+			frameOn(s.structureId, tightFor(s.structureId));
+		});
+		if (phase !== 'compose') return;
+
+		// ── Inject ───────────────────────────────────────────────────────────
+		// A small push in as the block goes home. Small: `vector: 'seep'` on this
+		// card, and a lunge would be a `trace`.
+		const composeEnd = walkEnd + elapsed;
+		phase = 'inject';
+		await drive(injectMs, (t) => {
+			p = t;
+			mesh!.setCameraPose(breathe(aim, composeEnd + elapsed));
+			readMarks(s);
+			frameOn(s.structureId, tightFor(s.structureId) * (1 - 0.07 * ease(t)));
+		});
+		if (phase !== 'inject') return;
+
+		phase = 'hold';
+		p = 0;
+		sustain();
+	}
+
 	/** Stand there for `ms`. The shot is already alive — this is only a wait, which
 	 *  is why a caller can equally ignore it and run its own timeline instead. */
 	export async function hold(ms = holdMs): Promise<void> {
@@ -869,6 +984,16 @@
 	 *  two stagings share `hold` and `rise`, so a phase alone cannot answer it. */
 	const blackout = $derived(scene?.shot === 'blackout');
 	const unmask = $derived(scene?.shot === 'unmask');
+	const implant = $derived(scene?.shot === 'implant');
+
+	/** The implant's own phase names. `hold` is `dormant` over there, because the
+	 *  held beat is the point: the thing is in the tree and nothing is happening,
+	 *  which is exactly what the card promises. */
+	const plantPhase = $derived(
+		phase === 'hold'
+			? ('dormant' as const)
+			: (phase as 'walk' | 'compose' | 'inject' | 'rise')
+	);
 
 	/** The blackout's own phase names. `hold` is `dark` over there, because from
 	 *  inside that shot the held beat is not a pause — it is the consequence. */
@@ -876,8 +1001,16 @@
 	 *  somebody, for being them, and now for working with your hands in the dark,
 	 *  and those are three different claims. */
 	const stateWord = $derived(
-		phase === 'watch'
-			? 'observing'
+		phase === 'walk'
+			? 'walking in'
+			: phase === 'compose'
+				? 'composing'
+				: phase === 'inject'
+					? 'shipping'
+					: implant
+						? 'merged'
+						: phase === 'watch'
+							? 'observing'
 			: phase === 'sift'
 				? 'sifting'
 				: phase === 'name'
@@ -914,7 +1047,7 @@
 	 *  deliberately only half-lit: it is still a shot of the board, and dressing it
 	 *  as a helmet before anybody is inside the helmet is a lie about where you are. */
 	const depth = $derived(
-		phase === 'establish' || phase === 'spot' || phase === 'watch'
+		phase === 'establish' || phase === 'spot' || phase === 'watch' || phase === 'walk'
 			? p * 0.5
 			: phase === 'rise'
 				? 1 - p
@@ -964,11 +1097,11 @@
 	 *  a lock that is already on before the eye has come round has not locked onto
 	 *  anything. */
 	const aimIn = $derived(
-		!blackout && !unmask && phase === 'turn'
+		!blackout && !unmask && !implant && phase === 'turn'
 			? Math.max(0, (p - 0.35) / 0.65)
-			: !blackout && !unmask && phase === 'hold'
+			: !blackout && !unmask && !implant && phase === 'hold'
 				? 1
-				: !blackout && !unmask && phase === 'rise'
+				: !blackout && !unmask && !implant && phase === 'rise'
 					? 1 - p
 					: 0
 	);
@@ -976,7 +1109,7 @@
 	/** The body you are in. Arrives on the turn — you cannot see your own shoulders
 	 *  while you are still travelling. */
 	const selfIn = $derived(
-		blackout || unmask
+		blackout || unmask || implant
 			? 0
 			: phase === 'turn'
 				? Math.min(1, p / 0.5)
@@ -1323,6 +1456,20 @@
 		     marker, and before the visor chrome so the corner brackets survive the
 		     flash — the helmet is the one thing in frame that is not on the circuit
 		     being cut. -->
+		{#if implant}
+			<Implant
+				{box}
+				{mark}
+				hue={scene.hue}
+				phase={plantPhase}
+				{p}
+				{elapsed}
+				subject={scene.subject}
+				score={scene.power}
+				unit={scene.powerLabel}
+			/>
+		{/if}
+
 		{#if unmask}
 			<Unmask
 				{box}

@@ -1819,8 +1819,24 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 
 	// ── Brand marks ─────────────────────────────────────────────────────────────
-	// All three are sized by their own `size` prop rather than by the box, so they
+	// All of them are sized by their own `size` prop rather than by the box, so they
 	// are not resizable — dragging the frame would leave the art behind.
+	{
+		id: 'ArmornetLogo',
+		label: 'Armornet Logo',
+		category: 'Display',
+		defaultW: 120,
+		defaultH: 120,
+		resizable: false,
+		placeable: true,
+		props: {
+			size: { kind: 'number', label: 'Size', default: 64, min: 16, max: 320, step: 4 },
+			color: { kind: 'text', label: 'Colour', default: 'var(--accent)' },
+			variant: { kind: 'enum', label: 'Variant', default: 'outline', options: ['outline', 'filled'] },
+			innerWall: { kind: 'boolean', label: 'Inner wall', default: true },
+			glow: { kind: 'boolean', label: 'Glow', default: true }
+		}
+	},
 	{
 		id: 'ArmornetCrest',
 		label: 'Armornet Crest',

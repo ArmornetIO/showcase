@@ -26,20 +26,61 @@ props can be driven over time and how.
 
 ---
 
+## Status: alpha
+
+Showcase is **pre-1.0 and moving**. It was extracted from armornet — a security
+platform still under active development — and it still changes when that product
+needs it to. Nothing here is frozen.
+
+- **No semver guarantees.** A minor bump can break you. Pin an exact version.
+- **Not on npm yet.** It will publish as `@armornet/showcase` — the bare
+  `showcase` name on the registry belongs to an unrelated package. Install from
+  git until then.
+- **No deprecation window.** Things marked experimental below can be renamed or
+  removed in the same release they change behaviour in.
+- **Svelte 5 runes only**, and no plan to support Svelte 4.
+
+What *is* dependable: the tokens contract (a test asserts every `var()` resolves),
+the registry invariants (parity and coverage specs), and the generated `*.api.json`
+contracts — those are enforced mechanically, so they cannot rot quietly.
+
+### Stability by area
+
+| | |
+|---|---|
+| **Settled** | Shipped in production, spec-covered. Changes will be additive; a break gets called out. |
+| **Evolving** | The shape is right, the names are still moving. Expect renames. |
+| **Experimental** | Here because it earns its keep in one product. May change or vanish without notice. |
+
+| Area | | Why |
+|---|---|---|
+| `primitives/` `display/` | **Settled** | The bulk of the library — 111 components, 60 spec files, and the parts armornet leans on hardest |
+| `layout/` `navigation/` `icons/` `motion/` | **Settled** | Small, covered, and stable in shape since extraction |
+| `theme/` `frames/` | **Settled** | Both are contracts rather than components; the token and frame maps are test-enforced |
+| `builder/` `scene/` `storyboard/` | **Evolving** | The agentic layer, and the part most likely to be renamed as the vocabulary settles — `presentation`, `showWhen` and the channel/burst split are still being argued with |
+| `chart/` | **Evolving** | 12 renderers behind a composable engine; the engine is sound, the per-renderer prop names are not final |
+| `devcog/` | **Evolving** | Works, framework-agnostic, but the export format will change as agents get better at consuming it |
+| `mesh-studio/` `physics/` | **Experimental** | Heavily tested (27 spec files between them) yet shaped entirely by one product's topology, and the GL paths want a real GPU |
+| `backdrop/` `brand/` `character/` `docs/` `model-explorer/` `seo/` `settings/` `perf/` `dev/` `agent/` | **Experimental** | Product surfaces published because they were useful to lift, not because they are general |
+
+`examples/` is demo code, not part of the package.
+
+---
+
 ## Install
 
 ```sh
-npm install showcase
+npm install github:ArmornetIO/showcase   # @armornet/showcase once published — see Status
 ```
 
 ```js
 // app.css or your root +layout
-@import 'showcase/tokens.css';
+@import '@armornet/showcase/tokens.css';
 ```
 
 ```svelte
 <script>
-  import { Button, StatCard, StatTile } from 'showcase';
+  import { Button, StatCard, StatTile } from '@armornet/showcase';
 </script>
 
 <StatCard label="Open findings" value={412} variant="critical" size="lg" />

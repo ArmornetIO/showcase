@@ -66,6 +66,62 @@ export {
 } from './mesh-studio/modes.gen.js';
 export type { ModeMeta, RuntimeEnv, Platform } from './mesh-studio/modes.gen.js';
 
+// ── Brand ────────────────────────────────────────────────────────────────────
+
+// The mark forging itself: the inert line crest spins, ignites, collapses to
+// a point and is rebuilt spark by spark into the forged cut. A title scene —
+// the breach lobby plays it in front of the setup screen. It owns the clock
+// and the composition; every layer below stands on its own.
+export { default as LogoForge } from './brand/LogoForge.svelte';
+
+// The same scene with its clock on a scrubber and a jump to each beat. It
+// adds nothing to the scene and changes nothing about it — a studio that
+// renders a slightly different thing from the shipped one is worse than none.
+export { default as LogoForgeStudio } from './brand/LogoForgeStudio.svelte';
+
+// The crest with its figure taken off, so the mesh can turn while the shield
+// holds still. Also the one place the two artboards are reconciled: `size`
+// means what it means on ArmornetCrestChrome, not what the line crest's own
+// 24-unit box would give you.
+export { default as ForgeMark } from './brand/ForgeMark.svelte';
+
+// Converging rails and a haze band. A solid needs somewhere to be standing;
+// a mark on a flat field is a sticker.
+export { default as ForgeFloor } from './brand/ForgeFloor.svelte';
+
+// One lamp, and every surface term read off it — face streak, per-contour
+// shading, ball speculars, tube hotspots. Take the lamp away and all of it
+// goes dark together, which is what the eye reads as lit.
+export { default as RimLight } from './brand/RimLight.svelte';
+
+// Rings off a point, out or in. Time is ms SINCE THE EVENT rather than a
+// scene clock, so a scrubbable host gets a scrubbable shock.
+export { default as ShockRings } from './brand/ShockRings.svelte';
+
+// Comet trails converging on seats and bursting on contact.
+export { default as SparkField } from './brand/SparkField.svelte';
+
+// The timeline and the geometry, exported because the beats are read by
+// things that are not the scene: `FORGE_SETTLED` is what a host waits on
+// before taking it away, and `markGeometry()` is what a consumer feeds to
+// RimLight or ShockRings when it wants one layer without the rest. Both
+// builders memoise, and they are separate because the seat plan costs three
+// orders of magnitude more than the mark does.
+export {
+	FORGE,
+	FORGE_BEATS,
+	FORGE_SETTLED,
+	beatAt,
+	markGeometry,
+	seatPlan
+} from './brand/forge.js';
+export type { ForgeBeat, MarkGeometry, SeatPlan } from './brand/forge.js';
+
+// The shading maths RimLight renders. Separate from the component so a
+// consumer can light contours it cut itself.
+export { buildEdges, edgeLight, ballLight, tubeLight } from './brand/rimlight.js';
+export type { ContourEdge, Lamp, Band } from './brand/rimlight.js';
+
 // ── Primitives ───────────────────────────────────────────────────────────────
 export { default as Button } from './primitives/actions/Button.svelte';
 export type {

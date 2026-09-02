@@ -94,6 +94,22 @@ const INTENTIONALLY_EXCLUDED: Record<string, string> = {
 	SvgFx: 'wraps arbitrary art in an SVG filter — an effect applied TO a component, with nothing of its own to place',
 	BreakoutStack: 'requires a container snippet plus an overlay snippet — a composition, not a placeable widget',
 
+	// The forge. A title scene and its layers — each is a demo on /brand, and none
+	// of them is a widget: they are all absolutely positioned against the centre
+	// of whatever frame they are in, which is the opposite of what a canvas item
+	// is for.
+	LogoForge:
+		'title scene — takes the whole frame it is in, blacks it out at the singularity beat and runs a clock nothing can pause, so a placed one would put the builder through a detonation',
+	LogoForgeStudio: 'the same scene plus a scrubber — authoring chrome, not a placeable widget',
+	ForgeMark:
+		'two absolutely-positioned halves of one mark, registered on the host frame centre — it has no box of its own to place',
+	ForgeFloor: 'scenery — fills its host and is meant to be behind something, not on a canvas',
+	RimLight:
+		'a lighting pass over contours the caller supplies; with no edges and no lamp there is nothing to place',
+	ShockRings: 'a timed effect fired from a point — it has no resting state to drop on a canvas',
+	SparkField:
+		'a canvas of particles flying at seats the caller supplies; placed with no targets it draws nothing',
+
 	// Dev / perf tooling — not UI components
 	DevCog: 'dev feature-flag panel — developer tooling, not a product UI component',
 	PerfPanel: 'performance budget panel — developer tooling, not a product UI component',

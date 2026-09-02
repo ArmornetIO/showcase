@@ -416,8 +416,8 @@
 	--backdrop-cell: 34px;
 
 	/* ── Backdrop families ──────────────────────────────────────────────────
-	   The five standalone backdrops — Ash Drift, Long Scan, Drift Strata,
-	   Isoline Terrain, Current Field. They arrived reading a private vocabulary
+	   The six standalone backdrops — Ash Drift, Long Scan, Drift Strata,
+	   Isoline Terrain, Current Field, Shear Weave. They arrived reading a private vocabulary
 	   that was declared nowhere: every value lived only as a `var()` fallback
 	   inside the component, so no theme could reach them and the numbers had no
 	   single home.
@@ -446,6 +446,15 @@
 	/* Long Scan — a still hatched plate and one slow raking light. */
 	--scan-sweep: rgba(94, 234, 212, 0.06);
 	--scan-sweep-period: 40s;
+
+	/* Shear Weave — a diagonal accent pool under an off-square lattice. The pool
+	   is the landing page's old inline panel gradient, which is why it is the one
+	   family whose tint starts in accent rather than in the grey-green the others
+	   sit in: it was drawn to belong to that panel before it belonged to this set. */
+	--shear-pool: rgba(94, 234, 212, 0.055);
+	--shear-line: rgba(94, 234, 212, 0.05);
+	--shear-weave: 0.6;
+	--shear-period: 34s;
 
 	/* Drift Strata — blurred atmosphere clipped into hard horizontal bands. */
 	--strata-tint: rgba(94, 234, 212, 0.16);

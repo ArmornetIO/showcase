@@ -56,10 +56,20 @@
 		showMenu('advanced');
 	}
 
-	const rows: Array<{ key: ThemeChoice; label: string; description: string }> = [
-		{ key: 'system', label: 'System', description: 'Follows your OS setting.' },
-		...THEMES.map((t) => ({ key: t.key, label: t.label, description: t.description }))
-	];
+	// `theme.available`, not `THEMES`: a host can turn the light palettes off, and
+	// a picker that still lists them offers a choice the store will not honour.
+	// Derived rather than built once — the host declares the capability during
+	// layout setup, which can land after this component is first constructed.
+	const rows = $derived<Array<{ key: ThemeChoice; label: string; description: string }>>([
+		{
+			key: 'system',
+			label: 'System',
+			// It cannot follow an OS set to light if light is off, and a row that
+			// promises something the store will not do is worse than no row.
+			description: theme.allowLight ? 'Follows your OS setting.' : 'Dark while light is off.'
+		},
+		...theme.available.map((t) => ({ key: t.key, label: t.label, description: t.description }))
+	]);
 
 	// HUD variant: gradient diagonal swatches + sublabels per theme
 	const hudMeta: Record<ThemeChoice, { label: string; sublabel: string; swatch: string }> = {
@@ -221,7 +231,7 @@
 
 				<div class="tp-hud-divider"></div>
 
-				{#each THEMES as t (t.key)}
+				{#each theme.available as t (t.key)}
 					<button
 						class="tp-hud-option"
 						class:active={activeKey === t.key}

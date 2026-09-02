@@ -354,6 +354,26 @@
     ],
     "interfaces": []
   },
+  "ShearWeave": {
+    "component": "ShearWeave",
+    "props": [
+      {
+        "name": "gap",
+        "type": "number",
+        "optional": true,
+        "description": "Lattice spacing. Below ~14px the two sets fuse into flat tone.",
+        "default": "26"
+      },
+      {
+        "name": "angle",
+        "type": "number",
+        "optional": true,
+        "description": "Angle of the first line set. The second is offset off-square.",
+        "default": "22"
+      }
+    ],
+    "interfaces": []
+  },
   "StripsGl": {
     "component": "StripsGl",
     "props": [
@@ -390,6 +410,394 @@
         "optional": true,
         "description": "Saturated stand-in for rainbow mode; `hue-rotate` cannot invent\n saturation out of the ground's near-grey.",
         "default": "'hsl(170 85% 60%)'"
+      }
+    ],
+    "interfaces": []
+  },
+  "ForgeFloor": {
+    "component": "ForgeFloor",
+    "props": [
+      {
+        "name": "opacity",
+        "type": "number",
+        "optional": true,
+        "description": "How present the floor is. It is scenery — at 1 the rails compete with\n whatever is standing on them.",
+        "default": "0.5"
+      },
+      {
+        "name": "rails",
+        "type": "number",
+        "optional": true,
+        "description": "Rails, and cross-lines. More of either reads as graph paper.",
+        "default": "23"
+      },
+      {
+        "name": "rungs",
+        "type": "number",
+        "optional": true,
+        "default": "13"
+      }
+    ],
+    "interfaces": []
+  },
+  "ForgeMark": {
+    "component": "ForgeMark",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "description": "The shield's width in px, read the same way `ArmornetCrestChrome` reads\n it — not the line crest's own box.",
+        "default": "470"
+      },
+      {
+        "name": "loose",
+        "type": "boolean",
+        "optional": true,
+        "description": "Draw the figure separately from the wall. Off, this is the shipped\n logo; on, the mark is in two pieces and `spin` moves one of them.",
+        "default": "false"
+      },
+      {
+        "name": "spin",
+        "type": "number",
+        "optional": true,
+        "description": "The figure's azimuth, radians. Whole turns land back on the rest pose.",
+        "default": "0"
+      },
+      {
+        "name": "ignite",
+        "type": "number",
+        "optional": true,
+        "description": "How far the hub has caught, 0–1. Runs the wall from graphite to the\n accent and the figure one stage further, toward white.",
+        "default": "0"
+      },
+      {
+        "name": "pulse",
+        "type": "number",
+        "optional": true,
+        "description": "The hot core's own flicker, 0–1. Separate from `ignite` because a\n steady bloom reads as a gradient rather than as something burning.",
+        "default": "1"
+      },
+      {
+        "name": "breathe",
+        "type": "number",
+        "optional": true,
+        "description": "A scale on the whole mark. The breath, when a host has a clock to\n drive it with.",
+        "default": "1"
+      }
+    ],
+    "interfaces": []
+  },
+  "LogoForge": {
+    "component": "LogoForge",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "description": "The forged mark's rendered width, px. Everything in the scene is\n resolved against it.",
+        "default": "470"
+      },
+      {
+        "name": "floor",
+        "type": "boolean",
+        "optional": true,
+        "description": "The room the mark stands in. Off leaves it on the background ramp\n alone, which is what a host with its own backdrop wants.",
+        "default": "true"
+      },
+      {
+        "name": "t",
+        "type": "number",
+        "optional": true,
+        "description": "The clock, ms. Bindable so a scrubber can drive it; left alone the\n component runs it.",
+        "default": "$bindable(0)"
+      },
+      {
+        "name": "playing",
+        "type": "boolean",
+        "optional": true,
+        "default": "$bindable(true)"
+      },
+      {
+        "name": "speed",
+        "type": "number",
+        "optional": true,
+        "default": "1"
+      },
+      {
+        "name": "oncomplete",
+        "type": "() => void",
+        "optional": true,
+        "description": "Fired once, when the mark has finished arriving AND the lamp has had\n long enough to say so. A host that swaps this out for its own screen\n waits on this rather than on a duration it has copied."
+      }
+    ],
+    "interfaces": []
+  },
+  "LogoForgeStudio": {
+    "component": "LogoForgeStudio",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "default": "470"
+      },
+      {
+        "name": "t",
+        "type": "number",
+        "optional": true,
+        "description": "Bind these to drive the studio from outside — a page with its own\n toolbar, or a test that wants to park on one frame.",
+        "default": "$bindable(0)"
+      },
+      {
+        "name": "playing",
+        "type": "boolean",
+        "optional": true,
+        "default": "$bindable(true)"
+      },
+      {
+        "name": "keys",
+        "type": "boolean",
+        "optional": true,
+        "description": "Take the keyboard. On for a full-screen route; off when the studio is\n one block on a page of them, where a stray `space` would be a surprise.",
+        "default": "true"
+      }
+    ],
+    "interfaces": []
+  },
+  "RimLight": {
+    "component": "RimLight",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "description": "Rendered width, px. The contours are authored in the forged cut's\n 200×220 box and scale with it.",
+        "default": "470"
+      },
+      {
+        "name": "edges",
+        "type": "ContourEdge[]",
+        "optional": false,
+        "description": "The contours to light — `buildEdges()`, or any subset of it."
+      },
+      {
+        "name": "lamp",
+        "type": "Lamp",
+        "optional": false,
+        "description": "Where the light is. `z` is how far in front of the face it hangs: near\n enough to pick out edges one at a time, far enough not to blow out\n whatever it passes over."
+      },
+      {
+        "name": "figure",
+        "type": "{ hub: Pt; nodes: Pt[]; hubR: number; nodeR: number }",
+        "optional": true,
+        "description": "The mesh figure's joints, so the solid parts of the mark are lit too.\n Omit and only the contours answer — which the eye reads immediately as\n a shield that is lit with a mark sitting on it that is not."
+      },
+      {
+        "name": "shield",
+        "type": "string",
+        "optional": true,
+        "description": "The silhouette the face passes are clipped to. Without it the brushed\n field and the streak are a rectangle over the artwork."
+      },
+      {
+        "name": "intensity",
+        "type": "number",
+        "optional": true,
+        "description": "Fade the whole lamp up. Every pass reads it, so this is the light\n arriving rather than an opacity over a lit picture.",
+        "default": "1"
+      },
+      {
+        "name": "offsetY",
+        "type": "number",
+        "optional": true,
+        "description": "Px to lift the artboard by, so the SHIELD's centre — not the 200×220\n box's — lands on the host's centre. `0.005784 × size` is what the\n forged cut needs; a scene registers every layer against the same\n point or the light drifts off the thing it is lighting.",
+        "default": "0"
+      }
+    ],
+    "interfaces": []
+  },
+  "ShockRings": {
+    "component": "ShockRings",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "description": "Rendered width, px. Coordinates are the forged cut's 200×220 box.",
+        "default": "470"
+      },
+      {
+        "name": "cx",
+        "type": "number",
+        "optional": false,
+        "description": "The point the rings leave from, in box units."
+      },
+      {
+        "name": "cy",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "t",
+        "type": "number",
+        "optional": false,
+        "description": "Ms since the event. Before 0 and after the last ring lands, nothing\n renders."
+      },
+      {
+        "name": "direction",
+        "type": "'out' | 'in'",
+        "optional": true,
+        "description": "Which way. `out` is a shock; `in` is the one thing in a collapse that\n travels toward the middle, which is why it reads at all.",
+        "default": "'out'"
+      },
+      {
+        "name": "count",
+        "type": "number",
+        "optional": true,
+        "default": "3"
+      },
+      {
+        "name": "stagger",
+        "type": "number | number[]",
+        "optional": true,
+        "description": "Ms between rings — one number for an even pulse, or one per ring when\n the spacing itself should be uneven (which is what turns a pulse into a\n detonation).",
+        "default": "190"
+      },
+      {
+        "name": "duration",
+        "type": "number",
+        "optional": true,
+        "description": "How long one ring takes to travel `reach`.",
+        "default": "900"
+      },
+      {
+        "name": "from",
+        "type": "number",
+        "optional": true,
+        "description": "Start radius and travel, box units.",
+        "default": "4"
+      },
+      {
+        "name": "reach",
+        "type": "number",
+        "optional": true,
+        "default": "210"
+      },
+      {
+        "name": "ease",
+        "type": "'quint' | 'cubic'",
+        "optional": true,
+        "description": "`quint` is a hit — full speed on the first frame. `cubic` is a shove.",
+        "default": "'cubic'"
+      },
+      {
+        "name": "peak",
+        "type": "number",
+        "optional": true,
+        "description": "Peak opacity, and how sharply it falls off. A high `tail` puts the whole\n ring's life in its first third, which is what a blast looks like.",
+        "default": "0.5"
+      },
+      {
+        "name": "tail",
+        "type": "number",
+        "optional": true,
+        "default": "1"
+      },
+      {
+        "name": "width",
+        "type": "[number, number]",
+        "optional": true,
+        "description": "Stroke width as `[base, gain]` — `base + gain × opacity`.",
+        "default": "[1, 3]"
+      },
+      {
+        "name": "color",
+        "type": "string",
+        "optional": true,
+        "default": "'var(--accent)'"
+      },
+      {
+        "name": "leadColor",
+        "type": "string",
+        "optional": true,
+        "description": "The first ring's colour, when the leading edge of a detonation should be\n hotter than what follows it."
+      },
+      {
+        "name": "blend",
+        "type": "boolean",
+        "optional": true,
+        "description": "Screen-blend, for a shock that has to stay bright over what it crosses.",
+        "default": "false"
+      },
+      {
+        "name": "offsetY",
+        "type": "number",
+        "optional": true,
+        "description": "Px to lift the artboard by, so the rings are centred on the same point\n every other layer in the scene is registered against.",
+        "default": "0"
+      }
+    ],
+    "interfaces": []
+  },
+  "SparkField": {
+    "component": "SparkField",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": false,
+        "description": "Layer size in px; the layer is square and maps the chrome box the way\n `ArmornetCrestChrome` does, so box coords line up with the scene."
+      },
+      {
+        "name": "t",
+        "type": "number",
+        "optional": false,
+        "description": "ms into the assembly beat. Negative renders nothing."
+      },
+      {
+        "name": "targets",
+        "type": "SparkTarget[]",
+        "optional": false,
+        "description": "Seats, in chrome-box coords, and when each should be arrived at."
+      },
+      {
+        "name": "accent",
+        "type": "string",
+        "optional": true,
+        "description": "Overrides the `--accent` token.",
+        "default": "''"
+      },
+      {
+        "name": "repeat",
+        "type": "number",
+        "optional": true,
+        "description": "Sparks per target. Left off, the field fills toward a frame density\n rather than inheriting however finely the caller tiled the mark."
+      },
+      {
+        "name": "reach",
+        "type": "number",
+        "optional": true,
+        "description": "Run-up length in box units — see `BuildOpts.reach`."
+      },
+      {
+        "name": "decay",
+        "type": "number",
+        "optional": true,
+        "description": "How much of the old trail is erased each frame. 0.22 is the tuned value:\nlower and the comets stretch until they read as static beams, higher and\nthey shorten into dashes with a visible head.",
+        "default": "0.22"
+      },
+      {
+        "name": "maxDpr",
+        "type": "number",
+        "optional": true,
+        "default": "1.5"
+      },
+      {
+        "name": "offsetY",
+        "type": "number",
+        "optional": true,
+        "description": "Px to lift the field by, so it is centred on the same point as the mark\n it is building rather than on the artboard.",
+        "default": "0"
       }
     ],
     "interfaces": []
@@ -702,6 +1110,19 @@
         "name": "onclose",
         "type": "() => void",
         "optional": false
+      },
+      {
+        "name": "pov",
+        "type": "Snippet<[CharacterSkin, string]>",
+        "optional": true,
+        "description": "A second way of looking at the character, rendered instead of the\nturntable when the stage is switched to it.\nA SNIPPET rather than an import, and that is the whole design. The thing\nthis slot exists for is breach's first-person cutaway, which knows about\ncards, shots and a board — none of which `src/lib` may know about, since\na library that imports an example has been turned inside out. So the\nstudio declares a hole the shape of \"given this character, draw\nsomething\", and the route that mounts both fills it.\nAbsent, the toggle does not appear at all: a mode switch with one mode is\na control that does nothing."
+      },
+      {
+        "name": "povLabel",
+        "type": "string",
+        "optional": true,
+        "description": "What to call it on the toggle.",
+        "default": "'First person'"
       }
     ],
     "interfaces": []
@@ -4464,6 +4885,63 @@
         "type": "boolean",
         "optional": true,
         "description": "Blurred underlay behind the mark — atmosphere, not structure.",
+        "default": "true"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "optional": true,
+        "default": "'Armornet'"
+      },
+      {
+        "name": "class",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "style",
+        "type": "string",
+        "optional": true,
+        "default": "''"
+      }
+    ],
+    "interfaces": []
+  },
+  "ArmornetLogo": {
+    "component": "ArmornetLogo",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "default": "64"
+      },
+      {
+        "name": "color",
+        "type": "string",
+        "optional": true,
+        "description": "The whole mark. Monochrome by design — one colour, one weight.",
+        "default": "'var(--accent)'"
+      },
+      {
+        "name": "variant",
+        "type": "'outline' | 'filled'",
+        "optional": true,
+        "description": "'filled' inverts it: a solid shield with the figure punched through to\nwhatever is behind, so a dark-on-light lockup needs no second asset.",
+        "default": "'outline'"
+      },
+      {
+        "name": "innerWall",
+        "type": "boolean",
+        "optional": true,
+        "description": "The hairline inside the shield wall. Drop it below ~32px — it silts up.",
+        "default": "true"
+      },
+      {
+        "name": "glow",
+        "type": "boolean",
+        "optional": true,
+        "description": "Blurred underlay. Atmosphere; off for anything that has to reproduce flat.",
         "default": "true"
       },
       {

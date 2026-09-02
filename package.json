@@ -1,6 +1,14 @@
 {
-	"name": "showcase",
+	"name": "@armornet/showcase",
 	"version": "0.0.1",
+	"license": "MPL-2.0",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ArmornetIO/showcase.git"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",

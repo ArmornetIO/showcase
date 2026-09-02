@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Icon, { type IconName } from '$lib/icons/Icon.svelte';
+	import ArmornetLogo from '$lib/icons/ArmornetLogo.svelte';
 	import ArmornetCrest from '$lib/icons/ArmornetCrest.svelte';
 	import ArmornetCrestHub from '$lib/icons/ArmornetCrestHub.svelte';
 	import ArmornetCrestChrome from '$lib/icons/ArmornetCrestChrome.svelte';
@@ -84,6 +85,77 @@
 							>{sw}</span
 						>
 					</div>
+				{/each}
+			</div>
+		</div>
+	</ShowcaseBlock>
+
+	<ShowcaseBlock component="ArmornetLogo">
+		<div class="block-head">
+			<h3 class="component-name">ArmornetLogo</h3>
+		</div>
+		<p class="component-desc">
+			THE logo. Header, footer, hero, favicon — everything that means "this product" renders this
+			and nothing else. It is deliberately thin: <code class="demo-code">ArmornetCrestMesh</code>
+			owns the geometry and can draw twenty-six shields, and this file's whole job is to say WHICH
+			ONE is the brand. Never write
+			<code class="demo-code">&lt;ArmornetCrestMesh shape="crestkey" /&gt;</code> in an app — that is
+			a second vote on the logo, and the next tweak only wins one of them. Usage:
+		</p>
+		<p
+			style="font-family: var(--mono); font-size: 0.6875rem; color: var(--fg-dim); margin-bottom: 20px;"
+		>
+			<code
+				style="color: var(--accent); background: rgba(94,234,212,0.08); padding: 1px 5px; border-radius: 2px;"
+				>&lt;ArmornetLogo size={64} /&gt;</code
+			>
+		</p>
+
+		<div class="demo-row" style="align-items: flex-end;">
+			<span class="demo-label">sizes</span>
+			<div class="demo-items" style="align-items: flex-end; gap: 20px;">
+				{#each [20, 32, 48, 96] as sz}
+					<div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+						<!-- The hairline silts up below ~32px, which is what `innerWall`
+						     is for; showing it drop out at 20 is the demo. -->
+						<ArmornetLogo size={sz} innerWall={sz >= 32} glow={sz >= 32} />
+						<span style="font-family:var(--mono);font-size:0.5625rem;color:var(--fg-dim)"
+							>{sz}</span
+						>
+					</div>
+				{/each}
+			</div>
+		</div>
+
+		<div class="demo-row" style="margin-top: 24px; align-items: flex-end;">
+			<span class="demo-label">variants</span>
+			<div class="demo-items" style="align-items: flex-end; gap: 20px;">
+				{#each [{ label: 'outline', props: { variant: 'outline' as const } }, { label: 'no wall', props: { innerWall: false } }, { label: 'flat', props: { glow: false } }] as v}
+					<div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+						<ArmornetLogo size={72} {...v.props} />
+						<span style="font-family:var(--mono);font-size:0.5625rem;color:var(--fg-dim)"
+							>{v.label}</span
+						>
+					</div>
+				{/each}
+				<!-- `filled` punches the figure through to whatever is behind, so it
+				     only reads on a contrasting ground — demoed on one, because on the
+				     page background it is a solid shield and proves nothing. -->
+				<div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+					<div style="background:#e2e8f0;border-radius:6px;padding:8px;display:flex;">
+						<ArmornetLogo size={72} variant="filled" color="#0f172a" glow={false} />
+					</div>
+					<span style="font-family:var(--mono);font-size:0.5625rem;color:var(--fg-dim)">filled</span
+					>
+				</div>
+			</div>
+		</div>
+
+		<div class="demo-row" style="margin-top: 24px; align-items: flex-end;">
+			<span class="demo-label">colour</span>
+			<div class="demo-items" style="align-items: flex-end; gap: 20px;">
+				{#each ['var(--accent, #6ee7b7)', '#e2e8f0', '#f0abfc', '#fbbf24'] as c}
+					<ArmornetLogo size={64} color={c} glow={false} />
 				{/each}
 			</div>
 		</div>

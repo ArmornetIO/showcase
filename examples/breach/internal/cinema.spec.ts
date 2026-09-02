@@ -32,4 +32,14 @@ describe('the cutaway table', () => {
 		expect(staged.length).toBeGreaterThan(0);
 		for (const c of drafted) expect(c?.shot).toBeTruthy();
 	});
+
+	it('gives no two signatures the same staging', () => {
+		// The editorial result of doing all four, and worth guarding: a cutaway
+		// earns its cost by being unlike the last one you saw. Two classes sharing
+		// a staging would make the second one a re-run at the price of a first
+		// showing — which is exactly the failure the short table was protecting
+		// against, arriving by a different route.
+		const shots = Object.values(POV_CARDS).map((c) => c!.shot);
+		expect(new Set(shots).size).toBe(shots.length);
+	});
 });

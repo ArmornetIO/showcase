@@ -36,7 +36,7 @@
 	} from './store.svelte.js';
 	import { appearance, type AppearanceMode } from '../theme/appearance.svelte.js';
 	import { theme } from '../theme/store.svelte.js';
-	import { THEMES, getTheme, type ThemeChoice } from '../theme/themes.js';
+	import { getTheme, type ThemeChoice } from '../theme/themes.js';
 
 	interface Props {
 		/**
@@ -75,10 +75,16 @@
 	// ── Theme ───────────────────────────────────────────────────────────────
 	// 'system' leads: it is the only choice that is not a palette, so "I don't
 	// want to decide" is the first thing you can pick.
-	const THEME_OPTIONS: ChoiceOption[] = [
-		{ value: 'system', label: 'System', description: 'Follows your OS setting.' },
-		...THEMES.map((t) => ({ value: t.key, label: t.label, description: t.description }))
-	];
+	// `theme.available` rather than `THEMES`: a host can turn the light palettes
+	// off, and an option the store will not honour is worse than no option.
+	const THEME_OPTIONS = $derived<ChoiceOption[]>([
+		{
+			value: 'system',
+			label: 'System',
+			description: theme.allowLight ? 'Follows your OS setting.' : 'Dark while light is off.'
+		},
+		...theme.available.map((t) => ({ value: t.key, label: t.label, description: t.description }))
+	]);
 	// The swatch has to show a real palette and `system` does not name one, so it
 	// previews whatever system currently resolves to.
 	const themeSwatch = $derived(getTheme(theme.resolved).swatch);

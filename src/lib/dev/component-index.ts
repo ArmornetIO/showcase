@@ -26,6 +26,7 @@ const HIDDEN = new Set(['overview']);
 const META: Record<string, { label?: string; note?: string }> = {
 	'alert-blade': { label: 'AlertBlade' },
 	backdrop: { label: 'Backdrop' },
+	brand: { note: 'The mark forging itself — the title scene and every layer it is made of' },
 	builder: { note: 'Drag-and-drop canvas builder with live AI generation' },
 	compare: { label: 'Compare', note: 'Side-by-side mockup comparison with preference voting' },
 	'design-patterns': { label: 'Design Patterns', note: 'The rules this interface is built on' },

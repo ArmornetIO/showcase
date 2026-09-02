@@ -18,6 +18,14 @@
     "HorizonBackdrop",
     "MobiusWeave"
   ],
+  "/brand": [
+    "LogoForgeStudio",
+    "ForgeFloor",
+    "ForgeMark",
+    "RimLight",
+    "ShockRings",
+    "SparkField"
+  ],
   "/builder": [
     "LayerControls",
     "ComponentPalette",
@@ -119,6 +127,7 @@
     "Frame"
   ],
   "/icons": [
+    "ArmornetLogo",
     "ArmornetCrest",
     "ArmornetCrestHub",
     "ArmornetCrestChrome",

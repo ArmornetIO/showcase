@@ -128,8 +128,13 @@ export const NO_CINEMA: CinemaPort = {
  *             sentence for the one signature that resolves into KNOWING rather
  *             than into doing: an approach would be a lie about what the card
  *             does, because the approach already happened.
+ *   implant   An unhurried walk in, a block of source becoming bytes in the air
+ *             in front of you, and it seeps into the tree and STAYS. The only
+ *             staging that ends by showing a consequence being ACCEPTED rather
+ *             than inflicted — the last frame is a review passing a diff nobody
+ *             read. `STROLL`, not `CREEP`: nobody audits a friend.
  */
-export type ShotKind = 'insert' | 'blackout' | 'unmask';
+export type ShotKind = 'insert' | 'blackout' | 'unmask' | 'implant';
 
 /** A card's cutaway: where it sits, what it looks like, and whether that look
  *  was chosen for it or merely borrowed. */
@@ -175,10 +180,9 @@ export interface Cut {
  * it ever returns anything.
  */
 export const POV_CARDS: Partial<Record<string, Cut>> = {
-	// The Maintainer plants corrupt test data and walks away. Not staged yet —
-	// an implant wants a shot about LEAVING something behind, which neither of
-	// the two existing stagings is about.
-	fixture: { at: 'full', shot: 'insert', draft: true },
+	// The Maintainer plants corrupt test data and walks away. The shot about
+	// leaving something behind — and about it being waved through.
+	fixture: { at: 'full', shot: 'implant' },
 	// Burned. Once, loudly, and gone. The dive, the streaks, the lock-on.
 	zeroday: { at: 'full', shot: 'insert' },
 	// The Architect cuts the building off the network and it stays cut. No

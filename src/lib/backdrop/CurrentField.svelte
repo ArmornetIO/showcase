@@ -11,6 +11,16 @@
 	// noise takes time as a third axis, so the current itself changes direction
 	// over minutes and the composition never becomes familiar.
 	//
+	// CHAOS AND SMOOTHNESS ARE SEPARATE KNOBS, which is the thing worth knowing
+	// before touching this. Smoothness is the noise: value noise through a
+	// quintic smoothstep has a continuous second derivative, so no setting of
+	// anything below can put a corner in a trail. Chaos is `turn` — how much
+	// angular range that smooth field is stretched across. Crank `turn` and the
+	// same gentle noise folds through itself until neighbouring particles run
+	// opposite ways; the flow becomes turbulent while every individual path
+	// stays a curve. Reach for `turn` first, and leave `speed` alone: speed
+	// makes it hectic, which is a different thing and always looks worse.
+	//
 	// This is the only backdrop in the family that spends CPU every frame, and
 	// the scope that proposed it made these mitigations conditions of building
 	// it at all. They are implemented here, not deferred:
@@ -35,10 +45,36 @@
 		 * and trails smear forever, higher and they read as dashes.
 		 */
 		decay?: number;
+		/**
+		 * Spatial frequency of the field. LOWER IS BIGGER: the swirls grow and a
+		 * particle stays inside one for longer, which is what reads as a current
+		 * rather than as jitter. Past ~0.003 the cells are smaller than a trail is
+		 * long and the ink turns to fuzz.
+		 */
+		swirl?: number;
+		/** How fast the field itself rewrites. The current changes direction over
+		 *  minutes at this rate; it is what stops the image settling. */
+		churn?: number;
+		/**
+		 * Angular range, in multiples of π. This is the chaos knob. At 2 the field
+		 * is one broad drift with everything travelling roughly together; raising
+		 * it makes the same smooth noise fold back through itself, so neighbouring
+		 * particles diverge and the flow builds eddies — turbulent without ever
+		 * being jagged, because the underlying noise is unchanged.
+		 */
+		turn?: number;
 		/** Device pixel ratio ceiling. */
 		maxDpr?: number;
 	}
-	let { density = 220, speed = 0.9, decay = 0.035, maxDpr = 1.5 }: Props = $props();
+	let {
+		density = 220,
+		speed = 0.9,
+		decay = 0.035,
+		swirl = 0.0011,
+		churn = 0.00012,
+		turn = 6,
+		maxDpr = 1.5
+	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let host = $state<HTMLDivElement | null>(null);
@@ -55,11 +91,14 @@
 	// Capturing the initial values is the POINT — the effect below keeps them
 	// current, and reading the props reactively is the thing being avoided.
 	// svelte-ignore state_referenced_locally
-	const live = { density, speed, decay };
+	const live = { density, speed, decay, swirl, churn, turn };
 	$effect(() => {
 		live.density = density;
 		live.speed = speed;
 		live.decay = decay;
+		live.swirl = swirl;
+		live.churn = churn;
+		live.turn = turn;
 	});
 
 	interface P {
@@ -153,7 +192,13 @@
 
 			ctx!.lineWidth = 1;
 			for (const p of parts) {
-				const a = fbm(p.x * 0.0016, p.y * 0.0016, t * 0.00004, 2, 3) * Math.PI * 4;
+				// Three octaves, not two. Two is one smooth cell size, and a field with
+				// a single scale in it drifts — everything nearby goes the same way.
+				// The third octave is the whole "chaotic but not rough" trick: it adds
+				// structure BELOW the swirl without adding a hard edge anywhere, since
+				// every octave is the same smoothstep noise an octave down.
+				const a =
+					fbm(p.x * live.swirl, p.y * live.swirl, t * live.churn, 3, 3) * Math.PI * live.turn;
 				p.px = p.x;
 				p.py = p.y;
 				p.x += Math.cos(a) * live.speed;

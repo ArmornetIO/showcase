@@ -165,6 +165,7 @@ export const RENDER_GROUPS: readonly RenderGroup[] = [
 		component: BrandRenderer,
 		ids: [
 			'HexShield',
+			'ArmornetLogo',
 			'ArmornetCrest',
 			'ArmornetCrestHub',
 			'ArmornetCrestMesh',

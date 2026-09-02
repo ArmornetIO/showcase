@@ -1,5 +1,13 @@
 import { readStored, writeStored } from '../storage.js';
-import { resolveChoice, type ThemeChoice, type ThemeKey } from './themes.js';
+import {
+	DEFAULT_DARK,
+	getTheme,
+	resolveChoice,
+	THEMES,
+	type Theme,
+	type ThemeChoice,
+	type ThemeKey
+} from './themes.js';
 
 const STORAGE_KEY = 'armornet-theme';
 
@@ -37,6 +45,7 @@ function reviveChoice(raw: string): ThemeChoice | null {
 class ThemeStore {
 	#choice = $state<ThemeChoice>(DEFAULT_CHOICE);
 	#prefersLight = $state(false);
+	#allowLight = $state(true);
 	#started = false;
 
 	/** What the user picked. Write it through `set` — that is what persists. */
@@ -44,8 +53,38 @@ class ThemeStore {
 		return this.#choice;
 	}
 
+	/**
+	 * Whether the light-mode themes are on offer at all.
+	 *
+	 * A host that has not finished designing against a pale ground turns this off
+	 * and gets a dark-only app; the showcase gallery, whose whole job is showing
+	 * every palette, leaves it on. It is a CAPABILITY the host declares, not a
+	 * preference — which is why it is not persisted and not part of `choice`.
+	 */
+	get allowLight(): boolean {
+		return this.#allowLight;
+	}
+
+	/**
+	 * Suppression, not erasure: a stored `light` is left in storage and simply
+	 * resolves dark while this is off, so turning it back on restores what the
+	 * user picked instead of having quietly overwritten it.
+	 */
+	allowLightThemes(on: boolean): void {
+		this.#allowLight = on;
+	}
+
+	/** The themes a picker may offer — everything, or the dark ones. */
+	readonly available: readonly Theme[] = $derived(
+		this.#allowLight ? THEMES : THEMES.filter((t) => t.mode === 'dark')
+	);
+
 	/** What that resolves to right now. Never stored, never synced by hand. */
-	readonly resolved: ThemeKey = $derived(resolveChoice(this.#choice, this.#prefersLight));
+	readonly resolved: ThemeKey = $derived.by(() => {
+		const key = resolveChoice(this.#choice, this.#prefersLight);
+		if (this.#allowLight) return key;
+		return getTheme(key).mode === 'light' ? DEFAULT_DARK : key;
+	});
 
 	set(next: ThemeChoice): void {
 		this.#choice = next;

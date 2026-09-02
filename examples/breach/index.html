@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>BREACH — supply-chain skirmish</title>
+		<meta
+			name="description"
+			content="A 2v2 supply-chain skirmish: two seats attack, two defend, twelve rounds."
+		/>
+	</head>
+	<body>
+		<div id="app"></div>
+		<!--
+			Go's WebAssembly host shim. A classic script, not a module: it defines
+			the global `Go` constructor the runtime needs, and it is copied here by
+			`make build-breach-wasm` alongside armornet.wasm. Neither is committed.
+		-->
+		<script src="/wasm_exec.js"></script>
+		<script type="module" src="/main.ts"></script>
+	</body>
+</html>

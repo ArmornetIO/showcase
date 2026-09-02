@@ -1,0 +1,1490 @@
+/*
+ * ── Breakpoints (for reference — use Tailwind prefixes in components) ─────────
+ *    sm  ≥ 640px   md  ≥ 768px   lg  ≥ 1024px  (mobile-first, base = 0px)
+ */
+
+/* Armornet UI — design tokens
+   Import once in the consuming app's root layout or app.css:
+     @import 'showcase/tokens.css';
+   All components reference these variables; no color values are hardcoded
+   inside component files (except semantic status colors: teal/amber/rose). */
+
+/* Establish cascade-layer order up front so `base` sits BELOW `utilities` —
+   otherwise the button reset below would out-rank intentional `bg-*` utilities. */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+
+/* Preflight isn't imported here, so bare <button>s fall back to the UA gray
+   button face (that "ugly gray" on any control without an explicit bg-*). This
+   is the one reset we need from preflight: sits in `base`, below `utilities`,
+   so intentional `bg-[…]` utilities still win. */
+@layer base {
+	button,
+	[type='button'],
+	[type='reset'],
+	[type='submit'] {
+		-webkit-appearance: none;
+		appearance: none;
+		background-color: transparent;
+		background-image: none;
+		/* Zero the UA "2px outset" button border but keep style `solid`, so Tailwind
+		   `border`/`border-<color>` utilities (higher layer) render normally. */
+		border-width: 0;
+		border-style: solid;
+	}
+}
+
+/* ── dark (default) ─────────────────────────────────────────────────────── */
+:root {
+	--bg: #06070b;
+	--bg-elev: #0a0b10;
+	/* ── Text, measured against --bg (#06070b) ────────────────────────────────
+	   The two quiet steps were too quiet. Contrast ratios before → after:
+
+	     --fg-muted  #8a969c   6.64:1  →  #b9c5cc  11.43:1
+	     --fg-dim    #6c777e   4.39:1  →  #97a3aa   7.80:1
+
+	   `--fg-dim` at 4.39:1 was below the 4.5:1 AA floor for normal text — not a
+	   matter of taste but a failure, and it is the step carrying tag chips,
+	   helper prose and empty states, which is exactly the text that vanished on
+	   a projector. Both steps stay distinguishable from `--fg` and from each
+	   other; the hierarchy is intact, it just no longer bottoms out in the
+	   background. */
+	--fg: #eef4f6;
+	--fg-muted: #b9c5cc;
+	--fg-dim: #97a3aa;
+	--accent: #5eead4;
+	--accent-bright: #7af0d8;
+	--accent-deep: #04221f;
+	--accent-faint: rgba(94, 234, 212, 0.06);
+	--accent-soft: #7ff0dc;
+    --accent-emerald: #34d399;
+    --text-onaccent: #001a13;
+	--accent-faint-strong: rgba(94, 234, 212, 0.12);
+	--accent-glow: rgba(94, 234, 212, 0.4);
+	--accent-line: rgba(94, 234, 212, 0.04);
+	--accent-link-underline: rgba(94, 234, 212, 0.4);
+	--border: rgba(255, 255, 255, 0.08);
+	--border-strong: rgba(255, 255, 255, 0.14);
+	--border-accent: rgba(94, 234, 212, 0.2);
+	--surface-raised: rgba(255, 255, 255, 0.018);
+	--surface-strong: rgba(255, 255, 255, 0.025);
+	--input-bg: rgba(0, 0, 0, 0.25);
+	--page-bg:
+		radial-gradient(ellipse at top, rgba(94, 234, 212, 0.06) 0%, transparent 55%),
+		radial-gradient(ellipse at 15% 80%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
+		radial-gradient(ellipse at 90% 30%, rgba(52, 211, 153, 0.03) 0%, transparent 50%),
+		#06070b;
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(94, 234, 212, 0.08), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(94, 234, 212, 0.05), transparent 60%);
+	--terminal-bg: rgba(8, 10, 14, 0.85);
+	--selection-bg: rgba(94, 234, 212, 0.35);
+	--selection-fg: var(--accent-deep);
+	--btn-primary-fg: var(--accent-deep);
+	--shadow-card: 0 30px 80px -30px rgba(0, 0, 0, 0.8), 0 0 60px -20px rgba(94, 234, 212, 0.3);
+	--method-get-fg: var(--accent);
+	--method-get-bg: rgba(94, 234, 212, 0.1);
+	--method-post-fg: #f0d59e;
+	--method-post-bg: rgba(240, 213, 158, 0.1);
+	--method-delete-fg: #ff8e8e;
+	--method-delete-bg: rgba(255, 142, 142, 0.08);
+	--method-patch-fg: #c4a8ff;
+	--method-patch-bg: rgba(196, 168, 255, 0.08);
+	--mono: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', monospace;
+	--mono-display: 'Orbitron', 'SF Mono', monospace;
+	--sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	/* ── The brand face, and why it is no longer Rajdhani ──────────────────────
+	   This was `'Rajdhani', 'Inter', sans-serif` and roughly fifty files ask for
+	   it, including console UI — question prose, tag chips, empty states, panel
+	   titles. Rajdhani is a CONDENSED DISPLAY face: narrow letterforms with thin
+	   strokes, drawn to be set large and briefly. At 13–15px in a panel it stops
+	   being readable, which is what made the risk-assessment screens hard to use
+	   on a shared screen.
+
+	   It is the same stack as `--sans` on purpose. The token stays because it
+	   names a ROLE — display and headings — and fifty call sites should not have
+	   to change to fix a legibility bug; keeping it also leaves one place to
+	   point at a real display face later. What it must not be again is a face
+	   that trades reading for character on text people work in.
+
+	   The arcade character did not live here anyway — Orbitron carries it, and
+	   `--mono-display` is where a marketing headline should ask for it. Applied
+	   deliberately to display type, not inherited by every panel in the app. */
+	--sans-brand: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+	/* ── Type scale — theme-invariant, seven steps, and nothing outside them ──
+	   Components had been reaching for `--t-*` / `--ds-*` names that were never
+	   defined here, which silently resolved to nothing and collapsed their
+	   layout. The scale is named by ROLE, not by size, so a component asks for
+	   "the caption step" rather than picking a rem value out of the air. */
+	--t-micro:   0.6875rem; /* 11px — captions, timestamps, ids, over-labels */
+	--t-small:   0.75rem;   /* 12px — dense UI: tree rows, chips, table cells */
+	--t-body:    0.8125rem; /* 13px — default UI body, list rows, form text */
+	--t-lead:    0.9375rem; /* 15px — reading prose, emphasised UI body */
+	--t-title:   1.125rem;  /* 18px — panel + section headings */
+	--t-heading: 1.375rem;  /* 22px — document headings */
+	--t-display: 1.75rem;   /* 28px — document title, hero numerals */
+
+	/* Line heights paired to the scale — long-form prose needs a looser leading
+	   than a dense UI row, and the two should never share a value by accident. */
+	--lh-tight: 1.25;
+	--lh-ui:    1.45;
+	--lh-prose: 1.7;
+
+	/* Letter-spacing for the uppercase micro-label idiom used across panels. */
+	--track-caps: 0.09em;
+
+	/* ── Spacing scale — a 4px base, used only in these multiples ────────────
+	   Same story: `--sp-*` was referenced in components but never defined. */
+	--sp-1: 0.25rem;  /*  4px */
+	--sp-2: 0.5rem;   /*  8px */
+	--sp-3: 0.75rem;  /* 12px */
+	--sp-4: 1rem;     /* 16px */
+	--sp-5: 1.5rem;   /* 24px */
+	--sp-6: 2rem;     /* 32px */
+	--sp-7: 3rem;     /* 48px */
+	--sp-8: 4rem;     /* 64px */
+
+	/* ── Radii ──────────────────────────────────────────────────────────────── */
+	--r-sm: 4px;
+	--r-md: 6px;
+	--r-lg: 10px;
+	--r-xl: 14px;
+	--r-pill: 999px;
+
+	/* ── Secondary palette — the design system's categorical hues ────────────
+	   NOT theme-invariant, despite what this comment used to say. Every value
+	   below is a Tailwind 300/400 step, which is a palette tuned for a BLACK
+	   ground: `#6EE7B7` on `#06070b` is a clear mint, and the identical value on
+	   a pale page is a smear you cannot read a label in. That is what made the
+	   globe's territories and every `color: var(--palette-red)` in the library
+	   wash out in light mode.
+
+	   So the NAME is the invariant and the value follows the ground: a hue means
+	   the same thing in every theme, and each theme states it at a step that
+	   survives its own background (the light block drops to the 600/700 steps).
+	   `-l` is the LIFTED variant — a glow or a hover on dark, and on light the
+	   step that stays legible while still reading as brighter than its base.
+
+	   The set covers exactly the hues in use. It is wider than it was because
+	   the mesh had been reaching past it for a dozen more (`#818CF8`, `#E879F9`,
+	   `#60A5FA`, …) as raw hex, which is how they escaped theming in the first
+	   place — see mesh-studio/palette.ts, which maps those literals back here. */
+	--palette-cyan:      #22D3EE;
+	--palette-cyan-l:    #67E8F9;
+	--palette-teal:      #5FEAD5;
+	--palette-teal-l:    #7FE3F0;
+	--palette-emerald:   #34D399;
+	--palette-emerald-l: #6EE7B7;
+	--palette-green:     #4ADE80;
+	--palette-green-l:   #86EFAC;
+	--palette-blue:      #38BDF8;
+	--palette-blue-l:    #7DD3FC;
+	--palette-sky:       #60A5FA;
+	--palette-sky-l:     #93C5FD;
+	--palette-indigo:    #818CF8;
+	--palette-indigo-l:  #A5B4FC;
+	--palette-violet:    #C4B5FD;
+	--palette-violet-l:  #DDD6FE;
+	/* Violet's deeper neighbour, and a separate name rather than a `-d` tier on
+	   violet: the mesh uses both at once (agentic nodes vs config edges) and
+	   collapsing them would merge two things the graph draws apart. */
+	--palette-purple:    #A78BFA;
+	--palette-purple-l:  #C4B5FD;
+	--palette-fuchsia:   #E879F9;
+	--palette-fuchsia-l: #F5D0FE;
+	--palette-yellow:    #FACC15;
+	--palette-yellow-l:  #FDE047;
+	--palette-amber:     #FCD34D;
+	--palette-amber-l:   #FDE68A;
+	--palette-gold:      #F59E0B;
+	--palette-gold-l:    #FBBF24;
+	--palette-orange:    #FB923C;
+	--palette-orange-l:  #FDBA74;
+	--palette-red:       #FCA5A5;
+	--palette-red-l:     #FECACA;
+	--palette-rose:      #F87171;
+	--palette-rose-l:    #FCA5A5;
+	--palette-slate:     #94A3B8;
+	--palette-slate-l:   #CBD5E1;
+	/* "No signal" — an unassessed vendor, a disabled relay. Not a hue, but it
+	   needs the same treatment: a mid zinc reads as absent on black and as a
+	   solid mark on paper. */
+	--palette-zinc:      #71717A;
+	--palette-zinc-l:    #A1A1AA;
+
+	/* ── Terminal surface — theme-invariant, because the terminal is ─────────
+	   deliberately dark in EVERY theme (`--terminal-bg` is #1c2126 even in
+	   light). Text on it must NOT use --fg/--accent: those inverse with the
+	   theme and would render dark-on-dark. These are the palette for that one
+	   permanently-dark surface. */
+	--terminal-fg:     #e5edf0;
+	--terminal-accent: #5eead4;  /* prompt, ok, keyword */
+	--terminal-dim:    #6c777e;  /* dim, comment */
+	--terminal-string: #f0d59e;
+
+	/* ── Neutral scale — opaque zinc, theme-invariant, for material controls ── */
+	--neutral-950: #0A0A0B;
+	--neutral-900: #18181B;
+	--neutral-800: #27272A;
+	--neutral-700: #3F3F46;
+	--neutral-600: #52525B;
+
+	/* ── Glass ───────────────────────────────────────────────────────────────
+	   A frosted surface treatment. Cards are the first thing themed with it.
+
+	   Glass is not a background — it is a background plus something worth
+	   refracting. `--glass-aurora` is the other half of the recipe: without a
+	   tinted wash behind it, `--glass-surface` reads as flat charcoal. Put the
+	   aurora on the SCROLLING container (with `background-attachment: local`)
+	   so cards drift across the tint instead of sitting on a fixed wash.
+
+	   `saturate()` alongside the blur is what keeps accent colors from going
+	   muddy behind the frost — it is the cheap part doing most of the work.
+	   Border and lip key off the theme accent, so glass travels between themes. */
+	/* Tracks the surface tier: glass is a card, so the two axes — how the face is
+	   painted and how hard the corners are — must not disagree on the same box. */
+	--glass-radius: var(--radius-surface);
+	/* Blur carries the frost so the FACE doesn't have to. Raising the blur while
+	   dropping the surface alpha is what buys transparency without losing the
+	   frosted read: you see more of the ground through the panel, but what you
+	   see is still smeared. Drop the alpha alone and it turns into tinted film. */
+	--glass-blur: 32px;
+	--glass-saturate: 1.25;
+	/* The face is a green-grey, not the blue-grey the source used — a blue cast
+	   is what makes a dark UI read as clean/corporate. This one sits closer to
+	   gun-metal with a sick green bias. */
+	--glass-surface: linear-gradient(
+		158deg,
+		rgba(38, 46, 43, 0.12) 0%,
+		rgba(19, 23, 22, 0.06) 42%,
+		rgba(8, 10, 10, 0.13) 100%
+	);
+	/* Sodium, not rose: the alert cast is a dirty amber, the colour of a warning
+	   lamp behind glass rather than a pink status pill. */
+	--glass-surface-warm: linear-gradient(
+		158deg,
+		rgba(50, 40, 26, 0.13) 0%,
+		rgba(22, 20, 17, 0.06) 45%,
+		rgba(9, 9, 9, 0.13) 100%
+	);
+	/* A dim, dirty teal edge. The bright cyan hairline was the other half of the
+	   "clean SaaS" read — at 0.22 it glowed. */
+	--glass-border: rgba(104, 148, 140, 0.2);
+	/* Three inset edges read as thickness: lit top, lit left, seated bottom. */
+	/* The lit edges are dimmed and tinted off pure white — a clean white bevel is
+	   a showroom highlight, and this surface has not been cleaned in a while. */
+	--glass-bevel:
+		inset 0 1px 0 rgba(188, 204, 196, 0.07), inset 1px 0 0 rgba(188, 204, 196, 0.03),
+		inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+	--glass-lip: 0 1px 0 rgba(104, 148, 140, 0.05);
+	/* Deeper and tighter — the panel should feel like it is sitting in the dark,
+	   not floating over a bright deck. */
+	--glass-float: 0 26px 58px rgba(0, 0, 0, 0.78);
+	/* ── Optics ───────────────────────────────────────────────────────────────
+	   What separates glass from a translucent rectangle. A uniform 1px border
+	   reads as a STROKE; a real pane is lit unevenly, because its edge is a
+	   thick chamfer catching light from one direction.
+
+	   `--glass-rim` is that edge, as a gradient rather than a flat colour:
+	   brightest at the top-left where the light is, gone by the middle, with a
+	   weak bounce returning at the bottom-right. It is painted by the `.glass`
+	   ::before as a masked ring, since a CSS border cannot hold a gradient.
+
+	   `--glass-sheen` is the specular band across the face — the reflection of
+	   the light source in the surface itself, not a highlight on its edge. It
+	   layers ABOVE `--glass-surface` in the same `background` shorthand.
+
+	   `--glass-bloom` is the light that escapes past the edge into the dark.
+	   Kept tight and dim: a wide bloom is a neon sign, not glass.
+
+	   The rim also DISPERSES. Real glass splits light across its edge, so the two
+	   ends of the run do not share a hue: cool cyan where the light enters,
+	   swinging through violet, to a warm magenta on the far bounce. That split
+	   is what reads as futuristic — and it is the actual optics, not a sci-fi
+	   affectation. Keeping the colour on the GLASS while the ground stays sour
+	   and desaturated is the whole contrast: high-tech pane, grimy world. */
+	--glass-rim: linear-gradient(
+		145deg,
+		rgba(148, 242, 236, 0.55) 0%,
+		rgba(116, 190, 202, 0.17) 24%,
+		rgba(120, 150, 140, 0.04) 50%,
+		rgba(168, 122, 196, 0.13) 74%,
+		rgba(216, 132, 166, 0.32) 100%
+	);
+	/* OFF, deliberately. A specular band across the face was tried and cut: at
+	   any strength where it read as a highlight it also sat behind the text as a
+	   smear, and it made the card harder to see rather than more solid. The edge
+	   does the whole job here — the rim above is the glass, and the face stays
+	   clean. Kept as a token (rather than removed from `.glass`) so it is one
+	   value to bring back, not a rule to rewrite. */
+	--glass-sheen: none;
+	/* Two blooms, not one: the cool half sits tight to the edge, the warm half
+	   falls below it. Offsetting them is chromatic aberration at bloom scale. */
+	--glass-bloom:
+		0 0 26px -10px rgba(88, 222, 212, 0.28), 0 10px 30px -12px rgba(192, 102, 152, 0.2);
+	--glass-shadow: var(--glass-bevel), var(--glass-lip), var(--glass-bloom), var(--glass-float);
+	/* Colour blobs — sour and desaturated, not neon. The hues are a dirty teal,
+	   a sodium-vapour amber and a swamp green: light that has been through a bad
+	   fluorescent tube, rather than a product-launch gradient. Saturation is
+	   deliberately low (these are greys with a bias, not colours) because a
+	   saturated blob on a black ground reads as a screensaver. No purple — that
+	   is the single most "startup" note in the set. */
+	/* Three blobs, all cool. The amber that used to sit at 88% 34% is gone: it was
+	   the only warm note in the recipe, so against the surrounding greens it read
+	   as a red cast rather than as depth. Its replacement is a dim blue-green in
+	   the bottom-right — the same family as the top-left teal but pushed toward
+	   blue, so the two corners answer each other instead of competing. */
+	--glass-aurora:
+		radial-gradient(760px 460px at 18% 6%, rgba(38, 92, 88, 0.22), rgba(38, 92, 88, 0) 70%),
+		radial-gradient(900px 520px at 55% 96%, rgba(44, 68, 58, 0.2), rgba(44, 68, 58, 0) 70%),
+		radial-gradient(680px 520px at 86% 88%, rgba(34, 86, 98, 0.12), rgba(34, 86, 98, 0) 72%);
+
+	/* The grid is what MAKES the glass visible, and it is not decoration.
+	   `backdrop-filter` over a smooth gradient is a no-op — a blurred gradient is
+	   the same gradient. Glass only reads when there is STRUCTURE behind it to
+	   soften: a hairline crossing under a panel goes blurry and dims, and that
+	   break between the sharp line outside the panel and the smeared one inside
+	   is the entire effect. One line every 64px, at an alpha that is nearly
+	   invisible on its own — it is there to be blurred, not to be looked at. */
+	--glass-grid-size: 64px;
+	/* Neutral green-grey, not a glowing cyan: the grid should look like a
+	   surveyed floor under bad light, not like it is lit from within. */
+	--glass-grid-line: rgba(126, 150, 142, 0.05);
+	--glass-grid:
+		repeating-linear-gradient(
+			0deg,
+			var(--glass-grid-line) 0 1px,
+			transparent 1px var(--glass-grid-size)
+		),
+		repeating-linear-gradient(
+			90deg,
+			var(--glass-grid-line) 0 1px,
+			transparent 1px var(--glass-grid-size)
+		);
+
+	/* The full ground, in paint order: grid over colour over the page. Use this
+	   on the SCROLLING container, with `background-attachment: local`. */
+	--glass-ground: var(--glass-grid), var(--glass-aurora);
+
+	/* ── Deep ground — the working pages ────────────────────────────────────
+	   /overview is a globe on a dark field and the aurora is part of the
+	   composition there. Everywhere else the ground sits under DENSE content —
+	   tables, forms, drawers — and the same wash competes with it. Same three
+	   blobs, roughly half the strength and pulled toward the blue-green end, so
+	   the tint reads as depth behind the page rather than as a light source in
+	   it. The grid is unchanged: it is structure, and structure should not dim
+	   just because the colour did. */
+	--glass-aurora-deep:
+		radial-gradient(760px 460px at 18% 6%, rgba(34, 84, 82, 0.13), rgba(34, 84, 82, 0) 70%),
+		radial-gradient(900px 520px at 55% 96%, rgba(38, 62, 54, 0.11), rgba(38, 62, 54, 0) 70%),
+		radial-gradient(680px 520px at 86% 88%, rgba(34, 86, 98, 0.07), rgba(34, 86, 98, 0) 72%);
+
+	/* ── Soft grid — the working pages ──────────────────────────────────────
+	   The hairline grid is tuned for /overview and /mesh, where it sits under a
+	   globe on an empty field and there is nothing for it to compete with. Under
+	   a table it is a second set of rules fighting the row separators, and the
+	   eye keeps trying to read the two as one system.
+
+	   Two changes, both toward "further away": roughly half the alpha, and a
+	   line that RAMPS instead of switching. The ramp is the blur — a hard 1px
+	   stop is a drawn line, the same line faded in and out over 3px is an
+	   out-of-focus one. Doing it with gradient stops rather than `filter: blur()`
+	   keeps it a paint-time detail: no extra layer, no per-frame cost, and
+	   nothing that could blur the content sitting on top of it. */
+	/* ── Horizon backdrop ───────────────────────────────────────────────────
+	   Tokens for `backdrop/HorizonBackdrop.svelte`: a STATIC perspective floor
+	   with Möbius strips turning on it and travellers running their edges.
+
+	   The floor does not move, deliberately. Scrolling it toward the viewer is
+	   the outrun idiom, but it puts the whole surface behind the page in
+	   permanent motion, and peripheral vision cannot ignore motion. Fixing the
+	   floor and moving only the traffic gives depth from the perspective and
+	   life from the traffic, without the two competing. */
+	--backdrop-strength: 1;
+	--backdrop-line: rgba(126, 150, 142, 0.07);
+	/* The strips read as objects ON the floor, so they sit well clear of the
+	   ruling they lie across. This alpha is already multiplied twice before it
+	   reaches the screen — by a per-path depth fade and by `--backdrop-strength`
+	   — so it has to start higher than the value you want to end up seeing. */
+	--backdrop-strip: rgba(150, 178, 170, 0.5);
+	--backdrop-traveller: rgba(94, 234, 212, 0.75);
+	/* Cell size. Small enough that the ruling reads as texture rather than as a
+	   drawn grid — at 64px you count the squares, at 34px you do not. */
+	--backdrop-cell: 34px;
+
+	/* ── Backdrop families ──────────────────────────────────────────────────
+	   The six standalone backdrops — Ash Drift, Long Scan, Drift Strata,
+	   Isoline Terrain, Current Field, Shear Weave. They arrived reading a private vocabulary
+	   that was declared nowhere: every value lived only as a `var()` fallback
+	   inside the component, so no theme could reach them and the numbers had no
+	   single home.
+
+	   They are PREFIXED PER FAMILY, not shared. Ash Drift and Drift Strata both
+	   used `--backdrop-tint`, meaning different things at different alphas
+	   (0.05 vs 0.16), so tuning either one silently retuned the other — which
+	   only stayed invisible while no two backdrops could be on screen at once.
+	   Stacking made that a real collision. `--backdrop-ground` stays shared,
+	   because it genuinely is one concept: the plate everything is painted on.
+
+	   `--backdrop-line` stays shared too, and stays LongScan's hatching value —
+	   the ruling and the milled plate are the same faint mark at the same
+	   weight. */
+	--backdrop-ground: #06070b;
+
+	/* Ash Drift — two counter-drifting grain layers over an off-centre pool. */
+	--ash-tint: rgba(94, 234, 212, 0.05);
+	--ash-tint-2: rgba(126, 150, 142, 0.04);
+	--ash-grain: 0.5;
+	--ash-drift: 90s;
+	/* One tile of travel for the 8-step flicker. Tied to the coarse tile size:
+	   a step longer than the tile reseats the grain visibly. */
+	--ash-grain-step: 45px;
+
+	/* Long Scan — a still hatched plate and one slow raking light. */
+	--scan-sweep: rgba(94, 234, 212, 0.06);
+	--scan-sweep-period: 40s;
+
+	/* Shear Weave — a diagonal accent pool under an off-square lattice. The pool
+	   is the landing page's old inline panel gradient, which is why it is the one
+	   family whose tint starts in accent rather than in the grey-green the others
+	   sit in: it was drawn to belong to that panel before it belonged to this set. */
+	--shear-pool: rgba(94, 234, 212, 0.055);
+	--shear-line: rgba(94, 234, 212, 0.05);
+	--shear-weave: 0.6;
+	--shear-period: 34s;
+
+	/* Drift Strata — blurred atmosphere clipped into hard horizontal bands. */
+	--strata-tint: rgba(94, 234, 212, 0.16);
+	--strata-tint-2: rgba(126, 150, 142, 0.13);
+	--strata-grain: 0.4;
+
+	/* Isoline Terrain — contours whose level drives weight, opacity and hue. */
+	--isoline-peak: rgba(94, 234, 212, 0.5);
+	--isoline-line: rgba(126, 150, 142, 0.28);
+	--isoline-flow-period: 26s;
+
+	/* Current Field — ink trails on a flow field. */
+	--field-ink: rgba(126, 150, 142, 0.5);
+	--field-accent: rgba(94, 234, 212, 0.55);
+
+	--glass-grid-line-deep: rgba(126, 150, 142, 0.026);
+	--glass-grid-line-fade: rgba(126, 150, 142, 0);
+	--glass-grid-deep:
+		repeating-linear-gradient(
+			0deg,
+			var(--glass-grid-line-fade) 0,
+			var(--glass-grid-line-deep) 1.5px,
+			var(--glass-grid-line-fade) 3px,
+			var(--glass-grid-line-fade) var(--glass-grid-size)
+		),
+		repeating-linear-gradient(
+			90deg,
+			var(--glass-grid-line-fade) 0,
+			var(--glass-grid-line-deep) 1.5px,
+			var(--glass-grid-line-fade) 3px,
+			var(--glass-grid-line-fade) var(--glass-grid-size)
+		);
+
+	--glass-ground-deep: var(--glass-grid-deep), var(--glass-aurora-deep);
+
+	/* ── Ground drift ───────────────────────────────────────────────────────
+	   The aurora moves. Slowly enough that you never catch it moving — the
+	   point is that the page does not feel frozen when you look back at it, not
+	   that anything is animating AT you.
+
+	   Two independent periods that don't divide evenly, so the layers never
+	   resynchronise into an obvious loop. Transform-only (no background-position,
+	   no filter) so it stays on the compositor and costs nothing per frame. */
+	--glass-drift-slow: 68s;
+	--glass-drift-fast: 47s;
+
+	/* ── Control tokens — semantic aliases for hardware-style toggle components ── */
+	--control-bg:       #111113;
+	--control-chassis:  #18181B;
+	--control-border:   #27272A;
+	--control-inactive: #3F3F46;
+	--control-surface:  #27272A;
+
+	color-scheme: dark;
+}
+
+@media (max-width: 639px) {
+	:root {
+		--touch-target: 44px; /* minimum tap target for buttons / icon buttons */
+		--page-x: 1rem; /* tighter horizontal page padding on mobile */
+	}
+}
+
+/* ── corner geometry ─────────────────────────────────────────────────────────
+   An axis of its own, crossed with the palette — the same reasoning that keeps
+   `data-appearance` out of the theme list. A theme is which colours you are in;
+   this is how hard the corners are, and folding it in would mean authoring
+   every palette three times.
+
+   Four tiers, named for where a surface SITS rather than what it is called.
+   The library holds two design generations of "card" — an 8–10px console
+   Panel and a 3px HUD card — and unifying them by name would smuggle a
+   redesign in as a refactor. So a component picks the tier matching the radius
+   it already has, and the HUD generation stays at `inset`.
+
+   Four and not three because the tiers also have to survive NESTING: a progress
+   bar sets its track, its fill and its cap to different radii on purpose, and
+   collapsing those into one value flattens a hierarchy that was doing work.
+   `hairline` is what keeps that legible.
+
+   The ~40 ad-hoc values across the library snap to these four, so `soft` is a
+   normalisation rather than a byte-for-byte replay: 8px surfaces come up to 10,
+   4–5px controls go to 6, 1px bars go to 2. Nothing else moves.
+
+   Tailwind's own ramp is overridden alongside, because v4 compiles
+   `rounded-md` to `border-radius: var(--radius-md)` — so every utility class
+   in both apps tracks the knob with no edit at the call site. Circles opt out
+   for free: `rounded-full` and `999px` compile to literals, and a knob that
+   squares off a status dot or an avatar is a bug, not a preference. */
+:root {
+	--radius-hairline: 2px; /* bars, tracks, the smallest indicators */
+	--radius-inset: 3px; /* nested in a surface: rows, chips, HUD cards */
+	--radius-control: 6px; /* controls, code, secondary containers */
+	--radius-surface: 10px; /* the outer card / panel / drawer */
+}
+
+[data-radius='sharp'] {
+	/* Not zero at the surface tier — a hairline keeps a card reading as a card
+	   against the page rather than as a region of it. */
+	--radius-hairline: 0px;
+	--radius-inset: 0px;
+	--radius-control: 0px;
+	--radius-surface: 2px;
+
+	--radius-xs: 0px;
+	--radius-sm: 0px;
+	--radius-md: 0.125rem;
+	--radius-lg: 0.125rem;
+	--radius-xl: 0.1875rem;
+	--radius-2xl: 0.25rem;
+	--radius-3xl: 0.375rem;
+}
+
+[data-radius='round'] {
+	--radius-hairline: 4px;
+	--radius-inset: 8px;
+	--radius-control: 12px;
+	--radius-surface: 20px;
+
+	--radius-xs: 0.25rem;
+	--radius-sm: 0.375rem;
+	--radius-md: 0.625rem;
+	--radius-lg: 0.875rem;
+	--radius-xl: 1.125rem;
+	--radius-2xl: 1.375rem;
+	--radius-3xl: 1.75rem;
+}
+
+/* ── light ──────────────────────────────────────────────────────────────── */
+[data-theme='light'] {
+	--bg: #f7f8fa;
+	--bg-elev: #eef0f4;
+	--fg: #0d1417;
+	--fg-muted: #475259;
+	/* 4.44:1 on this theme's #f7f8fa — the same sub-AA failure the dark theme
+	   had, and it needs darkening rather than lightening here. Now 6.74:1.
+	   `paper` and `daylight` measure 5.42 and 5.29 and are left alone. */
+	--fg-dim: #4f5960;
+	--accent: #0e7868;
+	--accent-bright: #0a8978;
+	--accent-deep: #e9faf7;
+	--accent-faint: rgba(14, 120, 104, 0.06);
+	--accent-soft: #14a08a;
+    --accent-emerald: #059669;
+    --text-onaccent: #ffffff;
+	--accent-faint-strong: rgba(14, 120, 104, 0.12);
+	--accent-glow: rgba(14, 120, 104, 0.25);
+	--accent-line: rgba(14, 120, 104, 0.06);
+	--accent-link-underline: rgba(14, 120, 104, 0.4);
+	--border: rgba(13, 20, 23, 0.1);
+	--border-strong: rgba(13, 20, 23, 0.18);
+	--border-accent: rgba(14, 120, 104, 0.2);
+	--surface-raised: rgba(13, 20, 23, 0.025);
+	--surface-strong: rgba(13, 20, 23, 0.04);
+	--input-bg: #ffffff;
+	--page-bg: linear-gradient(#f7f8fa, #eef0f4);
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(14, 120, 104, 0.06), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(14, 120, 104, 0.04), transparent 60%);
+	--terminal-bg: #1c2126;
+	--selection-bg: rgba(14, 120, 104, 0.25);
+	--selection-fg: #0d1417;
+	--btn-primary-fg: #ffffff;
+	--shadow-card: 0 30px 80px -30px rgba(13, 20, 23, 0.18), 0 0 60px -20px rgba(14, 120, 104, 0.25);
+	--method-get-fg: #0e7868;
+	--method-get-bg: rgba(14, 120, 104, 0.1);
+	--method-post-fg: #8a6500;
+	--method-post-bg: rgba(138, 101, 0, 0.1);
+	--method-delete-fg: #b32424;
+	--method-delete-bg: rgba(179, 36, 36, 0.08);
+	--method-patch-fg: #5b3aaa;
+	--method-patch-bg: rgba(91, 58, 170, 0.08);
+	/* Light glass inverts the bevel: the lit edges go white-opaque and the seat
+	   becomes a soft ink line, because the light is now above a pale surface. */
+	--glass-surface: linear-gradient(
+		158deg,
+		rgba(255, 255, 255, 0.72) 0%,
+		rgba(255, 255, 255, 0.46) 42%,
+		rgba(255, 255, 255, 0.66) 100%
+	);
+	--glass-surface-warm: linear-gradient(
+		158deg,
+		rgba(255, 250, 250, 0.74) 0%,
+		rgba(255, 255, 255, 0.46) 45%,
+		rgba(255, 255, 255, 0.66) 100%
+	);
+	--glass-border: rgba(14, 120, 104, 0.22);
+	--glass-bevel:
+		inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 1px 0 0 rgba(255, 255, 255, 0.6),
+		inset 0 -1px 0 rgba(13, 20, 23, 0.06);
+	--glass-lip: 0 1px 0 rgba(14, 120, 104, 0.06);
+	--glass-float: 0 24px 54px rgba(13, 20, 23, 0.1);
+	--glass-aurora:
+		radial-gradient(760px 460px at 18% 6%, rgba(14, 120, 104, 0.1), rgba(14, 120, 104, 0) 70%),
+		radial-gradient(680px 520px at 88% 34%, rgba(91, 58, 170, 0.08), rgba(91, 58, 170, 0) 72%),
+		radial-gradient(900px 520px at 55% 96%, rgba(34, 211, 238, 0.09), rgba(34, 211, 238, 0) 70%);
+	/* Ink, not light: on a pale ground the hairline has to darken to be seen. */
+	--glass-grid-line: rgba(13, 20, 23, 0.055);
+	color-scheme: light;
+}
+
+/* ── paper ──────────────────────────────────────────────────────────────────
+   Warm ivory, ink on paper.
+
+   The thing that makes `light` read as washed out is not its hue, it is that it
+   keeps the DARK theme's elevation model: a near-white page with surfaces
+   painted as a 2.5%-alpha ink wash on top of it. In dark, elevation means "add
+   light", and adding light to a page that is already #f7f8fa lands you inside a
+   two-percent band where the page, the sidebar and every card are the same
+   value. Nothing reads as sitting on anything.
+
+   Light mode has to INVERT that: the page is a tinted mid-light ground, and
+   surfaces come FORWARD by going white. So `--bg` here is a real tan rather
+   than an off-white, `--surface-raised` is white-at-alpha rather than ink, and
+   the card is opaque. The contrast lives in the value step and the border,
+   never in a glow — a glow on a pale ground is a smudge.
+
+   Overrides also run all the way down to the backdrop/effect tokens: anything
+   left unset falls back to the `:root` dark value and paints a black plate
+   under a white page. `--terminal-*`, `--neutral-*` and `--control-*` are
+   deliberately excluded — those surfaces are dark in every theme (Toggle
+   hardcodes `bg-black` alongside them). */
+[data-theme='paper'] {
+	--bg: #ece5d6;
+	--bg-elev: #e2dac8;
+	--fg: #15120c;
+	--fg-muted: #423a2d;
+	--fg-dim: #635a4a;
+	--accent: #085c4d;
+	--accent-bright: #0a7361;
+	--accent-deep: #dcece7;
+	--accent-faint: rgba(8, 92, 77, 0.09);
+	--accent-soft: #0d8471;
+	--accent-emerald: #0d6b47;
+	--text-onaccent: #ffffff;
+	--accent-faint-strong: rgba(8, 92, 77, 0.17);
+	--accent-glow: rgba(8, 92, 77, 0.2);
+	--accent-line: rgba(8, 92, 77, 0.1);
+	--accent-link-underline: rgba(8, 92, 77, 0.5);
+	--border: rgba(21, 18, 12, 0.16);
+	--border-strong: rgba(21, 18, 12, 0.32);
+	--border-accent: rgba(8, 92, 77, 0.35);
+	/* White, not ink. This is the whole inversion in two lines: a raised surface
+	   on a tan ground gets lighter, the same way it gets lighter on a black one. */
+	--surface-raised: rgba(255, 253, 246, 0.72);
+	--surface-strong: #fffdf6;
+	--input-bg: #fffdf6;
+	--page-bg: linear-gradient(#efe8da, #e7dfcd);
+	/* Effectively off. A radial accent wash on a pale ground does not read as
+	   light, it reads as a stain — the ground gradient above carries the depth. */
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(8, 92, 77, 0.035), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(120, 88, 40, 0.03), transparent 60%);
+	--terminal-bg: #211d18;
+	--selection-bg: rgba(8, 92, 77, 0.24);
+	--selection-fg: #15120c;
+	--btn-primary-fg: #ffffff;
+	/* A cast shadow, not a halo: paper sits ON something, so it gets a tight
+	   contact shadow under a wide soft one and no accent bloom at all. */
+	--shadow-card: 0 20px 44px -26px rgba(40, 32, 18, 0.4), 0 2px 5px -2px rgba(40, 32, 18, 0.2);
+	--method-get-fg: #085c4d;
+	--method-get-bg: rgba(8, 92, 77, 0.12);
+	--method-post-fg: #6d4e00;
+	--method-post-bg: rgba(109, 78, 0, 0.12);
+	--method-delete-fg: #97231f;
+	--method-delete-bg: rgba(151, 35, 31, 0.11);
+	--method-patch-fg: #4e3090;
+	--method-patch-bg: rgba(78, 48, 144, 0.11);
+	/* Opaque. Frosted glass is a dark-ground effect — it works because there is a
+	   lit thing behind a dark panel. Over a pale ground the same recipe just
+	   dilutes the card into the page, so the card here is a solid sheet of paper
+	   and the depth comes from the bevel and the cast shadow instead. */
+	--glass-surface: linear-gradient(158deg, #fffefa 0%, #fffdf6 55%, #faf5e9 100%);
+	--glass-surface-warm: linear-gradient(158deg, #fffaf0 0%, #fff9ec 55%, #f8f0df 100%);
+	--glass-border: rgba(21, 18, 12, 0.18);
+	--glass-bevel:
+		inset 0 1px 0 rgba(255, 255, 255, 1), inset 1px 0 0 rgba(255, 255, 255, 0.8),
+		inset 0 -1px 0 rgba(40, 32, 18, 0.1);
+	--glass-lip: 0 1px 0 rgba(40, 32, 18, 0.06);
+	--glass-float: 0 18px 40px -20px rgba(40, 32, 18, 0.3);
+	/* The dark rim is a dispersion effect that only reads against black. On paper
+	   it becomes an oil slick, so the run collapses to a warm ink edge that fades
+	   the same direction the bevel is lit from. */
+	--glass-rim: linear-gradient(
+		145deg,
+		rgba(40, 32, 18, 0.2) 0%,
+		rgba(40, 32, 18, 0.09) 40%,
+		rgba(40, 32, 18, 0.04) 70%,
+		rgba(40, 32, 18, 0.11) 100%
+	);
+	/* Light does not escape past an edge on a pale ground — there is nothing
+	   darker for it to escape into. */
+	--glass-bloom: 0 0 0 0 rgba(0, 0, 0, 0);
+	--glass-aurora:
+		radial-gradient(760px 460px at 18% 6%, rgba(8, 92, 77, 0.07), rgba(8, 92, 77, 0) 70%),
+		radial-gradient(900px 520px at 55% 96%, rgba(120, 88, 40, 0.06), rgba(120, 88, 40, 0) 70%),
+		radial-gradient(680px 520px at 86% 88%, rgba(8, 92, 77, 0.04), rgba(8, 92, 77, 0) 72%);
+	--glass-aurora-deep:
+		radial-gradient(760px 460px at 18% 6%, rgba(8, 92, 77, 0.04), rgba(8, 92, 77, 0) 70%),
+		radial-gradient(900px 520px at 55% 96%, rgba(120, 88, 40, 0.035), rgba(120, 88, 40, 0) 70%),
+		radial-gradient(680px 520px at 86% 88%, rgba(8, 92, 77, 0.025), rgba(8, 92, 77, 0) 72%);
+	--glass-grid-line: rgba(40, 32, 18, 0.07);
+	--glass-grid-line-deep: rgba(40, 32, 18, 0.038);
+	--glass-grid-line-fade: rgba(40, 32, 18, 0);
+	--backdrop-ground: #e7dfcd;
+	--backdrop-line: rgba(40, 32, 18, 0.1);
+	--backdrop-strip: rgba(40, 32, 18, 0.42);
+	--backdrop-traveller: rgba(8, 92, 77, 0.85);
+	--ash-tint: rgba(8, 92, 77, 0.06);
+	--ash-tint-2: rgba(120, 88, 40, 0.05);
+	--ash-grain: 0.28;
+	--scan-sweep: rgba(40, 32, 18, 0.05);
+	--strata-tint: rgba(8, 92, 77, 0.14);
+	--strata-tint-2: rgba(120, 88, 40, 0.11);
+	--strata-grain: 0.22;
+	--isoline-peak: rgba(8, 92, 77, 0.5);
+	--isoline-line: rgba(40, 32, 18, 0.24);
+	--field-ink: rgba(40, 32, 18, 0.42);
+	--field-accent: rgba(8, 92, 77, 0.55);
+	color-scheme: light;
+}
+
+/* ── daylight ───────────────────────────────────────────────────────────────
+   Same inversion, opposite room: a screen next to a window, where `paper`'s
+   warm ground goes grey and its softer edges disappear. A cool slate ground
+   under white surfaces, near-black ink, and every separator pushed up a step —
+   this is the palette to reach for when the complaint is "I can't see it", not
+   "it's too bright". The accent swings cool so a link stays distinguishable
+   from ink at small sizes. */
+[data-theme='daylight'] {
+	--bg: #e4e9ef;
+	--bg-elev: #dae1ea;
+	--fg: #050c14;
+	--fg-muted: #333f4c;
+	--fg-dim: #52606d;
+	--accent: #0a6480;
+	--accent-bright: #0b7f9e;
+	--accent-deep: #d8eef5;
+	--accent-faint: rgba(10, 100, 128, 0.09);
+	--accent-soft: #0d8fb2;
+	--accent-emerald: #04684b;
+	--text-onaccent: #ffffff;
+	--accent-faint-strong: rgba(10, 100, 128, 0.17);
+	--accent-glow: rgba(10, 100, 128, 0.2);
+	--accent-line: rgba(10, 100, 128, 0.1);
+	--accent-link-underline: rgba(10, 100, 128, 0.5);
+	--border: rgba(5, 12, 20, 0.16);
+	--border-strong: rgba(5, 12, 20, 0.32);
+	--border-accent: rgba(10, 100, 128, 0.35);
+	--surface-raised: rgba(255, 255, 255, 0.72);
+	--surface-strong: #ffffff;
+	--input-bg: #ffffff;
+	--page-bg: linear-gradient(#e9edf3, #dfe5ed);
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(10, 100, 128, 0.04), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(10, 100, 128, 0.03), transparent 60%);
+	--terminal-bg: #10171f;
+	--selection-bg: rgba(10, 100, 128, 0.24);
+	--selection-fg: #050c14;
+	--btn-primary-fg: #ffffff;
+	--shadow-card: 0 20px 44px -26px rgba(5, 12, 20, 0.4), 0 2px 5px -2px rgba(5, 12, 20, 0.2);
+	--method-get-fg: #0a6480;
+	--method-get-bg: rgba(10, 100, 128, 0.12);
+	--method-post-fg: #6b4c00;
+	--method-post-bg: rgba(107, 76, 0, 0.12);
+	--method-delete-fg: #9d1a1a;
+	--method-delete-bg: rgba(157, 26, 26, 0.11);
+	--method-patch-fg: #472a99;
+	--method-patch-bg: rgba(71, 42, 153, 0.11);
+	--glass-surface: linear-gradient(158deg, #ffffff 0%, #fdfeff 55%, #f2f6fa 100%);
+	--glass-surface-warm: linear-gradient(158deg, #fffdf7 0%, #fffcf4 55%, #f7f2e9 100%);
+	--glass-border: rgba(5, 12, 20, 0.18);
+	--glass-bevel:
+		inset 0 1px 0 rgba(255, 255, 255, 1), inset 1px 0 0 rgba(255, 255, 255, 0.85),
+		inset 0 -1px 0 rgba(5, 12, 20, 0.1);
+	--glass-lip: 0 1px 0 rgba(5, 12, 20, 0.06);
+	--glass-float: 0 18px 40px -20px rgba(5, 12, 20, 0.3);
+	--glass-rim: linear-gradient(
+		145deg,
+		rgba(5, 12, 20, 0.22) 0%,
+		rgba(5, 12, 20, 0.1) 40%,
+		rgba(5, 12, 20, 0.04) 70%,
+		rgba(10, 100, 128, 0.16) 100%
+	);
+	--glass-bloom: 0 0 0 0 rgba(0, 0, 0, 0);
+	--glass-aurora:
+		radial-gradient(760px 460px at 18% 6%, rgba(10, 100, 128, 0.08), rgba(10, 100, 128, 0) 70%),
+		radial-gradient(900px 520px at 55% 96%, rgba(3, 105, 161, 0.06), rgba(3, 105, 161, 0) 70%),
+		radial-gradient(680px 520px at 86% 88%, rgba(4, 104, 75, 0.04), rgba(4, 104, 75, 0) 72%);
+	--glass-aurora-deep:
+		radial-gradient(760px 460px at 18% 6%, rgba(10, 100, 128, 0.045), rgba(10, 100, 128, 0) 70%),
+		radial-gradient(900px 520px at 55% 96%, rgba(3, 105, 161, 0.035), rgba(3, 105, 161, 0) 70%),
+		radial-gradient(680px 520px at 86% 88%, rgba(4, 104, 75, 0.025), rgba(4, 104, 75, 0) 72%);
+	--glass-grid-line: rgba(5, 12, 20, 0.08);
+	--glass-grid-line-deep: rgba(5, 12, 20, 0.042);
+	--glass-grid-line-fade: rgba(5, 12, 20, 0);
+	--backdrop-ground: #dfe5ed;
+	--backdrop-line: rgba(5, 12, 20, 0.11);
+	--backdrop-strip: rgba(5, 12, 20, 0.44);
+	--backdrop-traveller: rgba(10, 100, 128, 0.9);
+	--ash-tint: rgba(10, 100, 128, 0.07);
+	--ash-tint-2: rgba(5, 12, 20, 0.05);
+	--ash-grain: 0.3;
+	--scan-sweep: rgba(5, 12, 20, 0.06);
+	--strata-tint: rgba(10, 100, 128, 0.15);
+	--strata-tint-2: rgba(5, 12, 20, 0.12);
+	--strata-grain: 0.24;
+	--isoline-peak: rgba(10, 100, 128, 0.55);
+	--isoline-line: rgba(5, 12, 20, 0.26);
+	--field-ink: rgba(5, 12, 20, 0.44);
+	--field-accent: rgba(10, 100, 128, 0.6);
+	color-scheme: light;
+}
+
+/* ── categorical palette, restated for a pale ground ────────────────────────
+   Shared by all three light themes rather than repeated in each: the hues are
+   the design system's, not any one palette's, and the only thing that changes
+   between the three is the ground they sit on — which is already the same
+   brightness class in all of them.
+
+   Must stay AFTER the theme blocks above. Same specificity, so source order is
+   what decides, and putting it earlier would let the dark `:root` values win
+   back for any theme that does not restate them. */
+[data-theme='light'],
+[data-theme='paper'],
+[data-theme='daylight'] {
+	--palette-cyan:      #0891B2;
+	--palette-cyan-l:    #06B6D4;
+	--palette-teal:      #0D9488;
+	--palette-teal-l:    #14B8A6;
+	--palette-emerald:   #059669;
+	--palette-emerald-l: #10B981;
+	--palette-green:     #16A34A;
+	--palette-green-l:   #22C55E;
+	--palette-blue:      #0284C7;
+	--palette-blue-l:    #0EA5E9;
+	--palette-sky:       #2563EB;
+	--palette-sky-l:     #3B82F6;
+	--palette-indigo:    #4F46E5;
+	--palette-indigo-l:  #6366F1;
+	--palette-violet:    #7C3AED;
+	--palette-violet-l:  #8B5CF6;
+	--palette-purple:    #6D28D9;
+	--palette-purple-l:  #7C3AED;
+	--palette-fuchsia:   #C026D3;
+	--palette-fuchsia-l: #D946EF;
+	--palette-yellow:    #A16207;
+	--palette-yellow-l:  #CA8A04;
+	--palette-amber:     #B45309;
+	--palette-amber-l:   #D97706;
+	--palette-gold:      #B45309;
+	--palette-gold-l:    #D97706;
+	--palette-orange:    #EA580C;
+	--palette-orange-l:  #F97316;
+	--palette-red:       #DC2626;
+	--palette-red-l:     #EF4444;
+	--palette-rose:      #E11D48;
+	--palette-rose-l:    #F43F5E;
+	--palette-slate:     #475569;
+	--palette-slate-l:   #64748B;
+	--palette-zinc:      #52525B;
+	--palette-zinc-l:    #71717A;
+}
+
+/* ── oled ───────────────────────────────────────────────────────────────── */
+[data-theme='oled'] {
+	--bg: #000000;
+	--bg-elev: #050505;
+	--page-bg:
+		radial-gradient(ellipse at top, rgba(94, 234, 212, 0.06) 0%, transparent 55%),
+		radial-gradient(ellipse at 15% 80%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
+		radial-gradient(ellipse at 90% 30%, rgba(52, 211, 153, 0.03) 0%, transparent 50%),
+		#000000;
+	--page-glow-1: radial-gradient(900px 600px at 80% -10%, rgba(94, 234, 212, 0.06), transparent 60%);
+	--page-glow-2: radial-gradient(700px 500px at -10% 30%, rgba(94, 234, 212, 0.04), transparent 60%);
+	--surface-raised: rgba(255, 255, 255, 0.03);
+	--surface-strong: rgba(255, 255, 255, 0.05);
+	--input-bg: rgba(0, 0, 0, 0.6);
+	--shadow-card: 0 30px 80px -30px rgba(0, 0, 0, 1), 0 0 60px -20px rgba(94, 234, 212, 0.25);
+	/* On pure black the mid-stop has to drop or the card floats as a grey slab. */
+	--glass-surface: linear-gradient(
+		158deg,
+		rgba(31, 38, 35, 0.36) 0%,
+		rgba(12, 16, 15, 0.18) 42%,
+		rgba(0, 0, 0, 0.36) 100%
+	);
+	--glass-surface-warm: linear-gradient(
+		158deg,
+		rgba(40, 33, 24, 0.38) 0%,
+		rgba(15, 14, 12, 0.18) 45%,
+		rgba(0, 0, 0, 0.36) 100%
+	);
+	--glass-float: 0 26px 58px rgba(0, 0, 0, 0.9);
+	color-scheme: dark;
+}
+
+/* ── high-contrast ──────────────────────────────────────────────────────── */
+[data-theme='high-contrast'] {
+	--bg: #000000;
+	--bg-elev: #000000;
+	--fg: #ffffff;
+	--fg-muted: #ffffff;
+	--fg-dim: #cccccc;
+	--accent: #ffff00;
+	--accent-bright: #ffff66;
+	--accent-deep: #000000;
+	--accent-faint: rgba(255, 255, 0, 0.12);
+	--accent-soft: #ffff66;
+    --accent-emerald: #ffff00;
+    --text-onaccent: #000000;
+	--accent-faint-strong: rgba(255, 255, 0, 0.2);
+	--accent-glow: rgba(255, 255, 0, 0.6);
+	--accent-line: rgba(255, 255, 0, 0.18);
+	--accent-link-underline: #ffff00;
+	--border: #ffffff;
+	--border-strong: #ffffff;
+	--border-accent: #ffff00;
+	--surface-raised: #000000;
+	--surface-strong: #0a0a0a;
+	--input-bg: #000000;
+	--page-bg: linear-gradient(#000000, #000000);
+	--page-glow-1: none;
+	--page-glow-2: none;
+	--terminal-bg: #000000;
+	--selection-bg: #ffff00;
+	--selection-fg: #000000;
+	--btn-primary-fg: #000000;
+	--shadow-card: none;
+	--method-get-fg: #ffff00;
+	--method-get-bg: rgba(255, 255, 0, 0.18);
+	--method-post-fg: #ffff66;
+	--method-post-bg: rgba(255, 255, 0, 0.12);
+	--method-delete-fg: #ff6666;
+	--method-delete-bg: rgba(255, 102, 102, 0.18);
+	--method-patch-fg: #66ffff;
+	--method-patch-bg: rgba(102, 255, 255, 0.18);
+	/* Glass is off in high contrast, and that is the correct answer rather than
+	   a concession: translucency and a blurred backdrop both lower the contrast
+	   of whatever sits on them, which is the one thing this theme cannot spend.
+	   The surface goes opaque, the bevels and float go away, and the border does
+	   the entire job of separating the card from the page. */
+	--glass-blur: 0px;
+	--glass-saturate: 1;
+	/* No grid either: with the blur off there is nothing to soften it, so it
+	   would be texture behind text and nothing more. */
+	--glass-grid: none;
+	--glass-ground: none;
+	--glass-surface: #000000;
+	--glass-surface-warm: #000000;
+	--glass-border: #ffffff;
+	--glass-bevel: none;
+	--glass-lip: 0 0 0 0 transparent;
+	--glass-float: 0 0 0 0 transparent;
+	--glass-shadow: none;
+	--glass-aurora: none;
+	color-scheme: dark;
+}
+
+[data-theme='high-contrast'] a:not([class*='btn']):not([class*='brand']) {
+	text-decoration: underline;
+}
+[data-theme='high-contrast'] :focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 3px;
+}
+
+/* ── glass ──────────────────────────────────────────────────────────────────
+   The glass surface, in one place. Any panel that wants to be glass takes this
+   class rather than restating the recipe — there is exactly one definition of
+   what glass is, and re-tuning it is a token edit, never a sweep.
+
+   In `components` so intentional utilities still out-rank it. */
+@layer components {
+	/* The markup half of the corner-geometry vocabulary — the same three tiers a
+	   component's <style> reaches for as `var(--radius-surface)`. Deliberately
+	   NOT a `radius` prop on each container: a prop lets call sites diverge,
+	   which is the disease. Panel alone carried three copies of `10px` that had
+	   to move together or its header desynced from the card. */
+	.r-surface {
+		border-radius: var(--radius-surface);
+	}
+	.r-surface-t {
+		border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+	}
+	.r-surface-b {
+		border-radius: 0 0 var(--radius-surface) var(--radius-surface);
+	}
+	.r-control {
+		border-radius: var(--radius-control);
+	}
+	.r-inset {
+		border-radius: var(--radius-inset);
+	}
+	.r-hairline {
+		border-radius: var(--radius-hairline);
+	}
+
+	.glass {
+		position: relative;
+		border-radius: var(--glass-radius);
+		/* Sheen ABOVE surface: the specular reflection sits on the face. */
+		background: var(--glass-sheen), var(--glass-surface);
+		backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+		-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+		box-shadow: var(--glass-shadow);
+		/* No border: the visible edge is the ::before ring, drawn just inside the
+		   box. A transparent 1px border would push the ring outside the padding
+		   box, where an `overflow: hidden` host clips it. */
+	}
+
+	/* The lit edge. A border cannot take a gradient, so the ring is a gradient
+	   box masked down to its own 1px padding band — fill minus content leaves
+	   the frame. `exclude` is the standard composite; the -webkit `xor` pair is
+	   the same operation for Safari. */
+	.glass::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		padding: 1px;
+		background: var(--glass-rim);
+		-webkit-mask:
+			linear-gradient(#000 0 0) content-box,
+			linear-gradient(#000 0 0);
+		-webkit-mask-composite: xor;
+		mask:
+			linear-gradient(#000 0 0) content-box,
+			linear-gradient(#000 0 0);
+		mask-composite: exclude;
+		pointer-events: none;
+	}
+
+	/* High contrast keeps a real, solid, full-strength border instead: a rim that
+	   fades out around the form is exactly the low-contrast edge that theme
+	   exists to eliminate. */
+	[data-theme='high-contrast'] .glass {
+		border: 1px solid var(--glass-border);
+	}
+	[data-theme='high-contrast'] .glass::before {
+		display: none;
+	}
+
+	/* ── The stage ──────────────────────────────────────────────────────────
+	   The ground a glass surface needs in order to BE glass. Put this on the
+	   page container; the grid paints on the element itself (structure holds
+	   still) and the aurora rides a drifting pseudo-element above it.
+
+	   `isolation: isolate` is load-bearing: it makes this element a stacking
+	   context so the `z-index: -1` layer lands above the element's own
+	   background but below every descendant. Without it the drift layer escapes
+	   to the nearest ancestor context and paints behind the page instead. */
+	.glass-stage {
+		position: relative;
+		isolation: isolate;
+		/* The stage clips its own decoration. The drift layers below are
+		   deliberately oversized (`inset: -25%`), and overflow past the bottom
+		   and right edges is scrollable overflow — left unclipped it adds ~25%
+		   of the stage's height to the document scroll range, so the whole page
+		   scrolls past its content and drags the sticky sidebar with it.
+
+		   `clip`, not `hidden`: `hidden` would make this a scroll container,
+		   which silently captures descendant `position: sticky` and breaks it
+		   app-wide. `clip` contains the paint without creating a scrollport. */
+		overflow: clip;
+		background-color: var(--bg);
+		/* The soft grid, not the hairline one — see `--glass-grid-deep`. */
+		background-image: var(--glass-grid-deep);
+		background-attachment: local;
+	}
+
+	.glass-stage::before {
+		content: '';
+		position: absolute;
+		/* Oversized so the translate never walks an edge into view. `.glass-stage`
+		   clips it — not the host, which is free to be a scroll container. */
+		inset: -25%;
+		z-index: -1;
+		background-image: var(--glass-aurora-deep);
+		animation: glass-drift var(--glass-drift-slow) ease-in-out infinite alternate;
+		pointer-events: none;
+	}
+
+	/* Brighter ground — /overview, /mesh, and anywhere the wash is part of the
+	   composition rather than a backdrop for dense content. Restores BOTH halves:
+	   the full-strength aurora and the crisp hairline grid. */
+	.glass-stage-bright {
+		background-image: var(--glass-grid);
+	}
+	.glass-stage-bright::before,
+	.glass-stage-bright::after {
+		background-image: var(--glass-aurora);
+	}
+
+	/* Motion is the first thing to go. The tint and the grid stay — they are
+	   the design; only the drift was ever the flourish. */
+	@media (prefers-reduced-motion: reduce) {
+		.glass-stage::before,
+		.glass-stage::after {
+			animation: none;
+		}
+	}
+
+	/* High contrast drops the ground entirely, matching `--glass-ground: none`:
+	   a tinted wash under text is exactly what that theme exists to remove. */
+	[data-theme='high-contrast'] .glass-stage {
+		background-image: none;
+	}
+	[data-theme='high-contrast'] .glass-stage::before,
+	[data-theme='high-contrast'] .glass-stage::after {
+		display: none;
+	}
+
+	/* ── Flat appearance ────────────────────────────────────────────────────
+	   The opt-out, expressed once. Every glass surface in the library routes
+	   through `.glass` and every ground through `.glass-stage`, so turning the
+	   treatment off is these two rules — not a second set of components and not
+	   a prop threaded through every card.
+
+	   The surface goes to a real elevated panel with a real border, because the
+	   thing glass was doing (separating the card from the page) still has to
+	   happen once the blur is gone. */
+	[data-appearance='flat'] .glass {
+		background: var(--bg-elev);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		border: 1px solid var(--border);
+		box-shadow: none;
+	}
+	[data-appearance='flat'] .glass::before {
+		display: none;
+	}
+	[data-appearance='flat'] .glass-stage {
+		background-image: none;
+	}
+	[data-appearance='flat'] .glass-stage::before,
+	[data-appearance='flat'] .glass-stage::after {
+		display: none;
+	}
+}
+
+/* Translate only — no scale, no filter, nothing that forces a repaint. The
+   distances are large in absolute terms but the periods are ~1 minute, so the
+   apparent speed is a few pixels per second. */
+@keyframes glass-drift {
+	from {
+		transform: translate3d(-3%, -2%, 0);
+	}
+	to {
+		transform: translate3d(4%, 3%, 0);
+	}
+}
+
+@keyframes glass-drift-alt {
+	from {
+		transform: translate3d(3%, 2%, 0);
+	}
+	to {
+		transform: translate3d(-4%, -2.5%, 0);
+	}
+}
+
+/* ── base reset ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--bg);
+	color: var(--fg);
+	font-family: var(--sans);
+	-webkit-font-smoothing: antialiased;
+}
+
+::selection {
+	background: var(--selection-bg);
+	color: var(--selection-fg);
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		transition-duration: 0.001ms !important;
+	}
+}
+
+/* ── Keyframe animations ─────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50%       { opacity: 0.45; transform: scale(0.85); }
+}
+
+@keyframes blink {
+	0%, 49%   { opacity: 1; }
+	50%, 100% { opacity: 0; }
+}
+
+@keyframes signal-pulse {
+	0%   { stroke-dashoffset: 0; opacity: 0; }
+	15%  { opacity: 1; }
+	85%  { opacity: 1; }
+	100% { stroke-dashoffset: -120; opacity: 0; }
+}
+
+@keyframes ring-pulse {
+	0%, 100% { opacity: 0.3; transform: scale(1); }
+	50%      { opacity: 0.8; transform: scale(1.04); }
+}
+
+@keyframes scan-y {
+	0%   { transform: translateY(-20%); opacity: 0; }
+	10%  { opacity: 1; }
+	90%  { opacity: 1; }
+	100% { transform: translateY(420px); opacity: 0; }
+}
+
+@keyframes rotate-slow {
+	from { transform: rotate(0deg); }
+	to   { transform: rotate(360deg); }
+}
+
+@keyframes rotate-rev {
+	from { transform: rotate(360deg); }
+	to   { transform: rotate(0deg); }
+}
+
+@keyframes bubble-float {
+	0%, 100% { transform: translateY(0); }
+	50%      { transform: translateY(-8px); }
+}
+
+@keyframes bubble-pop {
+	0%   { transform: scale(0); opacity: 0; }
+	80%  { transform: scale(1.08); opacity: 1; }
+	100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Animation utility classes ───────────────────────────────────────────── */
+.pulse-dot    { animation: pulse-dot 1.8s ease-in-out infinite; }
+.blink-cursor { animation: blink 1s step-end infinite; }
+.rotate-slow  { animation: rotate-slow 30s linear infinite; }
+
+/* ── Showcase page utilities ─────────────────────────────────────────────── */
+.component-name {
+	font-family: var(--mono);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--fg);
+	margin: 0 0 4px;
+}
+
+.component-desc {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--fg-muted);
+	line-height: 1.55;
+}
+
+/* ── Horizon grid ────────────────────────────────────────────────────────
+ *
+ * Two ground planes — one below, one mirrored above — raked away from the
+ * viewer so their lines converge on a horizon at the vertical centre, with the
+ * cross-lines flowing toward you. The outrun/Mario-Kart read.
+ *
+ * THE STACKING BUG THIS ALSO FIXES. The old flat grid was `position: fixed;
+ * z-index: 0`, which is a full-viewport layer sitting in the root stacking
+ * context ABOVE anything that never declared a z-index of its own. That is why
+ * it appeared to bleed through the header eyebrow and every other unpainted
+ * chrome strip: it was genuinely in front of them. `z-index: -1` puts it behind
+ * the page's own content for good, so nothing has to out-stack it any more.
+ *
+ * It stays a BACKGROUND. The effect earns its keep by being felt, not read —
+ * so the lines are dim, the horizon is where they fade out entirely, and the
+ * motion is slow enough to sit under text without pulling the eye off it.
+ */
+.grid-overlay {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: -1;
+	overflow: hidden;
+	/* The 3D context both planes are raked inside. A shorter perspective is a
+	   wider-angle lens: too short and the rails splay to near-horizontal at the
+	   frame edge and read as diagonal streaks rather than as a receding plane. */
+	perspective: 420px;
+	perspective-origin: 50% 50%;
+	opacity: var(--horizon-strength, 0.5);
+}
+
+/* Floor and ceiling share everything but their rake, so one rule builds both
+   and the mirrored copy only flips. */
+.grid-overlay::before,
+.grid-overlay::after {
+	content: '';
+	position: absolute;
+	/* Wider than the viewport so the rails still fill the frame after the rake
+	   pinches them toward the vanishing point. */
+	left: -75%;
+	right: -75%;
+	height: 145%;
+	background-image:
+		/* Rails running to the vanishing point. */
+		linear-gradient(90deg, var(--horizon-line, rgba(94, 234, 212, 0.22)) 1px, transparent 1px),
+		/* Cross-ties. Static: the floor is a surface, not a conveyor. */
+		linear-gradient(var(--horizon-line, rgba(94, 234, 212, 0.22)) 1px, transparent 1px);
+	background-size:
+		var(--horizon-cell, 34px) 100%,
+		100% var(--horizon-cell, 34px);
+	backface-visibility: hidden;
+}
+
+/*
+ * Each plane is rotated about the edge that sits ON the horizon, so that edge
+ * stays pinned at the centre line and everything else falls away behind it.
+ *
+ * The mask then fades each plane out at its far end. That end is NOT the same
+ * end for both — for the floor the distance runs down the element, for the
+ * ceiling it runs up it — so a shared mask direction smears one of them into
+ * diagonal streaks instead of a horizon. They get one each.
+ */
+.grid-overlay::before {
+	top: 50%;
+	transform-origin: 50% 0%;
+	transform: rotateX(72deg);
+	mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 18%, black 55%);
+	-webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 18%, black 55%);
+}
+
+/* The mirrored plane, which is what closes the tunnel instead of leaving the
+   top half of the page empty. */
+.grid-overlay::after {
+	bottom: 50%;
+	transform-origin: 50% 100%;
+	transform: rotateX(-72deg);
+	mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.5) 18%, black 55%);
+	-webkit-mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.5) 18%, black 55%);
+}
+
+/* ── Scanline sweep ──────────────────────────────────────────────────────── */
+.scanline-host {
+	position: relative;
+	overflow: hidden;
+}
+.scanline-host::after {
+	content: '';
+	position: absolute;
+	left: 0; right: 0; top: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 5%, rgba(94, 234, 212, 0.5) 50%, transparent 95%);
+	box-shadow: 0 0 8px rgba(94, 234, 212, 0.4);
+	animation: scan-y 8s ease-in-out infinite;
+	pointer-events: none;
+	z-index: 1;
+}
+
+/* ── Corner L-bracket accents ───────────────────────────────────────────── */
+.corner-accent {
+	position: absolute;
+	width: 9px;
+	height: 9px;
+	pointer-events: none;
+}
+.corner-accent.tl {
+	top: 6px; left: 6px;
+	border-top: 1px solid rgba(94, 234, 212, 0.55);
+	border-left: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.tr {
+	top: 6px; right: 6px;
+	border-top: 1px solid rgba(94, 234, 212, 0.55);
+	border-right: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.bl {
+	bottom: 6px; left: 6px;
+	border-bottom: 1px solid rgba(94, 234, 212, 0.55);
+	border-left: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.br {
+	bottom: 6px; right: 6px;
+	border-bottom: 1px solid rgba(94, 234, 212, 0.55);
+	border-right: 1px solid rgba(94, 234, 212, 0.55);
+}
+.corner-accent.amber.tl,
+.corner-accent.amber.tr {
+	border-top-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.amber.tl,
+.corner-accent.amber.bl {
+	border-left-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.amber.br,
+.corner-accent.amber.bl {
+	border-bottom-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.amber.br,
+.corner-accent.amber.tr {
+	border-right-color: rgba(252, 211, 77, 0.6);
+}
+.corner-accent.red.tl,
+.corner-accent.red.tr { border-top-color: rgba(252, 165, 165, 0.6); }
+.corner-accent.red.tl,
+.corner-accent.red.bl { border-left-color: rgba(252, 165, 165, 0.6); }
+.corner-accent.red.br,
+.corner-accent.red.bl { border-bottom-color: rgba(252, 165, 165, 0.6); }
+.corner-accent.red.br,
+.corner-accent.red.tr { border-right-color: rgba(252, 165, 165, 0.6); }
+
+/* ── Halo hover ──────────────────────────────────────────────────────────── */
+.halo {
+	--halo-rgb: 94, 234, 212;
+	transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+}
+.halo:hover {
+	border-color: rgba(var(--halo-rgb), 0.4) !important;
+	box-shadow:
+		0 0 0 1px rgba(var(--halo-rgb), 0.25),
+		0 6px 24px -8px rgba(var(--halo-rgb), 0.3);
+}
+.halo-cyan    { --halo-rgb: 34, 211, 238; }
+.halo-emerald { --halo-rgb: 52, 211, 153; }
+.halo-blue    { --halo-rgb: 56, 189, 248; }
+.halo-amber   { --halo-rgb: 252, 211, 77; }
+.halo-red     { --halo-rgb: 252, 165, 165; }

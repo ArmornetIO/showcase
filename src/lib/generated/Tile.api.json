@@ -1,0 +1,60 @@
+{
+  "component": "Tile",
+  "props": [
+    {
+      "name": "tag",
+      "type": "string",
+      "optional": true,
+      "description": "Eyebrow label rendered in mono accent text above the title."
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "optional": true,
+      "description": "Card title — rendered as the heading."
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "optional": true,
+      "description": "Optional body paragraph below the title. Use `children` for richer content."
+    },
+    {
+      "name": "href",
+      "type": "string",
+      "optional": true,
+      "description": "Optional CTA href. When set, the Tile is rendered as `<a>` with hover-lift."
+    },
+    {
+      "name": "ctaLabel",
+      "type": "string",
+      "optional": true,
+      "description": "Optional CTA label rendered as a footer link. Ignored when `href` is set on the whole tile."
+    },
+    {
+      "name": "ctaHref",
+      "type": "string",
+      "optional": true,
+      "description": "Optional CTA href for the footer link."
+    },
+    {
+      "name": "variant",
+      "type": "TileVariant",
+      "optional": true,
+      "description": "Visual variant — drives the tag color and hover border tint.",
+      "default": "'accent'"
+    },
+    {
+      "name": "class",
+      "type": "string",
+      "optional": true,
+      "description": "Extra classes forwarded to the root element."
+    },
+    {
+      "name": "children",
+      "type": "Snippet",
+      "optional": true
+    }
+  ],
+  "interfaces": []
+}

@@ -1,0 +1,224 @@
+{
+  "/actions": [
+    "ActionsMenu",
+    "ExportMenu",
+    "Icon"
+  ],
+  "/alert-blade": [
+    "AlertBladeHost",
+    "Icon"
+  ],
+  "/auth-split": [
+    "AuthSplit",
+    "Button",
+    "Input",
+    "FormField"
+  ],
+  "/backdrop": [
+    "HorizonBackdrop",
+    "MobiusWeave"
+  ],
+  "/brand": [
+    "LogoForgeStudio",
+    "ForgeFloor",
+    "ForgeMark",
+    "RimLight",
+    "ShockRings",
+    "SparkField"
+  ],
+  "/builder": [
+    "LayerControls",
+    "ComponentPalette",
+    "CanvasContextMenu",
+    "AlertBladeHost",
+    "ChatThread",
+    "Canvas",
+    "CompositorLayer",
+    "CameraControls",
+    "IconToolbar",
+    "ThemeStudio",
+    "BackdropStudio",
+    "CharacterStudio",
+    "PropEditor"
+  ],
+  "/canvas": [
+    "Canvas",
+    "MeshStudio",
+    "CameraControls",
+    "Minimap",
+    "PieceCrest",
+    "Edge",
+    "MeshCanvas",
+    "MeshViewControls"
+  ],
+  "/cards": [
+    "Card",
+    "CardStack"
+  ],
+  "/charts": [
+    "Chart",
+    "DonutChart"
+  ],
+  "/design-patterns": [
+    "LayoutHeader"
+  ],
+  "/dev": [
+    "DevCog"
+  ],
+  "/display": [
+    "PanelLoading",
+    "Canvas",
+    "CameraControls",
+    "DataTable",
+    "Ticker",
+    "Avatar",
+    "LogRow",
+    "StatTile",
+    "CountUp",
+    "PostureVerdict",
+    "MeshMembrane",
+    "Sparkline",
+    "PeerCard",
+    "CodeBlock",
+    "ConfigBlock",
+    "ConsensusBar",
+    "Timeline",
+    "CollapsibleStack",
+    "CollapsibleStackRow",
+    "SheetDrawer",
+    "Chip",
+    "TableFoot",
+    "TablePager",
+    "FilterToolbar",
+    "BulkActionBar",
+    "Select",
+    "Icon"
+  ],
+  "/docs": [
+    "DocsNav",
+    "DocsTOC",
+    "DocsMetadata",
+    "DocsBreadcrumbs",
+    "DocsShell",
+    "Prose",
+    "Icon"
+  ],
+  "/entity": [
+    "EntityOverviewTab",
+    "EventLogTab",
+    "VerdictLogTab",
+    "IncidentDrawer",
+    "OverviewDrawer",
+    "PersonListPanel",
+    "Tabs",
+    "Button"
+  ],
+  "/flourish": [
+    "Flourish",
+    "Icon",
+    "SidebarNav"
+  ],
+  "/frames": [
+    "StatTile",
+    "Chip",
+    "Panel",
+    "RadialProgress",
+    "PostureVerdict",
+    "Frame"
+  ],
+  "/icons": [
+    "ArmornetLogo",
+    "ArmornetCrest",
+    "ArmornetCrestHub",
+    "ArmornetCrestChrome",
+    "IconStudio"
+  ],
+  "/layout": [
+    "Button",
+    "Panel",
+    "Collapsible",
+    "Tabs",
+    "ActionBar",
+    "TableWrap",
+    "ViewToggle",
+    "IconToolbar",
+    "SelectionModal"
+  ],
+  "/modal": [
+    "Button",
+    "Modal",
+    "SelectionModal",
+    "Icon"
+  ],
+  "/model-explorer": [
+    "ErdDiagram",
+    "ErdOverviewView",
+    "ErdLedgerView",
+    "ErdCompareView",
+    "ErdEnvironmentsView",
+    "ErdCapturesView",
+    "ViewToggle"
+  ],
+  "/navigation": [
+    "Breadcrumbs"
+  ],
+  "/node-drawer": [
+    "NodeDrawer",
+    "Icon"
+  ],
+  "/overview": [
+    "Button",
+    "LayoutHeader"
+  ],
+  "/primitives": [
+    "Button",
+    "ChipStudio",
+    "StatusDot",
+    "StatusBadge",
+    "Toggle",
+    "Input",
+    "Textarea",
+    "FormField",
+    "Select",
+    "Combobox",
+    "Tile",
+    "Tooltip",
+    "ViewToggle",
+    "SearchInput",
+    "StepSwitcher",
+    "CommandPalette",
+    "SectionBar",
+    "ActionsMenu",
+    "ExportMenu",
+    "Icon",
+    "PageContextMenu",
+    "EdgeToolbarCard",
+    "BreakoutStack",
+    "SubFooter",
+    "IconToolbar"
+  ],
+  "/progress": [
+    "ProgressBar",
+    "Icon"
+  ],
+  "/scene": [
+    "SceneBuilder",
+    "ScenePlayer",
+    "SceneCaptions"
+  ],
+  "/storyboard": [
+    "StoryboardCanvas",
+    "SwimLane",
+    "StoryboardFrame",
+    "StoryboardArrow",
+    "StoryboardBranch"
+  ],
+  "/theme": [
+    "ThemePicker",
+    "AppearanceCard",
+    "AdvancedSettingsPanel"
+  ],
+  "/toolbar": [
+    "IconToolbar"
+  ]
+}

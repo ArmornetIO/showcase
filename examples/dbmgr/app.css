@@ -1,0 +1,20 @@
+/* ── Styles ───────────────────────────────────────────────────────────────────
+   One import. `tokens.css` is the library's published stylesheet — cascade
+   layers, the Tailwind theme, and every design token the components reference. */
+@import '../../src/lib/tokens.css';
+
+/* Tailwind v4 walks out from the stylesheet that imports it and skips anything
+   .gitignore'd, so both trees are named explicitly. Without the second line,
+   every utility used only inside a `showcase` component is absent from the
+   build and the page renders unstyled. */
+@source '.';
+@source '../../src/lib';
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	background: var(--bg, #05080d);
+	color: var(--fg, #e2e8f0);
+	font-family: var(--sans, system-ui, sans-serif);
+}

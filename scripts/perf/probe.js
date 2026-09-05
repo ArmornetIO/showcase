@@ -37,7 +37,18 @@ export function probeSource(opts = {}) {
 		// GL counting costs a function call per GL call. Off unless asked.
 		gl: opts.gl ?? false,
 		// Attribute-write counting costs a MutationObserver over the document.
-		dom: opts.dom ?? false
+		dom: opts.dom ?? false,
+		// Forced-layout counting wraps `getBoundingClientRect` on every Element.
+		//
+		// This was on by default and it LIED. A one-shot task doing a batch of
+		// layout reads measured 213ms with the wrapper and 60ms without it — the
+		// instrument reported 3.5x the cost of the thing it was measuring, and
+		// `frame max` in the comparison table inherited the error. A per-call
+		// wrapper is affordable spread across a frame and is not affordable
+		// inside a burst, which is exactly where it gets read.
+		//
+		// Diagnostic only. Never leave it on for a run whose frame numbers matter.
+		rect: opts.rect ?? false
 	};
 
 	return `(() => {
@@ -132,7 +143,7 @@ export function probeSource(opts = {}) {
 	// nearly free, so halving this number does not halve anything. It is here to
 	// point at a caller, not to be optimised against.
 	let rectCalls = 0;
-	{
+	if (CFG.rect) {
 		const orig = Element.prototype.getBoundingClientRect;
 		Element.prototype.getBoundingClientRect = function () {
 			rectCalls++;
@@ -170,7 +181,7 @@ export function probeSource(opts = {}) {
 					p99: +pct(sorted, 0.99).toFixed(2),
 					max: +(sorted[sorted.length - 1] ?? 0).toFixed(2)
 				},
-				rectCallsPerFrame: +(rectCalls / Math.max(frames, 1)).toFixed(1),
+				rectCallsPerFrame: CFG.rect ? +(rectCalls / Math.max(frames, 1)).toFixed(1) : null,
 				worstFrame: {
 					ms: +worstDt.toFixed(1),
 					// Relative for reading; the correlation below stays ABSOLUTE.

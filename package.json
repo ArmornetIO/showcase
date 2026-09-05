@@ -22,6 +22,7 @@
 		"test": "vitest",
 		"test:run": "vitest run",
 		"perf:compare": "node scripts/perf/compare.mjs",
+		"perf:attribute": "node scripts/perf/attribute.mjs",
 		"gen:api": "node scripts/gen-api.mjs",
 		"gen:exports": "node scripts/gen-exports.mjs",
 		"gen:exports:check": "node scripts/gen-exports.mjs --check"

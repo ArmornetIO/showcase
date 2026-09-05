@@ -8,13 +8,14 @@ npm run perf:compare -- \
   --repeats=3
 ```
 
-Three files and a scenario directory:
+Four files and a scenario directory:
 
 | | |
 |---|---|
 | `probe.js` | the page-side agent, **injected** with `addInitScript` |
 | `run.mjs` | one target, one scenario → one result object |
 | `compare.mjs` | N targets, interleaved and repeated → a table and a verdict |
+| `attribute.mjs` | one target, one longtask → the function on the stack |
 | `../../perf-scenarios/*.mjs` | what to measure, as data |
 
 ## The one idea
@@ -68,6 +69,38 @@ through it and the cost was the collector, the compositor or the driver.
 `getBoundingClientRect` after a DOM mutation pays the whole layout and the rest
 are nearly free — halving this number has been measured to halve nothing. It is
 here to point at a caller.
+
+## Naming the function under a spike
+
+`compare.mjs` says a 250 ms task happened; `attribute.mjs` says what was on the
+stack.
+
+```sh
+npm run perf:attribute -- \
+  --scenario=marketing-mesh-cluster \
+  --url=http://127.0.0.1:5533
+```
+
+**It takes the same `--scenario` as `compare.mjs`, and for the same reason.**
+Viewport, path, scroll target, settle and hold are read out of
+`perf-scenarios/`, not re-typed here — a driver carrying its own copy profiles a
+page adjacent to the one the comparison convicted, and the two then disagree
+about a spike neither can reproduce. `expectSelector` is asserted here too, so a
+redirect to the login page fails loudly instead of profiling a very calm empty
+document. Only `--hold` may be overridden, because a profile is heavier than a
+measurement.
+
+The window is the whole difficulty. A one-shot task is ~1.5% of a 15-second
+profile and reads as noise, and a short window opened at the scroll catches
+steady state instead — the task that led to this script fired *twelve seconds*
+after the scroll that caused it. So it profiles the entire hold at 60 µs, asks
+the page's own `PerformanceObserver` when the longtask was, and slices the
+samples to it afterwards. The window is positioned by measurement, not by guess.
+
+Build with `--minify false` or the stacks are single letters. And **confirm the
+server is serving the build you just made** — stale `python -m http.server`
+instances have been found squatting these ports, and a fix measured against a
+stale bundle reproduces the bug perfectly.
 
 ## Standing up two targets
 

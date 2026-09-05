@@ -18,10 +18,7 @@
 // the spread across a target's own repeats IS the band, and a delta inside it is
 // reported as "noise" rather than as a result. A perf tool that cannot say "no
 // difference" will find a difference every time it is run.
-import { runOnce } from './run.mjs';
-import { readFile } from 'node:fs/promises';
-import { pathToFileURL } from 'node:url';
-import path from 'node:path';
+import { runOnce, loadScenario } from './run.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => {
@@ -42,20 +39,16 @@ const repeats = Number(opt('repeats', 3));
 const jsonOut = opt('json', '');
 const wantGl = argv.includes('--gl');
 const wantDom = argv.includes('--dom');
+// Diagnostic counters perturb the frame numbers they sit beside — see probe.js.
+// Opt in when you want the count, and do not quote frame times from that run.
+const wantRect = argv.includes('--rect');
 
 if (targets.length < 2) {
 	console.error('need at least two --target=NAME=URL');
 	process.exit(2);
 }
 
-const scenarioPath = path.resolve(
-	import.meta.dirname,
-	'..',
-	'..',
-	'perf-scenarios',
-	`${scenarioName}.mjs`
-);
-const { default: scenario } = await import(pathToFileURL(scenarioPath).href);
+const scenario = await loadScenario(scenarioName);
 
 // ── metrics ─────────────────────────────────────────────────────────────────
 // `dir` is which way is better. Getting this wrong turns a win into a
@@ -94,7 +87,7 @@ console.log(
 for (let r = 0; r < repeats; r++) {
 	for (const t of targets) {
 		process.stdout.write(`  pass ${r + 1}/${repeats}  ${t.name} … `);
-		const res = await runOnce(t.url, scenario, { gl: wantGl, dom: wantDom });
+		const res = await runOnce(t.url, scenario, { gl: wantGl, dom: wantDom, rect: wantRect });
 		runs.get(t.name).push(res);
 		process.stdout.write(`${res.fps} fps, ${res.latePerSec} late/s\n`);
 	}
@@ -171,4 +164,3 @@ if (jsonOut) {
 	);
 	console.log(`json → ${jsonOut}`);
 }
-void readFile;

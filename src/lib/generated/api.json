@@ -5876,7 +5876,7 @@
         "name": "gl",
         "type": "boolean",
         "optional": true,
-        "description": "Escape hatch: false draws no sphere at all. Kept as a kill switch for a\n surface that needs the layer gone, NOT as an A/B lever — it used to swap\n in the SVG twin, and that twin no longer exists.",
+        "description": "Escape hatch and A/B lever — false draws the same sphere with `shell-2d`\n instead of the GPU. The same scene, the same props, either rasteriser,\n which is what makes a \"does the GL path look right\" question answerable\n without a broken driver to hand.",
         "default": "true"
       }
     ],
@@ -6718,6 +6718,17 @@
       {
         "name": "onchange",
         "type": "(id: string) => void",
+        "optional": true
+      }
+    ],
+    "interfaces": []
+  },
+  "PerfHud": {
+    "component": "PerfHud",
+    "props": [
+      {
+        "name": "onClose",
+        "type": "() => void",
         "optional": true
       }
     ],

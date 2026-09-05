@@ -166,14 +166,16 @@
 	 *  presented, and a read can beat the paint. */
 	const PROBE_DELAY = 250;
 	const PROBE_EVERY = 1000;
-	/** After the opening burst, a heartbeat. `readPixels` is a GPU→CPU sync — it
-	 *  stalls the pipeline until the frame it is reading has actually finished —
-	 *  so this cannot run per frame or the instrument becomes the jank. Three
-	 *  reads at mount catch the reported failure (blank from the start); one every
-	 *  ten seconds after that, ~0.02% of frames, catches a canvas that dies later
-	 *  without being something anyone can feel. */
+	/** After the opening burst, a heartbeat. Three reads at mount catch the
+	 *  reported failure (blank from the start); one every ten seconds after that,
+	 *  ~0.02% of frames, catches a canvas that dies later without being something
+	 *  anyone can feel. */
 	const PROBE_IDLE = 10000;
 	const PROBE_BURST = 3;
+	/** Abandon a read whose fence never signals. A driver that does not finish the
+	 *  frame in two seconds has a worse problem than a stale health record, and a
+	 *  pending read blocks every later one. */
+	const PROBE_GIVEUP = 2000;
 	/** Consecutive empty reads before giving up. Two, because one can be a resize
 	 *  landing between the draw and the read; a second one a second later is not a
 	 *  race, it is a blank canvas. */
@@ -182,6 +184,12 @@
 	let burstLeft = 0;
 	let blankRun = 0;
 	const pixel = new Uint8Array(4);
+	/** The read is ISSUED in the draw's task and COLLECTED in a later one; these
+	 *  two carry it across. See `probePaint` for why that split is not optional. */
+	let packBuf: WebGLBuffer | null = null;
+	let fence: WebGLSync | null = null;
+	let fenceAt = 0;
+	let pollHandle = 0;
 
 	/** Start (or restart) the opening burst — at mount, and after anything that
 	 *  rebuilt the drawing buffer under us. */
@@ -199,17 +207,104 @@
 		noGl = true;
 	}
 
+	/** Give up on the in-flight read and free its fence. Not a verdict: a read
+	 *  that never came back says nothing about what was on the canvas, and
+	 *  reporting it as blank would drop a working globe to the 2D renderer. */
+	function dropProbe(): void {
+		stopPoll();
+		if (!fence) return;
+		glc?.gl.deleteSync(fence);
+		fence = null;
+	}
+
+	/** The handles are the context's, so a loss kills them; cancelling the poll is
+	 *  the only part of `dropProbe` that is still safe to do afterwards. */
+	function stopPoll(): void {
+		if (!pollHandle) return;
+		cancelAnimationFrame(pollHandle);
+		pollHandle = 0;
+	}
+
 	/**
-	 * Read the centre pixel and record whether the sphere is there.
+	 * Poll the outstanding read on its OWN frame loop, not on the next draw.
 	 *
-	 * `readPixels` stalls the pipeline, so this is throttled to roughly once a
-	 * second and skipped whenever the answer would be meaningless — a transparent
-	 * globe has no pixel to check, an unlaid-out canvas has nowhere to check it.
-	 * It must run in the same task as the draws: with `preserveDrawingBuffer`
-	 * false the buffer is only valid until the frame is composited.
+	 * The draw effect is demand-driven — a prop write or `redraw++` — and the
+	 * scene it lives in gates on an IntersectionObserver, so "the next draw" can
+	 * be minutes away or never. Collecting there would mean a globe at rest never
+	 * gets a verdict, and a globe at rest is exactly the one most likely to be the
+	 * blank canvas this probe exists to catch. It would also let a read taken
+	 * before a scroll be reported as the health of the frame on screen now.
+	 *
+	 * The loop is bounded by the read itself: it runs only while a fence is
+	 * outstanding, which is a frame or two in the normal case and `PROBE_GIVEUP`
+	 * in the worst.
+	 */
+	function pollProbe(): void {
+		if (pollHandle) return;
+		pollHandle = requestAnimationFrame(() => {
+			pollHandle = 0;
+			const g = glc?.gl;
+			if (!g || !fence) return;
+			collectProbe(g);
+			if (fence) pollProbe();
+		});
+	}
+
+	/**
+	 * Collect the previous frame's read, if the GPU has finished with it.
+	 *
+	 * `clientWaitSync` with a zero timeout is a POLL — it asks whether the fence
+	 * has signalled and returns either way. That is the whole point of the split:
+	 * once it says yes, the pixel is already in client memory and
+	 * `getBufferSubData` is a copy rather than a stall.
+	 */
+	function collectProbe(g: WebGL2RenderingContext): void {
+		if (!fence || !packBuf || !health) return;
+		// Age is checked on BOTH paths, not just the un-signalled one. A background
+		// tab stops firing `requestAnimationFrame`, so a fence can signal and then
+		// sit uncollected for minutes — and reporting that pixel would describe a
+		// frame from before whatever the viewer has since scrolled to.
+		const stale = performance.now() - fenceAt > PROBE_GIVEUP;
+		const st = g.clientWaitSync(fence, 0, 0);
+		if (st === g.TIMEOUT_EXPIRED) {
+			if (stale) dropProbe();
+			return;
+		}
+		dropProbe();
+		if (st === g.WAIT_FAILED || stale) return;
+		g.bindBuffer(g.PIXEL_PACK_BUFFER, packBuf);
+		g.getBufferSubData(g.PIXEL_PACK_BUFFER, 0, pixel);
+		g.bindBuffer(g.PIXEL_PACK_BUFFER, null);
+		const painted = pixel[3] >= 2;
+		health.probe(painted, painted ? undefined : 'centre px came back empty');
+		blankRun = painted ? 0 : blankRun + 1;
+		if (blankRun >= BLANK_LIMIT) fail(`${blankRun} empty reads — the canvas composited nothing`);
+	}
+
+	/**
+	 * Ask for the centre pixel, and record the answer whenever it arrives.
+	 *
+	 * The read is issued into a `PIXEL_PACK_BUFFER`, which is what keeps this off
+	 * the frame. A `readPixels` into a typed array is a GPU→CPU **sync**: it
+	 * blocks the main thread until the frame it is reading has actually finished,
+	 * and in a scene with five GL layers queued ahead of it that was measured at
+	 * 60–630 ms — one visible freeze, roughly twelve seconds after the section
+	 * scrolled into view, which is when the first heartbeat lands. Read into a
+	 * buffer instead and the copy stays on the GPU; only `collectProbe`'s poll
+	 * touches it, a frame or more later, by which time it costs nothing.
+	 *
+	 * The ISSUE still has to happen in the same task as the draws — with
+	 * `preserveDrawingBuffer` false the buffer is only valid until the frame is
+	 * composited — so it is the collection that moves, not the read. The verdict
+	 * therefore lands a frame or two after the read rather than inside it, which
+	 * is why `pollProbe` owns a frame loop instead of waiting for another draw.
+	 *
+	 * Still throttled, and still skipped whenever the answer would be meaningless:
+	 * a transparent globe has no pixel to check, an unlaid-out canvas has nowhere
+	 * to check it.
 	 *
 	 * A false positive costs the GPU path and keeps the picture; a false negative
-	 * is a blank hero. That asymmetry is the whole argument for the stall.
+	 * is a blank hero. That asymmetry is why this exists at all.
 	 */
 	function probePaint(
 		g: WebGL2RenderingContext,
@@ -221,6 +316,9 @@
 		if (!glc || !health) return;
 		const t = performance.now();
 		if (t < nextProbe) return;
+		// One read in flight at a time. A second issued over the first would
+		// overwrite the buffer the first fence is still promising.
+		if (fence) return;
 		nextProbe = t + (burstLeft > 0 ? PROBE_EVERY : PROBE_IDLE);
 		if (burstLeft > 0) burstLeft--;
 		if (solid < 0.05 || !glc.canvas.clientWidth) return;
@@ -229,15 +327,27 @@
 		// readPixels counts rows from the BOTTOM; everything else here is top-down.
 		const y = glc.canvas.height - 1 - Math.round((cam.ty + cam.tk * wy) * scale);
 		if (x < 0 || y < 0 || x >= glc.canvas.width || y >= glc.canvas.height) return;
-		// Tagged because this is a GPU→CPU sync on a ten-second heartbeat, which is
-		// exactly the shape of an occasional stutter — the tag is what lets a hitch
-		// line either convict it or clear it.
+		if (!packBuf) {
+			packBuf = g.createBuffer();
+			if (!packBuf) return;
+			g.bindBuffer(g.PIXEL_PACK_BUFFER, packBuf);
+			g.bufferData(g.PIXEL_PACK_BUFFER, 4, g.STREAM_READ);
+			g.bindBuffer(g.PIXEL_PACK_BUFFER, null);
+		}
+		// Tagged because a readback is the shape of an occasional stutter — the tag
+		// is what lets a hitch line either convict it or clear it.
 		hitchWatch.mark('readPixels');
-		g.readPixels(x, y, 1, 1, g.RGBA, g.UNSIGNED_BYTE, pixel);
-		const painted = pixel[3] >= 2;
-		health.probe(painted, painted ? undefined : `centre px (${x},${y}) came back empty`);
-		blankRun = painted ? 0 : blankRun + 1;
-		if (blankRun >= BLANK_LIMIT) fail(`${blankRun} empty reads — the canvas composited nothing`);
+		g.bindBuffer(g.PIXEL_PACK_BUFFER, packBuf);
+		// Offset, not an array: this overload writes into the bound buffer and
+		// returns immediately. Passing a `Uint8Array` here is the stall.
+		g.readPixels(x, y, 1, 1, g.RGBA, g.UNSIGNED_BYTE, 0);
+		g.bindBuffer(g.PIXEL_PACK_BUFFER, null);
+		fence = g.fenceSync(g.SYNC_GPU_COMMANDS_COMPLETE, 0);
+		fenceAt = t;
+		// Without a flush the fence can sit unsubmitted behind a queue nobody is
+		// draining, and a poll that is never going to signal is just a timeout.
+		g.flush();
+		pollProbe();
 	}
 
 	const showGl = $derived(gl && !noGl);
@@ -351,6 +461,7 @@
 			onResize: () => {
 				// A resize reallocates the drawing buffer, which is the other moment a
 				// canvas has been seen to come back empty.
+				dropProbe();
 				armProbe();
 				redraw++;
 			},
@@ -368,6 +479,9 @@
 				// handles first — reusing one is a crash, not a glitch — then rebuild
 				// and ask for a frame, because nothing else will: a globe at rest has
 				// no prop change coming to trigger one.
+				stopPoll();
+				fence = null;
+				packBuf = null;
 				discBuf = webBuf = null;
 				discVao = webVao = null;
 				if (glc && !link(glc.gl)) return;
@@ -437,6 +551,8 @@
 			// Browsers cap live WebGL contexts per page (~16), so a studio that mounts
 			// and unmounts globes would eventually start getting `null` back from
 			// `createGlContext` if these were left to the collector.
+			dropProbe();
+			packBuf = null;
 			glc?.dispose();
 			glc = null;
 			discProg = webProg = null;

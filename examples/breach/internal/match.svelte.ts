@@ -1460,13 +1460,25 @@ export class BreachMatch {
 		return true;
 	}
 
-	/** Back to round one with an empty board. Everything a match accumulates
-	 *  lives in these values, which is the argument for keeping them together. */
+	/** Ask for another match. On a hosted table this is a REQUEST and nothing
+	 *  more: the board is emptied by the answer, through `reset`. */
 	newMatch() {
 		if (this.remote) {
 			this.remote.newMatch();
 			return;
 		}
+		this.reset();
+	}
+
+	/** Back to round one with an empty board. Everything a match accumulates
+	 *  lives in these values, which is the argument for keeping them together.
+	 *
+	 *  Separate from `newMatch` because on a networked table the click and the
+	 *  reset happen on different screens: one player presses the button, and all
+	 *  four have to leave the finished match. Only the snapshot reaches all four,
+	 *  so the reset hangs off that — see Breach.svelte. Calling `newMatch` from
+	 *  there would send the intent a second time on every frame. */
+	reset() {
 		this.busy = false;
 		this.activeFx = null;
 		// A scene left running would hold the camera seized into the next match.

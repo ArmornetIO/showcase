@@ -102,14 +102,15 @@
 				<span class="text-[0.62rem] leading-snug">{body}</span>
 			</span>
 		{/snippet}
+
+	<!-- A rule, not a bordered box — matches the seats' skill tags. -->
 		<span
-			class="flex items-center gap-1 rounded border px-1 py-px"
+			class="flex items-center gap-1 border-b-2 pr-2 pb-0.5"
 			style:color={lit ? hue : 'var(--fg-dim)'}
-			style:border-color={lit ? `color-mix(in srgb, ${hue} 40%, transparent)` : 'var(--border)'}
-			style:background={lit ? `color-mix(in srgb, ${hue} 12%, transparent)` : 'transparent'}
+			style:border-color={lit ? hue : 'color-mix(in srgb, var(--fg) 14%, transparent)'}
 		>
-			<Icon name={icon as never} size={9} />
-			<b class="font-mono text-[0.5rem] font-black tabular-nums leading-none">{value}</b>
+			<Icon name={icon as never} size={13} />
+			<b class="font-mono text-[0.72rem] leading-none font-black tabular-nums">{value}</b>
 		</span>
 	</Tooltip>
 {/snippet}
@@ -172,15 +173,17 @@
 
 				<!-- ── The building ──────────────────────────────────────────────
 				     `piece` is the same solid the globe stands out there. -->
-				<div class="relative w-[50px] shrink-0 self-center">
+				<!-- Wider than the crest so an 11px caption is not clipped by the row's
+				     `overflow-hidden`. Same well as the seat cards. -->
+				<div class="relative w-[68px] shrink-0 self-center">
 					<span
-						class="absolute inset-0 blur-[10px]"
+						class="absolute inset-x-[9px] inset-y-0 blur-[10px]"
 						style:background={tone}
 						style:clip-path={HEX}
 						style:opacity={bar.held ? 0.5 : 0.28}
 					></span>
 					<div
-						class="relative grid h-[56px] place-items-center p-[1.5px]"
+						class="relative mx-auto grid h-[56px] w-[50px] place-items-center p-[1.5px]"
 						style:clip-path={HEX}
 						style:background="color-mix(in srgb, {tone} 70%, transparent)"
 					>
@@ -192,6 +195,19 @@
 							<PieceCrest piece={s.piece} color={tone} offline={!bar.held && lev === 0} />
 						</div>
 					</div>
+
+					<!-- The building's NAME, under its own crest — the same move the seat
+					     cards make with the character. It headed the plate to the right,
+					     which is the line better spent on what the building IS: `The
+					     Forge` tells you nothing on its own, `Build Runner (CI)` tells you
+					     why red wants it. Captioned by its portrait, the name is still
+					     right next to the picture it belongs to. -->
+					<span
+						class="mt-1 block text-center font-mono text-[0.6875rem] leading-[1.15] font-black tracking-[0.06em] text-[var(--fg)] uppercase"
+												title={s.name}
+					>
+						{s.name.replace(/^The /, '')}
+					</span>
 
 					<!-- The step gem, where the seats wear their action points. Where
 					     it sits on the path is the one fact that never changes. -->
@@ -237,12 +253,16 @@
 				<!-- ── The plate ─────────────────────────────────────────────────── -->
 				<div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
 					<div class="flex min-w-0 items-baseline gap-1.5">
+						<!-- WHAT IT IS, as the headline. The name moved under the crest and
+						     this line earns the size instead: `Build Runner (CI)` is the
+						     reason red wants the thing, `The Forge` is only what it is
+						     called. -->
 						<span
-							class="truncate font-mono text-[0.58rem] font-black leading-none"
-							style:color={tone}
-							title={s.name}
+							class="truncate font-mono text-[0.62rem] leading-none font-black uppercase"
+							style:color="var(--fg)"
+							title="{s.role} · {TERRITORIES[s.territory].name}"
 						>
-							{s.name}
+							{s.role}
 						</span>
 						<span class="flex-1"></span>
 
@@ -299,16 +319,17 @@
 						{/if}
 					</div>
 
-					<!-- What it IS, under its name — the seats put the person here. -->
+					<!-- The region only. `role` was here too and is the headline now —
+					     printing it in both places was the same words at two sizes. -->
 					<span
-						class="truncate font-mono text-[0.44rem] uppercase tracking-[0.1em]"
+						class="truncate font-mono text-[0.5rem] tracking-[0.1em] uppercase"
 						style:color={bar.regionColor}
 						title={TERRITORIES[s.territory].name}
 					>
-						{s.role} · {bar.region}
+						{bar.region}
 					</span>
 
-					<div class="flex items-center gap-1">
+					<div class="flex flex-wrap items-center gap-1.5">
 						<!-- Hardening: what an attack has to beat. The one number every
 						     card on the board is measured against. -->
 						{@render pip(

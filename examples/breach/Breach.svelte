@@ -156,6 +156,18 @@
 		if (klassKey) void match.takeSeat(klassKey);
 	});
 
+	// And LEAVING one is the server's decision too, which is what `new_match`
+	// was missing: it sends the intent and the server drops the match and puts
+	// the table back in its lobby, but a client that reset nothing stayed on the
+	// finished board — with `stage` still `play`, so the effect above then
+	// refused to enter the match that followed. Hung off the snapshot rather
+	// than the click because the other three screens never made one.
+	$effect(() => {
+		const view = socket?.view;
+		if (!view || view.phase !== 'setup' || match.stage === 'select') return;
+		match.reset();
+	});
+
 	// The board itself. Applied on every snapshot, so a move by anybody at the
 	// table lands on everybody's screen.
 	$effect(() => {

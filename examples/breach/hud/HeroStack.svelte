@@ -18,6 +18,7 @@
 	// whole argument for reusing the language rather than inventing a second one.
 	import { Figure, Icon, Tooltip } from 'showcase';
 	import { SKILL_GLYPH } from '../parts/skill-glyphs.js';
+	import TeamFlag from './TeamFlag.svelte';
 	import { REFERENCE_DC, SKILL_DOES, pct, rollsOn, skillChance } from './skill-tips.js';
 	import {
 		SKILL_LABEL,
@@ -115,14 +116,17 @@
 				<!-- ── Portrait ──────────────────────────────────────────────────
 				     The card's art well, hexagonal. Same glow-behind-the-frame so a
 				     character in the stack and a card in the hand are lit alike. -->
-				<div class="relative shrink-0 w-[50px] self-center">
+			<!-- The column is wider than the hex it holds, so an 11px `MAINTAINER`
+				     has somewhere to sit without overhanging the card and being clipped
+				     by its `overflow-hidden`. The crest stays 50px and centres in it. -->
+				<div class="relative shrink-0 w-[68px] self-center">
 					<span
-						class="absolute inset-0 blur-[10px] opacity-50"
+						class="absolute inset-x-[9px] inset-y-0 blur-[10px] opacity-50"
 						style:background={seat.color}
 						style:clip-path={HEX}
 					></span>
 					<div
-						class="relative grid place-items-center h-[56px] p-[1.5px]"
+						class="relative mx-auto grid h-[56px] w-[50px] place-items-center p-[1.5px]"
 						style:clip-path={HEX}
 						style:background="color-mix(in srgb, {seat.color} 70%, transparent)"
 					>
@@ -160,7 +164,7 @@
 							</span>
 						{/snippet}
 						<span
-							class="absolute -top-0.5 -left-1 z-10 flex items-center gap-[2px] rounded-full border-2 px-1
+							class="absolute -top-0.5 left-[1px] z-10 flex items-center gap-[2px] rounded-full border-2 px-1
 							       py-[1px] font-mono text-[0.5rem] font-black leading-none"
 							style:color={seat.color}
 							style:border-color="color-mix(in srgb, {seat.color} 60%, transparent)"
@@ -170,17 +174,44 @@
 							<b class="tabular-nums">{seat.ap}</b>
 						</span>
 					</Tooltip>
+
+					<!-- The CHARACTER, under its own portrait. It used to head the plate
+					     to the right, which is the line a player actually wants for the
+					     PERSON — you play against Priya, not against an archetype, and
+					     the archetype never changes while the person does.
+					     Under the art it is captioned by the thing it names, and the
+					     plate is freed for the name that matters. -->
+					<!-- `--t-micro` is the caption floor; `--fg` because the crest above
+					     already carries the hue. Overhangs the 50px well so the column
+					     does not grow and take the hex with it. -->
+					<span
+						class="mt-1 block text-center font-mono text-[0.6875rem] leading-[1.15] font-black tracking-[0.06em] text-[var(--fg)] uppercase"
+						title={seat.name}
+					>
+						{seat.name.replace(/^The /, '')}
+					</span>
 				</div>
 
 				<!-- ── Plate ─────────────────────────────────────────────────────── -->
 				<div class="flex min-w-0 flex-1 flex-col gap-1 justify-center">
-					<div class="flex items-baseline gap-1.5 min-w-0">
+					<div class="flex items-center gap-1.5 min-w-0">
+						<!-- WHOSE SIDE, as a mark. `relation` already colours the edge
+						     stripe with-you/against-you, but that is a fact about YOUR
+						     seat: it cannot say which of the two enemies are allied to
+						     each other, and it changes meaning depending on who reads it.
+						     The banner is the same for everybody at the table. -->
+						<TeamFlag faction={k.faction} class="shrink-0" />
+						<!-- THE PERSON, as the headline. This was the character's name and
+						     the person was a 0.44rem afterthought underneath — backwards
+						     for a table where the archetype is fixed for the whole match
+						     and who is holding it is the thing you are actually tracking.
+						     The character moved under the portrait it belongs to. -->
 						<span
-							class="font-mono text-[0.58rem] font-black leading-none truncate"
-							style:color={seat.color}
-							title={seat.name}
+							class="font-mono text-[0.7rem] font-black leading-none truncate"
+							style:color={you ? seat.color : 'var(--fg)'}
+							title={seat.player ?? seat.name}
 						>
-							{seat.name.replace(/^The /, '')}
+							{you ? 'you' : (seat.player ?? (seat.automatic ? 'demonstrator' : 'waiting'))}
 						</span>
 						<span class="font-mono text-[0.44rem] tracking-[0.12em] uppercase text-[var(--fg-dim)]">
 							{seat.seat}
@@ -208,13 +239,14 @@
 						{/if}
 					</div>
 
-					<!-- The person, under the character. Two facts, and only one of
-					     them changes between matches. -->
-					<span class="font-mono text-[0.44rem] tracking-[0.1em] uppercase truncate text-[var(--fg-dim)]">
-						{you ? 'you' : (seat.player ?? (seat.automatic ? 'demonstrator' : 'waiting'))}
-					</span>
+					<!-- The person used to be a second line here. It is the headline
+					     above now, so this row is gone and the space it held goes to the
+					     skills — which were 0.5rem glyphs nobody could read.
 
-					<div class="flex items-center gap-1">
+					     `flex-wrap`, because at the new size four tags no longer fit a
+					     250px rail on one line: they wrap to two rows of two rather than
+					     shrinking back to unreadable. -->
+					<div class="flex flex-wrap items-center gap-1.5">
 						<!-- SKILLS, as the four glyphs the cards already roll against.
 						     A card says "2d6 +2 OPS"; this says which of the four hands
 						     at the table that +2 belongs to, in the same picture. -->
@@ -247,37 +279,31 @@
 										</span>
 									</span>
 								{/snippet}
-								<span
-									class="flex items-center gap-px rounded px-1 py-px border"
+								<!-- Nearly double their old size. They were a 9px glyph beside a
+							     0.5rem numeral, four in a row, each carrying a modifier the
+							     player is meant to compare against a card's `2d6 +2 OPS` —
+							     drawn too small to compare anything. The line the person
+							     vacated pays for it. -->
+							<!-- A rule, not a bordered box: these are not clickable and a
+							     pill says they are. -->
+							<span
+									class="flex items-center gap-1 border-b-2 pr-2 pb-0.5"
 									style:color={v > 0 ? seat.color : v < 0 ? ENEMY_HUE : 'var(--fg-dim)'}
 									style:border-color={v > 0
-										? `color-mix(in srgb, ${seat.color} 40%, transparent)`
-										: 'var(--border)'}
-									style:background={v > 0
-										? `color-mix(in srgb, ${seat.color} 12%, transparent)`
-										: 'transparent'}
+										? seat.color
+										: v < 0
+											? ENEMY_HUE
+											: 'color-mix(in srgb, var(--fg) 14%, transparent)'}
 								>
-									<Icon name={SKILL_GLYPH[skill]} size={9} />
-									<b class="font-mono text-[0.5rem] font-black tabular-nums leading-none">
+									<Icon name={SKILL_GLYPH[skill]} size={13} />
+									<b class="font-mono text-[0.72rem] font-black tabular-nums leading-none">
 										{v >= 0 ? '+' : ''}{v}
 									</b>
 								</span>
 							</Tooltip>
 						{/each}
 
-						<span class="flex-1"></span>
-
-						<!-- WHETHER THEY ARE SEEN. The card's noise corner, exactly: an
-						     open eye in the noise hue is somebody who has shown you
-						     where they are, a shut one in the quiet hue is somebody who
-						     has not — and on this board that is the worse news. -->
-						<span
-							class="shrink-0"
-							style:color={seat.focus ? SEEN_HUE : HIDDEN_HUE}
-							title={seenAt(seat.quietFor, seat.focus)}
-						>
-							<Icon name={seat.focus ? 'eye' : 'eye-off'} size={11} />
-						</span>
+					<!-- No seen/unseen eye: the same glyph is `opsec` two tags left. -->
 					</div>
 				</div>
 			</div>

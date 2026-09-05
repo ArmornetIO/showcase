@@ -34,6 +34,10 @@ const vw = Number(opt('vw', 1440));
 const vh = Number(opt('vh', 900));
 const settle = Number(opt('settle', 6000));
 const seekT = opt('t', null);
+// A/B one build against itself. `mask`, `opacity` and `stroke` are presentation
+// attributes, so a stylesheet outranks whatever the component wrote and one shot
+// can wear the previous shape without checking the previous source back out.
+const css = opt('css', '');
 
 const browser = await chromium.launch({
 	args: [
@@ -69,6 +73,15 @@ page.on('console', (m) => {
 });
 
 await page.goto(url, { waitUntil: 'networkidle' });
+// Scroll BEFORE settling, not at screenshot time. The scenes below the fold gate
+// their loop on an IntersectionObserver, so a locator screenshot that scrolls
+// and shoots in the same breath catches a canvas that has not drawn a frame yet
+// — a blank rectangle that diffs clean against another blank rectangle.
+if (sel) {
+	await page.evaluate((s) => {
+		document.querySelector(s)?.scrollIntoView({ block: 'center' });
+	}, sel);
+}
 await page.waitForTimeout(settle);
 
 // Pin the clock if the page offers a seek hook, so the checkpoint is a named
@@ -83,6 +96,11 @@ if (seekT !== null) {
 		return true;
 	}, seekT);
 	await page.waitForTimeout(200);
+}
+
+if (css) {
+	await page.addStyleTag({ content: css });
+	await page.waitForTimeout(300);
 }
 
 const visual = page.locator(sel);

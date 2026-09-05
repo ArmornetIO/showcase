@@ -27,6 +27,7 @@
 		updateBuffer,
 		type GlContext
 	} from '../mesh-studio/gl/context.js';
+	import { watchOnScreen } from '../perf/on-screen.js';
 	import { EDGE_STYLE_DASH } from '../primitives/canvas/canvas.types.js';
 	import type { EdgeStyle } from '../primitives/canvas/canvas.types.js';
 	import type { MobiusLayout } from './mobius.js';
@@ -82,6 +83,11 @@
 	}: Props = $props();
 
 	let canvasEl = $state<HTMLCanvasElement | null>(null);
+	/** `prefers-reduced-motion` was the only thing that could idle this loop, so a
+	 *  backdrop mounted below the fold kept drawing a full-width GL layer into a
+	 *  viewport nobody was near — and the cost lands on the same main thread as
+	 *  whatever the viewer IS looking at. See `perf/on-screen`. */
+	let onScreen = $state(true);
 	/** Deliberately NOT `$state` — see EdgeParticles. It is written from inside the
 	 *  mount effect, and a reactive read there re-runs that effect, whose cleanup
 	 *  disposes the context by LOSING it. That left a mounted layer holding a dead
@@ -226,6 +232,8 @@
 		}
 	});
 
+	$effect(() => (canvasEl ? watchOnScreen(canvasEl, (v) => (onScreen = v)) : undefined));
+
 	$effect(() => {
 		const el = canvasEl;
 		if (!el) return;
@@ -304,11 +312,28 @@
 		 *  opt-out is an idle loop rather than a frozen animation. */
 		let stale = true;
 		let lastKey = '';
+		/** When the backdrop went off screen, so the time it spent there can be
+		 *  taken back out of the clock. */
+		let hiddenAt = 0;
 
 		const draw = (ts: number) => {
 			frame = requestAnimationFrame(draw);
 			if (!glc || glc.lost || !strokeProg || !sparkProg) return;
 			if (!origin) origin = ts;
+			// Read inside the frame, not in the gate list above: subscribing to it
+			// would tear the loop down and build it again on every scroll that
+			// crosses the observer's margin.
+			if (!onScreen) {
+				stale = true;
+				if (!hiddenAt) hiddenAt = ts;
+				return;
+			}
+			// Time off screen is not time the belts moved. Carrying the gap in would
+			// snap every dash forward the moment the backdrop scrolls back.
+			if (hiddenAt) {
+				origin += ts - hiddenAt;
+				hiddenAt = 0;
+			}
 			// Not `performance.now()` directly: a clock that starts at page load puts
 			// every belt at an arbitrary phase on mount, and at float32 precision a
 			// tab left open for a day quantises the dash flow visibly.

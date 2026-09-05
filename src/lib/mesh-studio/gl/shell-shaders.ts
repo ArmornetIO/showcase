@@ -103,6 +103,15 @@ vec4 over(vec4 src, vec4 dst) {
 void main() {
 	float r = length(vWorld - uCenter);
 	float aa = max(fwidth(r), 1e-6);
+	// Not "half": that is a reserved word in GLSL ES 3.00 and will not compile.
+	float halfW = max(uRingW * 0.5, aa);
+	// The quad is the disc's bounding box, so about a fifth of its fragments are
+	// corners that run every line below only to blend a fully transparent one.
+	// Past the far side of the limb stroke both \`inside\` and \`ring\` are already
+	// zero, which makes this exact rather than an approximation. It cannot move
+	// above \`fwidth\`: a derivative taken after a discard in the same quad is
+	// undefined.
+	if (r > uLimb + halfW + aa) discard;
 	// The disc mask. Veil, scan and rim are all clipped by it; the limb stroke is
 	// not, because a stroke straddles the path it is on.
 	float inside = 1.0 - smoothstep(uLimb - aa, uLimb + aa, r);
@@ -152,8 +161,6 @@ void main() {
 
 	// The limb stroke, last and unclipped.
 	float edge = abs(r - uLimb);
-	// Not "half": that is a reserved word in GLSL ES 3.00 and will not compile.
-	float halfW = max(uRingW * 0.5, aa);
 	float ring = uRingA * (1.0 - smoothstep(halfW - aa, halfW + aa, edge));
 	c = over(vec4(uInk * ring, ring), c);
 

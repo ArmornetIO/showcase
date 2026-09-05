@@ -26,6 +26,13 @@ import type { MatchSize } from './rules.js';
  *  part of that bundle. */
 const WASM_URL = '/breach-rules.wasm';
 
+/** TinyGo's shim, NOT Go's — this module is the only one built by TinyGo, and
+ *  the two are not interchangeable even though both publish a global `Go`.
+ *  Passed explicitly because the loader's default is Go's, which would pair this
+ *  module with the wrong runtime and fail inside the instance rather than at the
+ *  fetch, where the message would name the cause. */
+const EXEC_URL = '/wasm_exec_tinygo.js';
+
 /** Everything the module publishes. Every call is SYNCHRONOUS — the HUD reads a
  *  wall's hardening inside a `$derived` while it renders, and a promise cannot
  *  be awaited there. Only `load()` is async, and only once. */
@@ -66,7 +73,7 @@ export class RulesEngine {
 	 *  vector generated against the server be replayed here and compared row for
 	 *  row, which is the only way to know the engines agree. */
 	static async open(size: MatchSize, seed: number): Promise<RulesEngine> {
-		const mod = await loadWasmModule<RulesModule>(WASM_URL, 'breachRules');
+		const mod = await loadWasmModule<RulesModule>(WASM_URL, 'breachRules', EXEC_URL);
 		mod.open(size, seed);
 		return new RulesEngine(mod);
 	}

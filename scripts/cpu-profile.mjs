@@ -49,6 +49,17 @@ if (args.includes('--auth'))
 await page.goto(url, { waitUntil: 'networkidle' });
 await page.waitForTimeout(5000);
 
+// Same reason `ablate-hitch` takes one: a scene gated on an IntersectionObserver
+// profiles as idle from the top of the page, and the profile then blames the
+// scene that IS on screen.
+const scrollArg = args.includes('--scroll') ? args[args.indexOf('--scroll') + 1] : null;
+if (scrollArg) {
+	await page.evaluate((s) => {
+		document.querySelector(s)?.scrollIntoView({ block: 'center' });
+	}, scrollArg);
+	await page.waitForTimeout(2500);
+}
+
 const cdp = await context.newCDPSession(page);
 await cdp.send('Profiler.enable');
 await cdp.send('Profiler.setSamplingInterval', { interval: 100 });

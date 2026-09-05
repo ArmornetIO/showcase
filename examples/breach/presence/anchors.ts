@@ -48,14 +48,42 @@ export interface StageBox {
  *  missing or on the far side — the renderer fades back-face nodes rather than
  *  removing them, so their boxes still exist and would otherwise place a mark
  *  in the middle of the sphere. */
-function nodeBox(host: HTMLElement, id: string) {
+interface NodeBox {
+	x: number;
+	y: number;
+	o: number;
+}
+
+/** Memoised for the frame. The two exported samplers each walk every structure
+ *  and both run in the same tick, so without this every building is measured
+ *  twice — and a `getBoundingClientRect` in a frame that has already touched the
+ *  DOM is a forced layout, not a field read. Measured on the marketing page's
+ *  board: 36.5 rect calls per frame, 16.5% of the whole CPU profile in
+ *  `getBoundingClientRect` alone. */
+const frameBoxes = new Map<string, NodeBox | null>();
+
+function nodeBox(host: HTMLElement, id: string): NodeBox | null {
+	// First, because it is what rotates the cache below when the frame turns over.
+	const host0 = hostOrigin(host);
+	const cached = frameBoxes.get(id);
+	if (cached !== undefined) return cached;
+
+	const box = measureNode(host, id, host0);
+	frameBoxes.set(id, box);
+	return box;
+}
+
+function measureNode(
+	host: HTMLElement,
+	id: string,
+	host0: { left: number; top: number; z: number }
+): NodeBox | null {
 	const el = host.parentElement?.querySelector(`[data-node="${CSS.escape(id)}"]`);
 	if (!el) return null;
 	const o = Number((el as HTMLElement).style.opacity || '1');
 	if (o < 0.35) return null;
 	const r = (el as SVGGraphicsElement).getBoundingClientRect();
 	if (r.width === 0 && r.height === 0) return null;
-	const host0 = hostOrigin(host);
 	// Rects answer in visual px; every renderer downstream draws in the host's
 	// layout px. The two agree until something up the tree sets `zoom`, and then
 	// each mark lands at the zoom factor of where it belongs — see `cssZoom`.
@@ -83,17 +111,22 @@ function nodeBox(host: HTMLElement, id: string) {
  */
 let originStamp = -1;
 let originHost: HTMLElement | null = null;
-let origin = { left: 0, top: 0, z: 1 };
+let origin = { left: 0, top: 0, width: 0, height: 0, z: 1 };
 
-function hostOrigin(host: HTMLElement): { left: number; top: number; z: number } {
+/** Width and height ride along because `sampleStage` wants the same rectangle
+ *  and used to take its own reading of it — a second forced layout for numbers
+ *  that were already on this object. */
+function hostOrigin(host: HTMLElement): typeof origin {
 	const stamp = Number(document.timeline?.currentTime ?? -1);
 	// Keyed by the host as well as the frame: two boards sampling in one frame
 	// would otherwise hand the second one the first's origin.
 	if (stamp !== originStamp || host !== originHost || stamp < 0) {
 		originHost = host;
 		const h = host.getBoundingClientRect();
-		origin = { left: h.left, top: h.top, z: cssZoom(host) };
+		origin = { left: h.left, top: h.top, width: h.width, height: h.height, z: cssZoom(host) };
 		originStamp = stamp;
+		// The node boxes are only valid for the origin they were measured against.
+		frameBoxes.clear();
 	}
 	return origin;
 }
@@ -144,15 +177,17 @@ export function sampleTerritories(host: HTMLElement | null): TerritoryAnchor[] {
  */
 export function sampleStage(host: HTMLElement | null): StageBox | null {
 	if (!host) return null;
-	const h = host.getBoundingClientRect();
+	// The same reading `nodeBox` is already resolving against, rather than a
+	// second one. Two `getBoundingClientRect` calls on one element in one frame
+	// answer identically and cost two forced layouts.
+	const h = hostOrigin(host);
 	if (h.width === 0 || h.height === 0) return null;
 
 	// The host's own size, in the layout px `nodeBox` now answers in — mixing the
 	// two spaces here would put the fallback centre and the fit limit on a
 	// different ruler from the measured spread they are compared against.
-	const z = cssZoom(host);
-	const hw = h.width / z;
-	const hh = h.height / z;
+	const hw = h.width / h.z;
+	const hh = h.height / h.z;
 
 	// The core sits at the centre of the board by construction, which makes it a
 	// better centre than the host rectangle whenever the camera has moved.

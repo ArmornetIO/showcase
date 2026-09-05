@@ -10,6 +10,7 @@
 	import { globeRegistry, type GlobeSurface } from '../../physics/globeRegistry.svelte.js';
 	import { ORBIT_PRESETS, orbitConfigFor } from '../../physics/orbit.js';
 	import { frameProbe } from '../../perf/frame-probe.js';
+	import { renderTunables } from '../gl/render-tunables.svelte.js';
 
 	/** Bumped to re-read the probe's report. The probe holds NO reactive state on
 	 *  purpose — writing `$state` sixty times a second is a cost the measurement
@@ -55,6 +56,54 @@
 		return ORBIT_PRESETS.find((p) => p.id === wantId) ?? ORBIT_PRESETS[0];
 	}
 </script>
+
+<!-- Outside the globe gate on purpose: these dials govern every accelerated
+     layer on the page, not just a registered globe, and the page that most needs
+     them (six live contexts) is not the one with a registry entry. -->
+<div class="gdc">
+	<div class="gdc-globe">
+		<div class="gdc-head">
+			<span class="gdc-label">RENDER</span>
+			<button class="gdc-stop" onclick={() => renderTunables.reset()}>reset</button>
+		</div>
+
+		<label class="gdc-row" for="gdc-dpr">
+			<span>density ceiling</span>
+			<b>{renderTunables.dprCeiling.toFixed(2)}×</b>
+		</label>
+		<input
+			id="gdc-dpr"
+			type="range"
+			min="0.5"
+			max="3"
+			step="0.25"
+			bind:value={renderTunables.dprCeiling}
+			onchange={() => renderTunables.save()}
+		/>
+		<!-- Measured on the marketing page at dpr 2, ±6% noise: the ceiling is the
+		     single biggest lever found, and it is a quality trade, so it is a dial
+		     rather than a constant. -->
+		<p class="gdc-desc">
+			late frames/s — 2.0: 38.5 · 1.5: 21.8 · <b>1.25: 14.8</b> · 1.0: 11.6.
+			Live: applies on the next resize, no reload.
+		</p>
+
+		<label class="gdc-row" for="gdc-aa">
+			<span>MSAA</span>
+			<input
+				id="gdc-aa"
+				type="checkbox"
+				bind:checked={renderTunables.antialias}
+				onchange={() => renderTunables.save()}
+			/>
+		</label>
+		<p class="gdc-desc">
+			Measured a <b>wash</b> here (22.15/s off vs 21.84/s on). A context creation
+			attribute, so this one needs a <b>reload</b> to take effect — it is saved
+			for exactly that reason.
+		</p>
+	</div>
+</div>
 
 {#if globeRegistry.globes.length > 0}
 	<div class="gdc">
@@ -252,6 +301,19 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+	}
+	.gdc-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 0.62rem;
+		letter-spacing: 0.06em;
+		color: var(--fg-dim);
+		cursor: pointer;
+	}
+	.gdc-row b {
+		color: var(--fg);
+		font-variant-numeric: tabular-nums;
 	}
 	.gdc-label {
 		font-size: 0.6rem;

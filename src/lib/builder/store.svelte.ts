@@ -1,7 +1,7 @@
-import { readJson, writeJson } from '$lib/storage.js';
+import { readJson, writeJson } from '../storage.js';
 import { REGISTRY_MAP } from './registry.js';
 import type { BuilderTemplate } from './templates.js';
-import type { TourStep } from '$lib/primitives/canvas/canvas-camera.js';
+import type { TourStep } from '../primitives/canvas/canvas-camera.js';
 
 const STORAGE_KEY = 'armornet-builder-v2';
 const LEGACY_KEY = 'armornet-builder-v1';

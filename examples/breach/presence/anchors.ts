@@ -55,16 +55,47 @@ function nodeBox(host: HTMLElement, id: string) {
 	if (o < 0.35) return null;
 	const r = (el as SVGGraphicsElement).getBoundingClientRect();
 	if (r.width === 0 && r.height === 0) return null;
-	const h = host.getBoundingClientRect();
+	const host0 = hostOrigin(host);
 	// Rects answer in visual px; every renderer downstream draws in the host's
 	// layout px. The two agree until something up the tree sets `zoom`, and then
 	// each mark lands at the zoom factor of where it belongs — see `cssZoom`.
-	const z = cssZoom(host);
 	return {
-		x: (r.left + r.width / 2 - h.left) / z,
-		y: (r.top + r.height / 2 - h.top) / z,
+		x: (r.left + r.width / 2 - host0.left) / host0.z,
+		y: (r.top + r.height / 2 - host0.top) / host0.z,
 		o
 	};
+}
+
+/**
+ * The host's own box and zoom, measured once a frame instead of once a node.
+ *
+ * It reads as a micro-optimisation and is not. A `getBoundingClientRect` inside
+ * a frame that has already touched the DOM — which is every frame here, the
+ * globe is turning — forces the browser to flush layout before it can answer,
+ * and this sampler asks for every structure on the board, twice: once for the
+ * node, once for the host. Profiled on the marketing hero, that second read was
+ * the single hottest thing on the page. The host cannot move between two nodes
+ * of the same tick, so the answer is the same one either way.
+ *
+ * `document.timeline.currentTime` is the frame stamp: constant for the whole of
+ * one frame, different in the next. A plain timestamp would not do — it changes
+ * between two calls inside one tick and the cache would never hit.
+ */
+let originStamp = -1;
+let originHost: HTMLElement | null = null;
+let origin = { left: 0, top: 0, z: 1 };
+
+function hostOrigin(host: HTMLElement): { left: number; top: number; z: number } {
+	const stamp = Number(document.timeline?.currentTime ?? -1);
+	// Keyed by the host as well as the frame: two boards sampling in one frame
+	// would otherwise hand the second one the first's origin.
+	if (stamp !== originStamp || host !== originHost || stamp < 0) {
+		originHost = host;
+		const h = host.getBoundingClientRect();
+		origin = { left: h.left, top: h.top, z: cssZoom(host) };
+		originStamp = stamp;
+	}
+	return origin;
 }
 
 /** Sample every territory. Regions with nothing facing the viewer are omitted

@@ -73,8 +73,17 @@ uniform vec2 uCenter;
 /** Where the view ray grazes the sphere — wider than the radius under
  *  perspective. The host computes it; see GlobeFrame's \`limb\`. */
 uniform float uLimb;
-uniform vec3 uVeil;
-uniform float uVeilA;
+/** The body, as a three-stop horizontal gradient across the sphere's own box.
+ *  A flat fill reads as a disc; a body wants one side nearer the light than the
+ *  other. The studio variant collapses all three stops onto one colour, so a
+ *  flat veil is the degenerate case of this rather than a second code path. */
+uniform vec3 uBody0;
+uniform vec3 uBody1;
+uniform vec3 uBody2;
+uniform vec3 uBodyA;
+uniform float uBodyStop;
+/** The caller's \`surface\`, multiplying the whole body. */
+uniform float uSurface;
 uniform vec3 uInk;
 uniform float uScanA;
 uniform float uRimMid;
@@ -98,7 +107,25 @@ void main() {
 	// not, because a stroke straddles the path it is on.
 	float inside = 1.0 - smoothstep(uLimb - aa, uLimb + aa, r);
 
-	vec4 c = vec4(uVeil * uVeilA, uVeilA) * inside;
+	// The body gradient runs across the sphere's bounding box, which is what an
+	// SVG \`objectBoundingBox\` gradient means: 0 at the left of the limb, 1 at the
+	// right. Interpolated per channel in straight alpha, because that is how the
+	// gradient this was transcribed from resolves its stops.
+	float bt = clamp((vWorld.x - (uCenter.x - uLimb)) / max(2.0 * uLimb, 1e-6), 0.0, 1.0);
+	vec3 bodyRgb;
+	float bodyA;
+	if (bt < uBodyStop) {
+		float k = bt / max(uBodyStop, 1e-6);
+		bodyRgb = mix(uBody0, uBody1, k);
+		bodyA = mix(uBodyA.x, uBodyA.y, k);
+	} else {
+		float k = (bt - uBodyStop) / max(1.0 - uBodyStop, 1e-6);
+		bodyRgb = mix(uBody1, uBody2, k);
+		bodyA = mix(uBodyA.y, uBodyA.z, k);
+	}
+	bodyA *= uSurface;
+
+	vec4 c = vec4(bodyRgb * bodyA, bodyA) * inside;
 
 	// Scanlines: a 1-unit bar every 3 world units. Pattern space IS world space —
 	// GlobeFrame carried the camera on \`patternTransform\`, so the raster scales
@@ -125,7 +152,7 @@ void main() {
 
 	// The limb stroke, last and unclipped.
 	float edge = abs(r - uLimb);
-	// `half` is a reserved word in GLSL ES 3.00 — do not shorten this name.
+	// Not "half": that is a reserved word in GLSL ES 3.00 and will not compile.
 	float halfW = max(uRingW * 0.5, aa);
 	float ring = uRingA * (1.0 - smoothstep(halfW - aa, halfW + aa, edge));
 	c = over(vec4(uInk * ring, ring), c);
@@ -188,27 +215,91 @@ export const SHELL_WEB_ATTRIBS: AttribSpec[] = [
 	{ name: 'aExpand', size: 2 },
 ];
 
-/** The disc's fixed paint, transcribed from `GlobeFrame`'s elements.
- *
- *  `veil` is not here: it is the caller's `surface` prop, the one value the
- *  sphere's own markup left tunable. */
-export const SHELL_DISC = {
+/** One pass of the graticule. Far first, and far is nearly invisible on purpose:
+ *  it is what makes the wireframe read as ENCLOSING the nodes rather than as a
+ *  doily laid over them, and anything strong enough to count the lines of puts
+ *  the back of the sphere at the same rank as the front. */
+export interface ShellWebPass {
+	back: boolean;
+	/** Stroke weight in world units — see the note on `SHELL_WEB_VERT`. */
+	width: number;
+	alpha: number;
+}
+
+/** How a globe is painted. Everything a surface can restyle, in one object. */
+export interface ShellVariant {
+	/** Three CSS colours across the sphere's box, left to right. Any CSS colour,
+	 *  `var(--bg)` included — the host resolves them against the live canvas. */
+	body: [string, string, string];
+	bodyAlpha: [number, number, number];
+	/** Where the middle stop sits, 0..1. */
+	bodyStop: number;
+	/** Overrides the caller's `color` for every lit layer. Absent means "use the
+	 *  theme accent the caller passed". */
+	ink?: string;
 	/** `<circle fill="url(#scan)" opacity="0.05">` over a pattern bar drawn at
 	 *  0.5 — so the bar lands at 0.025, and the gap at nothing. */
-	scan: 0.05 * 0.5,
-	/** The radial gradient's two lit stops: 0.1 at 88%, 0.42 at the limb. */
-	rimMid: 0.1,
-	rimEdge: 0.42,
-	/** `stroke-width="1" opacity="0.35"`, in world units. */
-	ringAlpha: 0.35,
-	ringWidth: 1,
-} as const;
+	scan: number;
+	/** The rim gradient's two lit stops: at 88%, and at the limb. */
+	rimMid: number;
+	rimEdge: number;
+	/** The limb stroke: opacity, and a weight in world units. */
+	ringAlpha: number;
+	ringWidth: number;
+	web: ShellWebPass[];
+}
 
-/** The graticule's two passes. Far first, and far is nearly invisible on
- *  purpose: it is what makes the wireframe read as ENCLOSING the nodes rather
- *  than as a doily laid over them, and anything strong enough to count the lines
- *  of puts the back of the sphere at the same rank as the front. */
-export const SHELL_WEB_PASSES = [
-	{ back: true, width: 0.4, alpha: 0.03 },
-	{ back: false, width: 0.5, alpha: 0.08 },
-] as const;
+/**
+ * The two globes this library actually draws.
+ *
+ * `studio` is `GlobeFrame`'s own markup, transcribed value for value — the
+ * console's sphere.
+ *
+ * `scenery` is the marketing hero's, and it exists because that page had been
+ * restyling `GlobeFrame`'s internals FROM PAGE CSS: a `fill: url(#globe-body)`
+ * onto the veil circle, a `display: none` over the whole second group, and
+ * brighter, thicker graticule strokes matched by attribute selector. That works
+ * on SVG and cannot work on a canvas, so the overrides had to become values.
+ * They are transcribed here from the rules that produced them.
+ *
+ * The visible differences are all deliberate, and the reasons are the page's own:
+ * the body is a gradient because a flat fill reads as a disc rather than a body;
+ * the rim, limb stroke and scanlines are OFF because a lit outline drew a hard
+ * bright edge exactly where the sphere should have been dissolving into the
+ * page; and the graticule is far stronger because it is the only thing left
+ * saying "sphere" once the outline is gone.
+ */
+export const SHELL_VARIANTS: Record<'studio' | 'scenery', ShellVariant> = {
+	studio: {
+		body: ['var(--bg)', 'var(--bg)', 'var(--bg)'],
+		bodyAlpha: [1, 1, 1],
+		bodyStop: 0.45,
+		scan: 0.05 * 0.5,
+		rimMid: 0.1,
+		rimEdge: 0.42,
+		ringAlpha: 0.35,
+		ringWidth: 1,
+		web: [
+			{ back: true, width: 0.4, alpha: 0.03 },
+			{ back: false, width: 0.5, alpha: 0.08 },
+		],
+	},
+	scenery: {
+		body: ['#010305', '#0b1c1a', '#20554f'],
+		bodyAlpha: [0.97, 0.68, 0.58],
+		bodyStop: 0.45,
+		ink: '#2FFFE0',
+		scan: 0,
+		rimMid: 0,
+		rimEdge: 0,
+		ringAlpha: 0,
+		ringWidth: 0,
+		web: [
+			{ back: true, width: 0.6, alpha: 0.075 },
+			// The back half rises WITH the front rather than staying put: the ratio
+			// between them is the depth cue, and holding the back at 0.03 while the
+			// front went to 0.22 would have flattened the far side out of existence.
+			{ back: false, width: 0.6, alpha: 0.22 },
+		],
+	},
+};

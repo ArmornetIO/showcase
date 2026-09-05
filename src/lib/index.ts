@@ -224,7 +224,10 @@ export type {
 
 // Interactive mesh canvas — radial hub, drag/drop, closest-port line routing.
 export { default as MeshStudio } from './mesh-studio/MeshStudio.svelte';
-export { default as GlobeFrame } from './mesh-studio/globe/GlobeFrame.svelte';
+
+// The sphere, on the GPU. There is no SVG twin — see the header of GlobeShell
+// for why the one that used to be here was removed rather than kept on standby.
+export { default as GlobeShell } from './mesh-studio/globe/GlobeShell.svelte';
 export { default as TerritoryCaps } from './mesh-studio/globe/TerritoryCaps.svelte';
 export type { Territory, TerritoryStyle } from './mesh-studio/globe/TerritoryCaps.svelte';
 export { default as NodePiece } from './mesh-studio/pieces/NodePiece.svelte';
@@ -704,6 +707,11 @@ export { default as AdvancedSettingsPanel } from './settings/AdvancedSettingsPan
 export { perfBudget } from './perf/budget.svelte.js';
 export type { PerfTier } from './perf/budget.svelte.js';
 export { default as PerfPanel } from './perf/PerfPanel.svelte';
+// Deliberately NOT re-exported as a component here — the HUD is imported on
+// demand by the host that toggles it, so a page that never opens it never
+// downloads it. `hitchWatch` is the part worth having in the barrel.
+export { hitchWatch, type Hitch, type HitchSnapshot } from './perf/hitch-watch.js';
+export { watchOnScreen } from './perf/on-screen.js';
 export { frameProbe } from './perf/frame-probe.js';
 export type { FrameStats, Quantiles } from './perf/frame-probe.js';
 

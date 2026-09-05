@@ -469,7 +469,11 @@
           ]
         },
         {
-          "component": "GlobeFrame"
+          "component": "GlobeShell",
+          "note": [
+            "The sphere, on the GPU. There is no SVG twin — see the header of GlobeShell",
+            "for why the one that used to be here was removed rather than kept on standby."
+          ]
         },
         {
           "component": "TerritoryCaps",

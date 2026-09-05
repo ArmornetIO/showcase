@@ -2,11 +2,11 @@
 	// Storyboard pieces. Three of them are containers, and the builder has no
 	// nesting model, so their slot shows a `__children` string that tells you
 	// what would go inside.
-	import StoryboardCanvas from '$lib/storyboard/StoryboardCanvas.svelte';
-	import SwimLane from '$lib/storyboard/SwimLane.svelte';
-	import StoryboardFrame from '$lib/storyboard/StoryboardFrame.svelte';
-	import StoryboardArrow from '$lib/storyboard/StoryboardArrow.svelte';
-	import StoryboardBranch from '$lib/storyboard/StoryboardBranch.svelte';
+	import StoryboardCanvas from '../../storyboard/StoryboardCanvas.svelte';
+	import SwimLane from '../../storyboard/SwimLane.svelte';
+	import StoryboardFrame from '../../storyboard/StoryboardFrame.svelte';
+	import StoryboardArrow from '../../storyboard/StoryboardArrow.svelte';
+	import StoryboardBranch from '../../storyboard/StoryboardBranch.svelte';
 	import { accessors } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

@@ -1,12 +1,12 @@
 <script lang="ts">
 	// Navigation surfaces. Nothing here navigates — `isActive` is stubbed false
 	// so the preview shows the resting state rather than the current route.
-	import SidebarNav from '$lib/navigation/SidebarNav.svelte';
-	import type { NavSection } from '$lib/navigation/SidebarNav.svelte';
-	import Breadcrumbs from '$lib/navigation/Breadcrumbs.svelte';
-	import type { BreadcrumbItem } from '$lib/navigation/Breadcrumbs.svelte';
-	import EcoTabBar from '$lib/primitives/chrome/EcoTabBar.svelte';
-	import type { EcoTab } from '$lib/primitives/chrome/EcoTabBar.svelte';
+	import SidebarNav from '../../navigation/SidebarNav.svelte';
+	import type { NavSection } from '../../navigation/SidebarNav.svelte';
+	import Breadcrumbs from '../../navigation/Breadcrumbs.svelte';
+	import type { BreadcrumbItem } from '../../navigation/Breadcrumbs.svelte';
+	import EcoTabBar from '../../primitives/chrome/EcoTabBar.svelte';
+	import type { EcoTab } from '../../primitives/chrome/EcoTabBar.svelte';
 	import { accessors, parseJson } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

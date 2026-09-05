@@ -2,16 +2,16 @@
 	// Charts, tables and timelines — the components that take a dataset rather
 	// than a handful of scalars. Their preview data lives in `chart-presets.ts`
 	// so the fixtures don't drown the markup.
-	import DataTable from '$lib/display/table/DataTable.svelte';
-	import type { TableColumn } from '$lib/display/table/DataTable.svelte';
-	import Timeline from '$lib/display/content/Timeline.svelte';
-	import type { TimelineEvent } from '$lib/display/content/Timeline.svelte';
-	import Sparkline from '$lib/display/metric/Sparkline.svelte';
-	import Chart from '$lib/chart/Chart.svelte';
-	import DonutChart from '$lib/chart/DonutChart.svelte';
-	import CollapsibleStack from '$lib/display/content/CollapsibleStack.svelte';
-	import CollapsibleStackRow from '$lib/display/content/CollapsibleStackRow.svelte';
-	import type { IconName } from '$lib/icons/Icon.svelte';
+	import DataTable from '../../display/table/DataTable.svelte';
+	import type { TableColumn } from '../../display/table/DataTable.svelte';
+	import Timeline from '../../display/content/Timeline.svelte';
+	import type { TimelineEvent } from '../../display/content/Timeline.svelte';
+	import Sparkline from '../../display/metric/Sparkline.svelte';
+	import Chart from '../../chart/Chart.svelte';
+	import DonutChart from '../../chart/DonutChart.svelte';
+	import CollapsibleStack from '../../display/content/CollapsibleStack.svelte';
+	import CollapsibleStackRow from '../../display/content/CollapsibleStackRow.svelte';
+	import type { IconName } from '../../icons/Icon.svelte';
 	import { accessors, keyValues, numbers, parseJson } from './accessors.js';
 	import { DONUT_SLICES, chartPreset } from './chart-presets.js';
 	import type { RendererProps } from './types.js';

@@ -1,9 +1,9 @@
 <script lang="ts">
 	// The drawer/modal a triggerable component (Button, IconButton) can raise.
 	// Split out so every triggerable renderer shares one copy of the wiring.
-	import Modal from '$lib/display/modal/Modal.svelte';
-	import NodeDrawer from '$lib/display/drawer/NodeDrawer.svelte';
-	import type { MeshNodeType, NodeState } from '$lib/primitives/canvas/canvas.types.js';
+	import Modal from '../../display/modal/Modal.svelte';
+	import NodeDrawer from '../../display/drawer/NodeDrawer.svelte';
+	import type { MeshNodeType, NodeState } from '../../primitives/canvas/canvas.types.js';
 	import { accessors } from './accessors.js';
 	import type { Trigger } from './trigger.svelte.js';
 

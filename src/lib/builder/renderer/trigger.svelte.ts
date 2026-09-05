@@ -1,4 +1,4 @@
-import { alertBlade } from '$lib/display/drawer/alertBlade.svelte.js';
+import { alertBlade } from '../../display/drawer/alertBlade.svelte.js';
 
 /**
  * What a triggerable component does when clicked on the canvas. Mirrors the

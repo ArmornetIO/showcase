@@ -515,8 +515,22 @@ export interface Projection {
  *  tower, an orbit) is the same unit direction projected at a bigger radius, so
  *  it shares the bodies' vanishing point instead of being faked in screen space.
  *  Passing it into `radius` instead would dolly the camera out with the wall and
- *  the lift would cancel itself. */
-export function project(p: Vec3, radius: number, viewDistance = 2.6, lift = 0): Projection {
+ *  the lift would cancel itself.
+ *
+ *  `out` is written into and returned instead of a fresh object. For the callers
+ *  that project a contour a point at a time, every frame — a marketing page was
+ *  measured allocating megabytes a frame this way, and a nursery filled in eight
+ *  frames puts a collector pause into the middle of every animation on the page,
+ *  not just the one that caused it. It is opt-in because the object is then
+ *  shared: pass one only where the result is read and dropped before the next
+ *  call, never where it is stored. */
+export function project(
+	p: Vec3,
+	radius: number,
+	viewDistance = 2.6,
+	lift = 0,
+	out?: Projection,
+): Projection {
 	const d = Math.max(1.2, viewDistance) * radius;
 	const r = radius * (1 + lift);
 	// Clamp the denominator: a tall enough lift puts a near point level with or
@@ -524,14 +538,14 @@ export function project(p: Vec3, radius: number, viewDistance = 2.6, lift = 0): 
 	// point behind the viewer. Capping it pins the geometry to a huge-but-finite
 	// scale rather than turning it inside out.
 	const scale = d / Math.max(d * 0.05, d - p.z * r);
-	return {
-		x: p.x * r * scale,
-		y: p.y * r * scale,
-		scale,
-		// Depth and facing belong to the DIRECTION, not to how high above the
-		// surface the point sits — a wall is in front of the globe exactly when
-		// the ground it stands on is.
-		depth: p.z,
-		front: p.z >= 0,
-	};
+	const o = out ?? ({ x: 0, y: 0, scale: 0, depth: 0, front: false } as Projection);
+	o.x = p.x * r * scale;
+	o.y = p.y * r * scale;
+	o.scale = scale;
+	// Depth and facing belong to the DIRECTION, not to how high above the surface
+	// the point sits — a wall is in front of the globe exactly when the ground it
+	// stands on is.
+	o.depth = p.z;
+	o.front = p.z >= 0;
+	return o;
 }

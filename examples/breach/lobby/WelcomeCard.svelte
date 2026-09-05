@@ -20,9 +20,16 @@
 		/** The card is over. The host cuts to whatever is behind the curtain —
 		 *  waiting on this rather than on a duration copied out of the CSS. */
 		oncomplete?: () => void;
+		/** The line above the rule, and the name below it. Defaulted to this
+		 *  lobby's own so the game reads as it always has — they are props
+		 *  because the same cold open now says a second name: armornet's
+		 *  marketing page ends its Showcase scene on this card, and a title
+		 *  card duplicated to change two words is two title cards to keep. */
+		kicker?: string;
+		word?: string;
 	}
 
-	let { oncomplete }: Props = $props();
+	let { oncomplete, kicker = 'Welcome to', word = 'Breach' }: Props = $props();
 
 	// Timings, ms. Here and not in the stylesheet because one of them is also the
 	// life of the component: the host is cut off at `TOTAL`, and a duration that
@@ -40,15 +47,20 @@
 	});
 </script>
 
+<!-- `wc-` and not `card`, which is what this was. Svelte's scope hash protects
+     every property a rule declares and none that it leaves alone, so a generic
+     class picks up whatever a HOST's global stylesheet says about that name —
+     armornet's `app.css` has `.card { padding; border; background }`, and the
+     title card arrived on the marketing page inside a raised, bordered box. -->
 <div
-	class="card"
+	class="wc-card"
 	style:--in="{IN_MS}ms"
 	style:--rule-at="{RULE_AT}ms"
 	style:--word-at="{WORD_AT}ms"
 >
-	<span class="kicker">Welcome to</span>
+	<span class="kicker">{kicker}</span>
 	<span class="rule"></span>
-	<span class="word">Breach</span>
+	<span class="word">{word}</span>
 </div>
 
 <style>
@@ -57,7 +69,7 @@
 	   the type at a different height on every viewport. The scrim underneath is
 	   what makes the gap safe — the mark's blurred reflection washes through this
 	   band, and unbacked type over it reads as double-exposed. */
-	.card {
+	.wc-card {
 		position: absolute;
 		inset-inline: 0;
 		bottom: 11%;
@@ -68,7 +80,7 @@
 		pointer-events: none;
 		text-align: center;
 	}
-	.card::before {
+	.wc-card::before {
 		content: '';
 		position: absolute;
 		inset: -140% -10% -180%;

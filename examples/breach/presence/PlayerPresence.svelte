@@ -19,6 +19,7 @@
 	import type { BreachMatch } from '../internal/match.svelte.js';
 	import { sampleStage, sampleTerritories, type StageBox, type TerritoryAnchor } from './anchors.js';
 	import { DEFAULT_MODES, type PresenceRenderMode } from './modes.js';
+	import { watchOnScreen } from 'showcase';
 	import RosterPanel from './RosterPanel.svelte';
 	import InitiativeRing from './InitiativeRing.svelte';
 	import LimbMarkers from './LimbMarkers.svelte';
@@ -56,6 +57,9 @@
 	const on = (id: PresenceRenderMode) => modes.includes(id);
 
 	let host = $state<HTMLDivElement | null>(null);
+	/** Starts true, so an overlay that cannot be observed still tracks. */
+	let onScreen = $state(true);
+	$effect(() => (host ? watchOnScreen(host, (v) => (onScreen = v)) : undefined));
 	let stage = $state<StageBox | null>(null);
 	let anchors = $state<TerritoryAnchor[]>([]);
 
@@ -72,8 +76,14 @@
 	// so the boxes are moving even when the game is doing nothing at all. This is
 	// the same bargain `BoardFx` makes — read the globe instead of predicting it,
 	// and it cannot desync.
+	// …and not at all while the board is off screen. Every tick here is a forced
+	// layout — `sampleStage` measures the host and `sampleTerritories` measures
+	// sixteen buildings — so this is the most expensive loop on the board, and on
+	// a page that EMBEDS the board it was running for a panel thousands of pixels
+	// below the fold. Nothing to track either way: the globe it is following has
+	// stopped turning for the same reason.
 	$effect(() => {
-		if (!host || (!needsStage && !needsWorld)) {
+		if (!host || (!needsStage && !needsWorld) || !onScreen) {
 			stage = null;
 			anchors = [];
 			return;

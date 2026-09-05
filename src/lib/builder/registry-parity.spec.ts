@@ -44,7 +44,8 @@ const INTENTIONALLY_EXCLUDED: Record<string, string> = {
 	MeshStudio: 'mesh canvas composition — reads CANVAS_CTX, so it cannot render outside a Canvas host',
 	MeshCanvas: 'mesh canvas host — owns its own viewport and camera, not a droppable widget',
 	MeshViewControls: 'mesh view/zoom controls — rendered by the mesh canvas host, not draggable',
-	GlobeFrame: 'globe viewport frame — structural host for the globe layout, not a droppable widget',
+	GlobeShell:
+		'globe viewport shell — reads CANVAS_CTX and draws on its own WebGL canvas, so it cannot render outside a Canvas host',
 	TerritoryCaps:
 		'globe territory layer — reads CANVAS_CTX and takes caps solved by the globe packer, so it cannot render outside a Canvas host',
 	NodePiece:
@@ -113,6 +114,7 @@ const INTENTIONALLY_EXCLUDED: Record<string, string> = {
 	// Dev / perf tooling — not UI components
 	DevCog: 'dev feature-flag panel — developer tooling, not a product UI component',
 	PerfPanel: 'performance budget panel — developer tooling, not a product UI component',
+	PerfHud: 'frame/allocation HUD toggled with ` — developer tooling, not a product UI component',
 	GlobeDevControls: 'dev-cog globe intro controls — developer tooling, not a product UI component',
 
 };

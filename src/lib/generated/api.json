@@ -188,6 +188,27 @@
         "default": "0.035"
       },
       {
+        "name": "swirl",
+        "type": "number",
+        "optional": true,
+        "description": "Spatial frequency of the field. LOWER IS BIGGER: the swirls grow and a\nparticle stays inside one for longer, which is what reads as a current\nrather than as jitter. Past ~0.003 the cells are smaller than a trail is\nlong and the ink turns to fuzz.",
+        "default": "0.0011"
+      },
+      {
+        "name": "churn",
+        "type": "number",
+        "optional": true,
+        "description": "How fast the field itself rewrites. The current changes direction over\n minutes at this rate; it is what stops the image settling.",
+        "default": "0.00012"
+      },
+      {
+        "name": "turn",
+        "type": "number",
+        "optional": true,
+        "description": "Angular range, in multiples of π. This is the chaos knob. At 2 the field\nis one broad drift with everything travelling roughly together; raising\nit makes the same smooth noise fold back through itself, so neighbouring\nparticles diverge and the flow builds eddies — turbulent without ever\nbeing jagged, because the underlying noise is unchanged.",
+        "default": "6"
+      },
+      {
         "name": "maxDpr",
         "type": "number",
         "optional": true,
@@ -5743,8 +5764,31 @@
     ],
     "interfaces": []
   },
-  "GlobeFrame": {
-    "component": "GlobeFrame",
+  "GlobePieces": {
+    "component": "GlobePieces",
+    "props": [
+      {
+        "name": "nodes",
+        "type": "StudioNode[]",
+        "optional": true,
+        "default": "[]"
+      },
+      {
+        "name": "selectedId",
+        "type": "string | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "styleOf",
+        "type": "(n: StudioNode) => InstanceStyle",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "GlobeShell": {
+    "component": "GlobeShell",
     "props": [
       {
         "name": "cx",
@@ -5786,34 +5830,33 @@
         "name": "meridians",
         "type": "number",
         "optional": true,
-        "description": "Lines of longitude — full great circles through both poles.",
         "default": "12"
       },
       {
         "name": "parallels",
         "type": "number",
         "optional": true,
-        "description": "Lines of latitude between the poles. Poles themselves are a point, not a\n circle, so they are never drawn.",
         "default": "5"
       },
       {
         "name": "color",
         "type": "string",
         "optional": true,
+        "description": "Any CSS colour, `var(--accent)` included — resolved against the live\n canvas, so a theme swap repaints without the caller converting anything.",
         "default": "'var(--accent)'"
       },
       {
         "name": "surface",
         "type": "number",
         "optional": true,
-        "description": "How solid the globe's interior is, 0..1.\n What actually sells it as a body is that the canvas GRID stops at its\n edge — an object you can't see the floor through. So the interior is\n filled with the page background rather than tinted with the accent: a\n tint recolours the grid, it doesn't hide it.\n Not 1: the far side still has to show through, or spinning the globe\n stops being a way to find anything and the depth cues have nothing to\n act on.",
+        "description": "How solid the globe's interior is, 0..1. Not 1: the far side still has to\n show through, or spinning the globe stops being a way to find anything.",
         "default": "0.72"
       },
       {
         "name": "terrain",
         "type": "Terrain",
         "optional": true,
-        "description": "The ground, MASKED to the territories.\n The grid has to ride the same terrain the land does, or there are two\n surfaces: a wireframe sphere, and a wireframe landscape hovering over it\n with the sphere's own lines showing through from underneath. Nothing then\n looks joined, because nothing IS — the nodes stand on one and the globe\n is the other.\n A masked field makes this safe as well as right: it is exactly zero\n outside every region, so the grid stays on the sphere everywhere there is\n no land and rises only where there is. One surface, continuous, and the\n shore is where it meets itself."
+        "description": "The ground, masked to the territories — the grid rides the same terrain\n the land does, or there are two surfaces instead of one."
       },
       {
         "name": "relief",
@@ -5821,29 +5864,20 @@
         "optional": true,
         "description": "Height of the highest ground, in globe radii.",
         "default": "0"
-      }
-    ],
-    "interfaces": []
-  },
-  "GlobePieces": {
-    "component": "GlobePieces",
-    "props": [
-      {
-        "name": "nodes",
-        "type": "StudioNode[]",
-        "optional": true,
-        "default": "[]"
       },
       {
-        "name": "selectedId",
-        "type": "string | null",
+        "name": "variant",
+        "type": "keyof typeof SHELL_VARIANTS",
         "optional": true,
-        "default": "null"
+        "description": "Which globe this is. `studio` is the console's; `scenery` is the\n marketing hero's — see `SHELL_VARIANTS` for what differs and why.",
+        "default": "'studio'"
       },
       {
-        "name": "styleOf",
-        "type": "(n: StudioNode) => InstanceStyle",
-        "optional": false
+        "name": "gl",
+        "type": "boolean",
+        "optional": true,
+        "description": "Escape hatch: false draws no sphere at all. Kept as a kill switch for a\n surface that needs the layer gone, NOT as an A/B lever — it used to swap\n in the SVG twin, and that twin no longer exists.",
+        "default": "true"
       }
     ],
     "interfaces": []

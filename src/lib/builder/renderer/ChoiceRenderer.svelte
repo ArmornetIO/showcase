@@ -2,11 +2,11 @@
 	// The choice controls — one pick, many picks, or a segmented row.
 	// Replaces the old AssessmentRenderer: the vendor-assessment widgets it also
 	// drew now live in app-ui, and these three are generic form controls.
-	import SegmentGroup from '$lib/primitives/actions/SegmentGroup.svelte';
-	import RadioList from '$lib/primitives/forms/RadioList.svelte';
-	import CheckboxList from '$lib/primitives/forms/CheckboxList.svelte';
-	import StepSwitcher from '$lib/primitives/forms/StepSwitcher.svelte';
-	import type { ChoiceOption } from '$lib/primitives/forms/choice.types.js';
+	import SegmentGroup from '../../primitives/actions/SegmentGroup.svelte';
+	import RadioList from '../../primitives/forms/RadioList.svelte';
+	import CheckboxList from '../../primitives/forms/CheckboxList.svelte';
+	import StepSwitcher from '../../primitives/forms/StepSwitcher.svelte';
+	import type { ChoiceOption } from '../../primitives/forms/choice.types.js';
 	import { accessors, parseJson } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

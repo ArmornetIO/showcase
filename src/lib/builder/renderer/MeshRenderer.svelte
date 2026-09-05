@@ -2,11 +2,11 @@
 	// Mesh pieces that only exist inside a canvas. An edge has no standalone
 	// component, so the preview builds the smallest scene that can show one:
 	// two nodes and the link between them, with dragging and drawing off.
-	import Canvas from '$lib/primitives/canvas/Canvas.svelte';
-	import CameraControls from '$lib/primitives/canvas/CameraControls.svelte';
-	import MeshStudio from '$lib/mesh-studio/MeshStudio.svelte';
-	import PieceCrest from '$lib/mesh-studio/pieces/PieceCrest.svelte';
-	import type { EdgeStyle, DataType } from '$lib/primitives/canvas/canvas.types.js';
+	import Canvas from '../../primitives/canvas/Canvas.svelte';
+	import CameraControls from '../../primitives/canvas/CameraControls.svelte';
+	import MeshStudio from '../../mesh-studio/MeshStudio.svelte';
+	import PieceCrest from '../../mesh-studio/pieces/PieceCrest.svelte';
+	import type { EdgeStyle, DataType } from '../../primitives/canvas/canvas.types.js';
 	import { accessors } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

@@ -2,13 +2,13 @@
 	// Containers and chrome. The two that take children (Panel, and anything
 	// with a header snippet) render a `__children` string rather than nesting
 	// real canvas items — the builder has no nesting model.
-	import Panel from '$lib/primitives/chrome/Panel.svelte';
-	import Tabs from '$lib/navigation/Tabs.svelte';
-	import type { Tab } from '$lib/navigation/Tabs.svelte';
-	import LayoutHeader from '$lib/primitives/chrome/LayoutHeader.svelte';
-	import ActionBar from '$lib/primitives/actions/ActionBar.svelte';
-	import type { ActionBarAction } from '$lib/primitives/actions/ActionBar.svelte';
-	import IconToolbar from '$lib/layout/IconToolbar.svelte';
+	import Panel from '../../primitives/chrome/Panel.svelte';
+	import Tabs from '../../navigation/Tabs.svelte';
+	import type { Tab } from '../../navigation/Tabs.svelte';
+	import LayoutHeader from '../../primitives/chrome/LayoutHeader.svelte';
+	import ActionBar from '../../primitives/actions/ActionBar.svelte';
+	import type { ActionBarAction } from '../../primitives/actions/ActionBar.svelte';
+	import IconToolbar from '../../layout/IconToolbar.svelte';
 	import { accessors, parseJson } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

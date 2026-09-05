@@ -33,7 +33,7 @@ import type { WallKind } from './wall-geometry.js';
  *
  * `aExpand` is a half-unit screen-space offset applied AFTER the camera
  * transform, which is what makes the strokes non-scaling: the same wall holds
- * one weight against GlobeFrame's meridians at any zoom rather than thickening
+ * one weight against GlobeShell's meridians at any zoom rather than thickening
  * into a band. Panes carry a zero expand and are unaffected.
  */
 export const WALL_VERT = `#version 300 es

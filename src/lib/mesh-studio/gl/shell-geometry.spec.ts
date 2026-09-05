@@ -67,13 +67,25 @@ describe('buildShellWeb', () => {
 	});
 
 	it('moves the split when the globe turns', () => {
+		// ONE meridian, and it must be this one: the lon=0 ring lies in the screen
+		// plane, so at rest every sample has z=0 and the whole ring counts as near.
+		// A quarter turn stands it on edge and half of it goes behind.
+		const grid = buildShellGrid(1, 0);
+		const flat = buildShellWeb(grid, OPTS);
+		expect(flat.back.count).toBe(0);
+		const turned = buildShellWeb(grid, { ...OPTS, yaw: Math.PI / 2 });
+		expect(turned.back.count).toBeGreaterThan(0);
+		expect(turned.front.count).toBeGreaterThan(0);
+	});
+
+	it('redraws the geometry when the globe turns, not just the split', () => {
+		// A full grid is rotationally symmetric enough that the front/back COUNTS
+		// can match at two yaws while every vertex has moved — so the counts are
+		// not the thing to assert on.
 		const grid = buildShellGrid(8, 5);
-		const at = (yaw: number) => {
-			const b = buildShellWeb(grid, { ...OPTS, yaw });
-			return b.front.count;
-		};
-		// A quarter turn cannot leave every segment on the side it started.
-		expect(at(0)).not.toBe(at(Math.PI / 2));
+		const rest = Float32Array.from(buildShellWeb(grid, OPTS).data);
+		const spun = buildShellWeb(grid, { ...OPTS, yaw: Math.PI / 2 }).data;
+		expect(rest.some((v, i) => Math.abs(v - spun[i]) > 1e-3)).toBe(true);
 	});
 
 	it('reuses the caller’s array rather than allocating each frame', () => {
@@ -107,7 +119,10 @@ describe('buildShellWeb', () => {
 			minX = Math.min(minX, build.data[i]);
 			maxX = Math.max(maxX, build.data[i]);
 		}
-		expect((minX + maxX) / 2).toBeCloseTo(OPTS.cx, 6);
+		// Loose because the buffer is Float32: ~7 significant digits, so a
+		// coordinate near 200 carries error around 1e-5. Tighter than this is a test
+		// of the storage format rather than of the projection.
+		expect((minX + maxX) / 2).toBeCloseTo(OPTS.cx, 3);
 	});
 
 	it('emits a ribbon whose two edges straddle the segment', () => {
@@ -122,7 +137,7 @@ describe('buildShellWeb', () => {
 
 	it('keeps the ribbon half-width at a half unit before the shader scales it', () => {
 		const build = buildShellWeb(buildShellGrid(1, 0), OPTS);
-		expect(Math.hypot(build.data[2], build.data[3])).toBeCloseTo(0.5, 10);
+		expect(Math.hypot(build.data[2], build.data[3])).toBeCloseTo(0.5, 6);
 	});
 });
 

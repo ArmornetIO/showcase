@@ -10,7 +10,7 @@
 	// Here the geometry is uploaded ONCE (127KB for all 17 buildings) and the only
 	// thing that moves per frame is 27 floats per node.
 	//
-	// It stays a SIBLING layer inside the shared <Canvas>, exactly like GlobeFrame
+	// It stays a SIBLING layer inside the shared <Canvas>, exactly like GlobeShell
 	// and TerritoryCaps: it READS `ctx.transform` and never writes it. The moment a
 	// GL layer owns a camera of its own is the moment it drifts a pixel away from
 	// the SVG drawn on top of it, and that is the failure mode this whole port has

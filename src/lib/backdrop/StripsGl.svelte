@@ -314,14 +314,17 @@
 			// tab left open for a day quantises the dash flow visibly.
 			const time = reduced ? 0 : (ts - origin) / 1000;
 
-			const dpr = globalThis.devicePixelRatio || 1;
-			const resized = glc.resize(dpr);
+			// No argument: `resize` clamps density itself now.
+			const resized = glc.resize();
 			const key = `${camera?.tx ?? 0}|${camera?.ty ?? 0}|${camera?.tk ?? 1}`;
 			if (reduced && !resized && !stale && key === lastKey) return;
 			stale = false;
 			lastKey = key;
 
-			render(glc, time, dpr);
+			// The CLAMPED density, not `devicePixelRatio`: the spark shader sizes
+			// points against it, and feeding it the raw value draws for a buffer that
+			// was never allocated.
+			render(glc, time, glc.dpr);
 		};
 
 		frame = requestAnimationFrame(draw);

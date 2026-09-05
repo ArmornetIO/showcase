@@ -1,9 +1,9 @@
 <script lang="ts">
 	// The three monospace blocks. They differ only in chrome — snippet, YAML and
 	// terminal — so they share one file.
-	import CodeBlock from '$lib/display/code/CodeBlock.svelte';
-	import ConfigBlock from '$lib/display/code/ConfigBlock.svelte';
-	import TerminalBlock from '$lib/display/code/TerminalBlock.svelte';
+	import CodeBlock from '../../display/code/CodeBlock.svelte';
+	import ConfigBlock from '../../display/code/ConfigBlock.svelte';
+	import TerminalBlock from '../../display/code/TerminalBlock.svelte';
 	import { accessors } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

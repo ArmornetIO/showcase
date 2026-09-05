@@ -173,11 +173,17 @@ export function probeSource(opts = {}) {
 				rectCallsPerFrame: +(rectCalls / Math.max(frames, 1)).toFixed(1),
 				worstFrame: {
 					ms: +worstDt.toFixed(1),
+					// Relative for reading; the correlation below stays ABSOLUTE.
+					// rAF timestamps, performance.now() and a longtask's startTime are
+					// all the same clock, and mixing a relative frame time with an
+					// absolute task time silently never matches — it reported "no
+					// longtask" over a 260ms task sitting directly under the frame.
 					atSec: +((worstAt - started) / 1000).toFixed(1),
-					// A longtask whose window contains the worst frame. Null means the
-					// main thread was idle through it and the cost was somewhere else.
+					// A longtask overlapping the worst frame's own window
+					// [worstAt - worstDt, worstAt]. Null means the main thread was idle
+					// through it and the cost was the collector, compositor or driver.
 					longtask: longtasks.find(
-						(l) => l.at <= worstAt - started + 50 && l.at + l.ms >= worstAt - started - worstDt - 50
+						(l) => l.at <= worstAt + 50 && l.at + l.ms >= worstAt - worstDt - 50
 					) ?? null
 				},
 				longtasks: {

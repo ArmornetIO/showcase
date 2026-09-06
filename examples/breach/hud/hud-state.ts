@@ -14,7 +14,7 @@
 // A pure function rather than a store on purpose: a store is a second source of
 // truth that has to be kept in step with the match, and this has none of its own
 // state to get wrong. Every caller wraps it in its own `$derived`.
-import type { BreachMatch } from '$examples/breach/internal/match.svelte.js';
+import type { BreachMatch } from '../internal/match.svelte.js';
 
 /** Which rung of the ladder matched. Surfaces branch on this rather than
  *  re-deriving the condition — two places computing "am I in trouble" is the
@@ -101,8 +101,8 @@ export function hudState(match: BreachMatch): HudState {
  * edge, and two grammars on one screen reads as two products, not two panels.
  *
  * So: the rails' radial fill, the rails' radius, the rails' shadow, and the hue
- * carried by a 3px spine instead of a full rim. See `BuildingStack`/`HeroStack`
- * — the numbers here are lifted from them on purpose, not re-picked.
+ * carried by a 3px spine instead of a full rim. See `BuildingStack` — the
+ * numbers here are lifted from it on purpose, not re-picked.
  */
 export const plateFill = (color: string, mix = 22) =>
 	`radial-gradient(120% 120% at 14% 30%,

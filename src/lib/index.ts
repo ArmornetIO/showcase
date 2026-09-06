@@ -237,6 +237,10 @@ export { default as NodePiece } from './mesh-studio/pieces/NodePiece.svelte';
 // log row and still be the object the canvas draws rather than a flat
 // glyph chosen to represent it.
 export { default as PieceCrest } from './mesh-studio/pieces/PieceCrest.svelte';
+
+// `from` pins the ambiguity: `mesh-studio/gl/renderer.ts` declares a
+// `BlendMode` of its own — a WebGL blend function, nothing to do with
+// how a backdrop composites — and that one is not public.
 export { default as Backdrop } from './backdrop/Backdrop.svelte';
 export { BACKDROPS } from './backdrop/backdrops.js';
 export type { BackdropId, BlendMode } from './backdrop/backdrops.js';
@@ -541,6 +545,8 @@ export type { StepStyle } from './display/progress/SteppedProgress.svelte';
 export { default as RadialProgress } from './display/progress/RadialProgress.svelte';
 export { default as StackedBar } from './display/progress/StackedBar.svelte';
 export type { StackedSegment } from './display/progress/StackedBar.svelte';
+export { default as Pips } from './display/progress/Pips.svelte';
+export type { PipShape } from './display/progress/Pips.svelte';
 
 // ── Choice lists ─────────────────────────────────────────────────────────────
 
@@ -707,11 +713,14 @@ export { default as AdvancedSettingsPanel } from './settings/AdvancedSettingsPan
 export { perfBudget } from './perf/budget.svelte.js';
 export type { PerfTier } from './perf/budget.svelte.js';
 export { default as PerfPanel } from './perf/PerfPanel.svelte';
-// Deliberately NOT re-exported as a component here — the HUD is imported on
-// demand by the host that toggles it, so a page that never opens it never
-// downloads it. `hitchWatch` is the part worth having in the barrel.
-export { hitchWatch, type Hitch, type HitchSnapshot } from './perf/hitch-watch.js';
+
+// The HUD is deliberately NOT re-exported as a component — it is
+// imported on demand by the host that toggles it, so a page that never
+// opens it never downloads it. `hitchWatch` is the part worth having in
+// the barrel.
+export { hitchWatch } from './perf/hitch-watch.js';
 export { watchOnScreen } from './perf/on-screen.js';
+export type { Hitch, HitchSnapshot } from './perf/hitch-watch.js';
 export { frameProbe } from './perf/frame-probe.js';
 export type { FrameStats, Quantiles } from './perf/frame-probe.js';
 

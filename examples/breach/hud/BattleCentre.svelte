@@ -1,22 +1,23 @@
 <script lang="ts">
 	// ── THE BATTLE CENTRE ────────────────────────────────────────────────────────
-	// Who you are, and what you are about to do — as ONE card.
+	// Your seat, and the two keys that act on it. One card, one row.
 	//
-	// These were two plates with a gap between them, each with its own rim, fill
-	// and shadow. Two frames is two objects, and a player reading "I am the
-	// Maintainer, I have 3 AP, I am playing Sleeper Implant at the Forge" is
-	// reading one continuous thought. The gap was asking them to cross a border
-	// mid-sentence.
+	// It was two: the seat plate, and a play row under it reading
+	// `3/3 AP · LIVING OFF THE LAND → THE FORGE` with the commit key at the end.
+	// Every word of that sentence was a restatement — the card is in your hand and
+	// lifted, the target is selected and lit on the board, and AP now rides the
+	// corner of your own chip at the top of the screen, where the feed and the
+	// hero cards have always put a number about the thing you are looking at. A
+	// row of permanent furniture to say three things back to you.
 	//
-	// So the frame lives HERE and nowhere else: `SeatPlate` and `Breech` are
-	// content now. That also kills the duplication — the chamfer, the two-layer
-	// rim trick and the lit fill were written out twice and had already drifted
-	// apart once (18px cut on one, 22px on the other).
-	import type { BreachMatch } from '$examples/breach/internal/match.svelte.js';
-	import type { TableSocket } from '$examples/breach/net.svelte.js';
+	// What the row DID own that could not be deleted moved rather than died: the
+	// commit and end keys are on the plate, and the connection notice takes the
+	// header's readouts (see `SeatPlate`). The takeover ceremony stays here
+	// because it covers the whole card now, not just a strip of it.
+	import type { BreachMatch } from '../internal/match.svelte.js';
+	import type { TableSocket } from '../net.svelte.js';
 	import { PLATE_SHADOW_UP, plateFill, type HudState } from './hud-state.js';
 	import SeatPlate from './SeatPlate.svelte';
-	import Breech from './Breech.svelte';
 
 	interface Props {
 		match: BreachMatch;
@@ -24,6 +25,7 @@
 		takeover?: boolean;
 		socket?: TableSocket | null;
 		refusal?: string | null;
+		onrules?: () => void;
 		class?: string;
 	}
 
@@ -33,18 +35,14 @@
 		takeover = false,
 		socket = null,
 		refusal = null,
+		onrules = () => {},
 		class: cls = ''
 	}: Props = $props();
 </script>
 
 <!-- ONE card, cut the way the rails are cut.
-     It used to be a two-layer chamfer with the state colour showing as a 1px rim
-     the whole way round — a frame the rest of the screen does not own. The rim is
-     now the 3px spine every hero and building row already wears, the corners are
-     the rails' 10px, and the fill is their radial. Nothing here is invented; it is
-     the same card, wider. -->
-<!-- The spine is an INSET SHADOW, not the absolutely-positioned span the rails
-     use. `cls` is where the caller puts `absolute bottom-6 …`, and a `relative`
+     The spine is an INSET SHADOW, not the absolutely-positioned span the rails
+     use: `cls` is where the caller puts `absolute bottom-6 …`, and a `relative`
      of our own to hang a span off would land in the same cascade layer and win —
      which drops the whole card back into flow at the top of the screen. -->
 <div
@@ -53,14 +51,5 @@
 	style:background={plateFill(state.color)}
 	style:box-shadow="inset 3px 0 0 0 {state.color}, 0 0 0 1px color-mix(in srgb, {state.color} 35%, transparent), {PLATE_SHADOW_UP}"
 >
-	<SeatPlate {match} {state} />
-
-	<!-- The divider. A rule in the state colour rather than a gap: it says
-	     "these are two halves" while a gap says "these are two things". -->
-	<div
-		class="h-px w-full shrink-0"
-		style:background="color-mix(in srgb, {state.color} 30%, transparent)"
-	></div>
-
-	<Breech {match} {state} {takeover} {socket} {refusal} class="h-[var(--play-h)] shrink-0" />
+	<SeatPlate {match} {state} {takeover} {socket} {refusal} {onrules} />
 </div>

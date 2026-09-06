@@ -7,9 +7,9 @@
 // and what blue still holds. That is not a presentation trick, it is what
 // `match.standing` already computes for each side — a scoreboard whose halves
 // are measured in different units is two facts wearing one frame.
-import { CHAIN } from '$examples/breach/internal/rules.js';
-import type { Faction } from '$examples/breach/internal/rules.js';
-import type { BreachMatch } from '$examples/breach/internal/match.svelte.js';
+import { CHAIN } from '../internal/rules.js';
+import type { Faction } from '../internal/rules.js';
+import type { BreachMatch } from '../internal/match.svelte.js';
 
 export interface Score {
 	/** Links red is standing on. */

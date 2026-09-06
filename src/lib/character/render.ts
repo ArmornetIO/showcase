@@ -7,10 +7,14 @@
 import { pieceFacets, pieceProjector, studioFrame } from '../mesh-studio/pieces/piece-facets.js';
 import type { PieceVert } from '../mesh-studio/pieces/pieces.js';
 import type { TangentFrame } from '../physics/sphere.js';
-import { figure, type Material } from './builds.js';
+import { type Material } from './builds.js';
+import { lift, orbit, swing } from './solids.js';
+import { measure } from './builds.js';
+import { assemble, wearable, wornKey, type Anchor } from './wearables.js';
 import type { Solid } from '../mesh-studio/pieces/pieces.js';
 import type { CharacterSkin } from './characters.js';
 import { poseKey, REST, type Pose } from './poses.js';
+import { crestParts, type CrestOpts } from './crest.js';
 
 /** `pieceFacets` rounds its path coordinates to two decimals, which is plenty
  *  at node size and far too coarse for a model a metre and a half tall in unit
@@ -38,6 +42,38 @@ export interface ArtOpts {
 	lamp?: string | null;
 	/** Lamp brightness. Below 1 the lights are going out. */
 	glow?: number;
+	/** What the figure has ON — keys into `wearables.WEARABLES`. Worn items are
+	 *  assembled into the same part list the body is, so they turn, sort, shade
+	 *  and pose with it. */
+	worn?: readonly string[];
+	/** The hue worn items fly in — the PLAYER's colour, not the class's plate.
+	 *  A hat belongs to the account; the shoulders under it do not. */
+	trim?: string;
+	/**
+	 * Per-thing colour overrides, keyed by body tag (`boot`, `visor`, `hood`…)
+	 * or by worn item key (`hat.tophat`, `emblem.star`).
+	 *
+	 * The four material colours above are the BROADCAST — change `suit` and
+	 * every suit-material mass moves together, which is what you want when you
+	 * are dressing a squad. This is the exception to it, for when you want one
+	 * boot red. Most specific wins: item, then body tag, then material.
+	 *
+	 * Sparse on purpose. An absent key is not "no colour", it is "whatever the
+	 * material says", so the map only ever holds what somebody deliberately
+	 * changed — and resetting a part is a delete rather than a lookup of what it
+	 * used to be.
+	 */
+	tints?: Readonly<Record<string, string>>;
+	/**
+	 * A hexagonal ring to stand the character in — see `crest.ts`.
+	 *
+	 * It rides in HERE, rather than being drawn around the figure by whoever is
+	 * placing it, because the only thing that can decide whether the rim is in
+	 * front of a shoulder is the depth sort, and the depth sort lives on this
+	 * side of the wall. A crest painted afterwards in CSS can only cut, and
+	 * cutting is what put a flat edge through the side of every head.
+	 */
+	crest?: CrestOpts | null;
 }
 
 export const DEFAULT_ART = {
@@ -46,46 +82,12 @@ export const DEFAULT_ART = {
 	suit: '#46536B',
 	pose: REST,
 	lamp: null as string | null,
-	glow: 1
+	glow: 1,
+	worn: [] as readonly string[],
+	trim: '#F5B942',
+	tints: {} as Readonly<Record<string, string>>,
+	crest: null as CrestOpts | null
 };
-
-/**
- * Swing a solid about a height, in the plane that runs front-to-back.
- *
- * Applied to the geometry rather than to the drawn path on purpose: a limb
- * rotated after projection would keep the depth it had at rest, and the arm
- * that swung forward would still sort behind the torso it is now in front of.
- * Posing before the cull is what makes the painter's pass stay honest.
- */
-function swing(s: Solid, angle: number, pivot: number): Solid {
-	if (!angle) return s;
-	const c = Math.cos(angle);
-	const k = Math.sin(angle);
-	return {
-		faces: s.faces,
-		verts: s.verts.map((v) => {
-			const dh = v.h - pivot;
-			return { e: v.e, n: v.n * c + dh * k, h: pivot - v.n * k + dh * c };
-		})
-	};
-}
-
-const lift = (s: Solid, dh: number): Solid =>
-	dh ? { faces: s.faces, verts: s.verts.map((v) => ({ ...v, h: v.h + dh })) } : s;
-
-/** Move a solid along the arc its pivot would swing it through, WITHOUT
- *  turning it — the ankle a rigid figure does not have. See `Part.rigid`. */
-function orbit(s: Solid, angle: number, pivot: number): Solid {
-	if (!angle) return s;
-	const n = s.verts.reduce((a, v) => a + v.n, 0) / s.verts.length;
-	const h = s.verts.reduce((a, v) => a + v.h, 0) / s.verts.length;
-	const dh = h - pivot;
-	const c = Math.cos(angle);
-	const k = Math.sin(angle);
-	const dn = n * c + dh * k - n;
-	const dz = pivot - n * k + dh * c - h;
-	return { faces: s.faces, verts: s.verts.map((v) => ({ e: v.e, n: v.n + dn, h: v.h + dz })) };
-}
 
 /** `band()` hands back three hard values. They are the right STEPS — a smooth
  *  ramp at node size turns to mush — but they sit close together for a subject
@@ -117,6 +119,24 @@ function lamp(color: string, k: number): string {
 	return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 
+/**
+ * Fill in what the caller left out — and treat "left out" as including
+ * `undefined`.
+ *
+ * `{ ...DEFAULT_ART, ...opts }` is the obvious spelling and it is wrong for an
+ * options bag whose every field is optional: a key present with the value
+ * `undefined` OVERRIDES the default rather than falling back to it. Callers
+ * write that shape constantly — `art(k, { pose: walking ? clip : undefined })`
+ * — and it crashed in `poseKey`, several frames from the call that caused it.
+ */
+function settings(opts: ArtOpts): Required<Omit<ArtOpts, 'lamp'>> & { lamp: string | null } {
+	const out = { ...DEFAULT_ART };
+	for (const [k, v] of Object.entries(opts)) {
+		if (v !== undefined) (out as Record<string, unknown>)[k] = v;
+	}
+	return out;
+}
+
 export interface Tri {
 	d: string;
 	fill: string;
@@ -139,38 +159,107 @@ export interface Tri {
 export function figureFacets(
 	k: CharacterSkin,
 	frame: TangentFrame,
-	opts: Pick<ArtOpts, 'suit' | 'pose' | 'lamp' | 'glow'> = {}
+	opts: Pick<ArtOpts, 'suit' | 'pose' | 'lamp' | 'glow' | 'worn' | 'trim' | 'tints' | 'crest'> = {}
 ): Tri[] {
-	const { suit, pose, glow } = { ...DEFAULT_ART, ...opts };
-	// Identity stays the plate; only the emitting surface takes the status.
-	const lamped = opts.lamp ?? k.color;
+	return paint(figureParts(k, opts), frame, settings(opts).glow);
+}
 
-	const paint = new Map<Material, (band: number, tint: number) => [string, string]>([
-		['suit', (b, t) => [shade(suit, b * t), shade(suit, b * t * 0.4)]],
-		['plate', (b, t) => [shade(k.color, b * t), shade(k.color, b * t * 0.4)]],
-		['lamp', (_b, t) => [lamp(lamped, t * glow), lamp(lamped, t * glow)]]
-	]);
+/**
+ * One solid, with its colour already decided.
+ *
+ * The unit the painter works in, and deliberately dumber than a `Part`: no
+ * material, no tag, no limb. Everything that needs to know what a mass IS has
+ * finished by the time this exists, which is what lets a figure, a crest and a
+ * building on the same card go through one sort without the painter learning
+ * three vocabularies.
+ */
+export interface Painted {
+	solid: Solid;
+	color: string;
+	/** A light source — lit by nothing, so it skips the shading bands. */
+	emits: boolean;
+	/** Albedo the mass carries within its own colour. */
+	tint: number;
+}
 
+/**
+ * Cull, shade and depth-sort a pile of solids into paths.
+ *
+ * The whole hidden-surface problem, and the reason a scene can hold more than
+ * one character: `pieceFacets` sorts WITHIN one solid, so anything drawn from
+ * several has to re-sort across all of them, once, here. Two things sorted
+ * separately and concatenated are two things that cannot pass in front of each
+ * other — which is a figure standing permanently in front of a wall it is
+ * supposed to be behind.
+ */
+export function paint(items: readonly Painted[], frame: TangentFrame, glow = 1): Tri[] {
 	const rows: Array<{ tri: Tri; depth: number }> = [];
-	for (const part of figure(k.shape)) {
-		// Pose first, then project. The bob rides everything; the swing only the
-		// part that carries a limb tag.
-		const turn = part.rigid ? orbit : swing;
-		const posed = lift(
-			part.limb ? turn(part.solid, pose[part.limb], part.pivot ?? 0) : part.solid,
-			pose.bob
-		);
-		for (const f of pieceFacets([posed], frame)) {
-			const [fill, edge] = paint.get(part.mat)!(EXPOSURE[String(f.shade)] ?? f.shade, part.tint);
-			rows.push({ tri: { d: f.d, fill, edge, glow: part.mat === 'lamp' }, depth: f.depth });
+	for (const it of items) {
+		for (const f of pieceFacets([it.solid], frame)) {
+			const b = EXPOSURE[String(f.shade)] ?? f.shade;
+			const t = it.tint;
+			// Worn items are lit exactly like the body — same bands, same shadow
+			// end. That equality is the point: a hat shaded by any other rule is
+			// the sticker this replaced, wearing a different hat. An emitter is
+			// the one exception, because it is not being lit by anything.
+			const [fill, edge] = it.emits
+				? [lamp(it.color, t * glow), lamp(it.color, t * glow)]
+				: [shade(it.color, b * t), shade(it.color, b * t * 0.4)];
+			rows.push({ tri: { d: f.d, fill, edge, glow: it.emits }, depth: f.depth });
 		}
 	}
 
-	// `pieceFacets` sorts within one solid; merging several needs the same order
-	// applied across all of them. +z is toward the viewer, so ascending is far
-	// first, which is the order a painter works in.
+	// +z is toward the viewer, so ascending is far first — the order a painter
+	// works in.
 	rows.sort((a, b) => a.depth - b.depth);
 	return rows.map((r) => r.tri);
+}
+
+/**
+ * One character's masses, posed and coloured, in the character's OWN space.
+ *
+ * Stops short of projecting so that a scene can move them first. A figure that
+ * only exists as finished paths is a figure that can only ever stand at the
+ * origin, and a card wants two of them a pace apart.
+ */
+export function figureParts(
+	k: CharacterSkin,
+	opts: Pick<ArtOpts, 'suit' | 'pose' | 'lamp' | 'glow' | 'worn' | 'trim' | 'tints' | 'crest'> = {}
+): Painted[] {
+	const { suit, pose, worn, trim, tints, crest } = settings(opts);
+	// Identity stays the plate; only the emitting surface takes the status.
+	const lamped = opts.lamp ?? k.color;
+
+	/** What a material means, before anything overrides it. */
+	const material: Record<Material, string> = { suit, plate: k.color, lamp: lamped, trim };
+
+	/** The colour of one part. Most specific source wins: the item's own colour,
+	 *  then its body mass's, then the material it is made of. */
+	const colorOf = (part: { mat: Material; tag?: string; owner?: string }) =>
+		(part.owner && tints[part.owner]) || (part.tag && tints[part.tag]) || material[part.mat];
+
+	// The crest joins the SAME list, so it is culled, shaded, projected and —
+	// the only part that matters — depth-sorted against the body rather than
+	// composited over it. It is scenery rather than anatomy, so it is never
+	// posed and never measured; `art` takes its bounds off `assemble` alone,
+	// which is what stops a ring around a character from reframing them.
+	const scene = [...assemble(k.shape, worn), ...(crest ? crestParts(k.shape, crest) : [])];
+	return scene.map((part) => {
+		// Pose first, then project. The bob rides everything; the swing only the
+		// part that carries a limb tag.
+		const turn = part.rigid ? orbit : swing;
+		return {
+			solid: lift(
+				part.limb ? turn(part.solid, pose[part.limb], part.pivot ?? 0) : part.solid,
+				pose.bob
+			),
+			// Resolved once per part rather than per facet — a part has one colour
+			// and two hundred faces.
+			color: colorOf(part),
+			emits: part.mat === 'lamp',
+			tint: part.tint
+		};
+	});
 }
 
 export interface Rect {
@@ -189,6 +278,17 @@ export interface Art {
 	bust: Rect;
 	/** Where the feet are, for the ground shadow. */
 	floor: number;
+	/**
+	 * Where each anchor lands on screen, in the same units as `box`.
+	 *
+	 * Published by the renderer because the renderer is the only thing that
+	 * knows: it owns the camera. A surface that wants "clicking the head selects
+	 * headwear" would otherwise place its hit boxes at hand-picked percentages of
+	 * the figure — which is the `HEAD_Y = 0.50` mistake again, one layer up, and
+	 * would silently stop pointing at the head the moment anybody turned the
+	 * model.
+	 */
+	hit: Partial<Record<Anchor, Rect>>;
 	/** The colour the figure is EMITTING, after any status override. What the
 	 *  ground glow and any surrounding stage should pick up — a figure lit red
 	 *  standing in its own pink pool is two states at once. */
@@ -197,18 +297,31 @@ export interface Art {
 
 const cache = new Map<string, Art>();
 
+/** The override map as one stable string. Sorted, because `{boot:'#f00'}` and
+ *  the same map built in another order are the same figure and must not be
+ *  cached twice — and because an unsorted key would miss on every re-render
+ *  that happened to enumerate differently. */
+const tintKey = (t: Readonly<Record<string, string>>) =>
+	Object.keys(t)
+		.sort()
+		.map((k) => `${k}:${t[k]}`)
+		.join(',');
+
 /** Everything visible for one character, in paint order.
  *
  *  Memoised on the whole signature rather than the character's key: a studio
  *  that turns the model re-enters with the same key and a different camera, and
  *  a key-only cache would hand back the first angle for ever. */
 export function art(k: CharacterSkin, opts: ArtOpts = {}): Art {
-	const { yaw, pitch, suit, pose, glow } = { ...DEFAULT_ART, ...opts };
+	const { yaw, pitch, suit, pose, glow, worn, trim, tints, crest } = settings(opts);
 	// Identity stays the plate; only the emitting surface takes the status.
 	const lamped = opts.lamp ?? k.color;
-	const id = `${k.key}|${k.color}|${suit}|${lamped}|${glow.toFixed(2)}|${yaw.toFixed(3)}|${pitch.toFixed(3)}|${poseKey(pose)}`;
-	const hit = cache.get(id);
-	if (hit) return hit;
+	// The worn set and its colour are IN the signature, and have to be: this
+	// cache is keyed on everything that changes a pixel, so a loadout left out
+	// of it would hand back the figure wearing the previous hat for ever.
+	const id = `${k.key}|${k.color}|${suit}|${lamped}|${glow.toFixed(2)}|${yaw.toFixed(3)}|${pitch.toFixed(3)}|${poseKey(pose)}|${wornKey(worn)}|${trim}|${tintKey(tints)}|${crest ? JSON.stringify(crest) : ''}`;
+	const cached = cache.get(id);
+	if (cached) return cached;
 	// One clip is 24 frames; a few characters, angles and tunings on top of that
 	// is still small. Past this the entries are a tuning session nobody is
 	// coming back to, and holding them is a leak rather than a cache.
@@ -216,7 +329,19 @@ export function art(k: CharacterSkin, opts: ArtOpts = {}): Art {
 
 	const frame = studioFrame(yaw, pitch, STEP);
 	const project = pieceProjector(frame);
-	const tris = figureFacets(k, frame, { suit, pose, lamp: lamped, glow });
+	const tris = figureFacets(k, frame, {
+		suit,
+		pose,
+		lamp: lamped,
+		glow,
+		worn,
+		trim,
+		tints,
+		// The camera's own yaw, so a crest squares up to the VIEW rather than to
+		// the character's north. Filled in here because this is the only level
+		// that knows both — the call site asks for a crest, not for an angle.
+		crest: crest && { face: yaw, ...crest }
+	});
 
 	let x0 = Infinity;
 	let x1 = -Infinity;
@@ -235,19 +360,112 @@ export function art(k: CharacterSkin, opts: ArtOpts = {}): Art {
 	// measured per frame breathes with the walk, and a figure whose framing
 	// rescales every tick reads as the camera lurching rather than the character
 	// moving. The swing margin below covers what a limb can reach.
-	for (const part of figure(k.shape)) part.solid.verts.forEach(grow);
+	//
+	// DRESSED, not bare. A top hat stands half a head above the crown and a halo
+	// above that; measuring the body alone crops both off at every size, and at
+	// the bust and chip crops it beheads them.
+	// Hoisted above the bounds passes: both of them need the shoulder line, and
+	// the hit rects further down need the same measurements.
+	const a = measure(k.shape);
+	const dressed = assemble(k.shape, worn);
+	for (const part of dressed) part.solid.verts.forEach(grow);
+
+	// ── The bust, measured from the head and not from the figure ────────────
+	// The bust used to be derived from the whole silhouette's width, which was
+	// harmless while a figure was only a body — and wrong the moment it could
+	// hold things. A card out at arm's length widened the box, the bust widened
+	// with it, and the portrait became a small head in the corner of a mostly
+	// empty hex.
+	//
+	// So it is measured from the head and WHAT IS WORN ON THE HEAD, which is the
+	// literal definition of the shot. Two rules, because body and worn parts
+	// fail differently: a body mass qualifies by being above the shoulder, and a
+	// worn item qualifies by being anchored to the head. Height alone is not
+	// enough — a card held at chest height reaches past the shoulder line, which
+	// is exactly the bug this replaced.
+	//
+	// This pass now sets the frame's CENTRE and its TOP only. Its width used to
+	// come from here too, and that is what let headwear resize its wearer; see
+	// the skull measurement below.
+	let hx0 = Infinity;
+	let hx1 = -Infinity;
+	let hy0 = Infinity;
+	for (const part of dressed) {
+		const anchor = part.owner ? wearable(part.owner)?.anchor : undefined;
+		if (part.owner && anchor !== 'crown' && anchor !== 'brow') continue;
+		for (const v of part.solid.verts) {
+			if (!part.owner && v.h < a.shoulder) continue;
+			const pt = project(v);
+			if (pt.x < hx0) hx0 = pt.x;
+			if (pt.x > hx1) hx1 = pt.x;
+			if (pt.y < hy0) hy0 = pt.y;
+		}
+	}
 
 	// Breathing room, plus the furthest a swinging limb or a bobbing body can
 	// travel out of the rest silhouette. Generous on purpose: a clip cropping its
 	// own foot at the extremes of the cycle is the failure mode here.
+	// Where the clickable regions of the body land, under this camera. Projected
+	// through the same `project` the facets went through, so they track the model
+	// rather than approximating it.
+	const hh = a.crown - a.jaw;
+	const span = (e: number, h0: number, h1: number): Rect => {
+		const pts = [
+			project({ e: -e, n: 0, h: h0 }),
+			project({ e, n: 0, h: h0 }),
+			project({ e: -e, n: 0, h: h1 }),
+			project({ e, n: 0, h: h1 })
+		];
+		const xs = pts.map((p) => p.x);
+		const ys = pts.map((p) => p.y);
+		return {
+			x: Math.min(...xs),
+			y: Math.min(...ys),
+			w: Math.max(...xs) - Math.min(...xs),
+			h: Math.max(...ys) - Math.min(...ys)
+		};
+	};
+	const hit: Partial<Record<Anchor, Rect>> = {
+		// The crown region runs up past the skull, because what you are clicking on
+		// is where a hat WOULD be as much as where the head is.
+		crown: span(a.headW, a.jaw, a.crown + 0.4 * hh),
+		brow: span(a.headW, a.brow - 0.12 * hh, a.brow + 0.12 * hh),
+		shoulders: span(a.armE + a.armW, a.shoulder, a.armTop),
+		chest: span(a.chestW, 0.4 * a.tall, 0.55 * a.tall)
+	};
+
 	const pad = 0.06 * STEP + 0.16 * STEP;
 	const w = x1 - x0 + pad * 2;
-	const bw = w * 0.82;
+	// SQUARE, about the head, with a lot of air. Every well that asks for a bust
+	// is square and every one of them slices — so a frame wider than it is tall
+	// is scaled to the well's HEIGHT and loses the difference off its sides. At
+	// 0.92 that was 4% of a head gone each side: an ear, then a temple, then a
+	// brim, and the portrait reads as a head jammed in a box.
+	// Height is the free direction. A square that runs past the jaw lands on
+	// shoulder, which is what the socket underneath wanted anyway.
+	//
+	// WIDTH COMES OFF THE SKULL, and the skull is a number the model already
+	// knows — `measure()` gives `headW` and `headD` for the build, and those
+	// four corners projected are the head, exactly, with nothing on it. It used
+	// to come off the drawn silhouette instead, which meant the widest thing a
+	// character was WEARING set how big the character was drawn: a top hat's
+	// brim is 1.62 head-widths of flat plate, so the Architect was framed half
+	// again as wide as the Maintainer and came out that much smaller beside them
+	// in a row of portraits whose whole job is to be compared.
+	//
+	// The hat is still in frame VERTICALLY — `hy0` is measured dressed, so a
+	// tall hat is never cropped — it just no longer votes on scale. A brim wider
+	// than the frame overhangs, which is what a portrait does with a brim.
+	const skull = [-1, 1].flatMap((se) =>
+		[-1, 1].map((sn) => project({ e: se * a.headW, n: sn * a.headD, h: a.brow }).x)
+	);
+	const bw = (Math.max(...skull) - Math.min(...skull)) * 1.16;
 	const out: Art = {
 		tris,
 		box: { x: x0 - pad, y: y0 - pad, w, h: y1 - y0 + pad * 2 },
-		bust: { x: (x0 + x1) / 2 - bw / 2, y: y0 - 0.05 * STEP, w: bw, h: bw * 0.92 },
+		bust: { x: (hx0 + hx1) / 2 - bw / 2, y: hy0 - bw * 0.07, w: bw, h: bw },
 		floor: y1,
+		hit,
 		lamp: lamped
 	};
 	cache.set(id, out);

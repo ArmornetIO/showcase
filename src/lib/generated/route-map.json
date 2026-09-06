@@ -63,7 +63,11 @@
     "LayoutHeader"
   ],
   "/dev": [
-    "DevCog"
+    "DevCog",
+    "ControlRow",
+    "Seg",
+    "Fader",
+    "FaderBank"
   ],
   "/display": [
     "PanelLoading",

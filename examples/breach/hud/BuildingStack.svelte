@@ -120,9 +120,11 @@
      frames doing one frame's job, and it costs the stack the thing that makes it
      read as a deck — the outermost card having nothing behind it. -->
 <div class="pointer-events-auto flex flex-col gap-1.5">
-	<span class="pl-0.5 font-mono text-[0.5rem] uppercase tracking-[0.22em] text-[var(--fg-dim)]">
+	<span
+		class="pl-0.5 font-mono text-[0.56rem] font-black uppercase tracking-[0.22em] text-[var(--fg)]"
+	>
 		the buildings
-		<span class="ml-1 text-[var(--fg-dim)] opacity-60">
+		<span class="ml-1 text-[var(--fg-muted)]">
 			{match.chainHeld.length} / {CHAIN.length} held
 		</span>
 	</span>

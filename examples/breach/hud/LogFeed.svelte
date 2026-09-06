@@ -28,6 +28,7 @@
 		structureById
 	} from '../internal/rules.js';
 	import { fxFor } from '../internal/fx.js';
+	import { portraitScale } from '../parts/portrait.js';
 	import type { BreachMatch } from '../internal/match.svelte.js';
 
 	interface Props {
@@ -55,7 +56,7 @@
 	 *
 	 * The hero name is the character they were issued this match and changes
 	 * between them; "priya" is who you are actually watching. A table that has
-	 * named nobody falls back to the character rather than to HeroStack's
+	 * named nobody falls back to the character rather than to the table strip's
 	 * "waiting" — this row is proof they did not wait.
 	 */
 	function personOf(key: string): string {
@@ -67,9 +68,11 @@
 </script>
 
 <div class="pointer-events-auto flex min-h-0 flex-col gap-1.5 {cls}">
-	<span class="pl-0.5 font-mono text-[0.5rem] font-black uppercase tracking-[0.22em] text-[var(--fg)]">
+	<span
+		class="pl-0.5 font-mono text-[0.56rem] font-black uppercase tracking-[0.22em] text-[var(--fg)]"
+	>
 		battle log
-		<span class="ml-1 text-[var(--fg-dim)] opacity-60">round {match.round}</span>
+		<span class="ml-1 text-[var(--fg-muted)]">round {match.round}</span>
 	</span>
 
 	<div class="flex min-h-0 flex-col overflow-y-auto overflow-x-clip pr-1">
@@ -134,7 +137,16 @@
 							style:background="color-mix(in srgb, {hue} 16%, var(--bg-elev, #0b0f16))"
 						>
 							{#if actor}
-								<span class="absolute inset-x-0 top-0 aspect-square">
+								<!-- Same scale the table strip draws at, from the same place.
+								     A face in the log and the same face in the chip above it
+								     are the same person; if the two surfaces size them
+								     separately they stop looking like it. -->
+								{@const fill = portraitScale(actor)}
+								<span
+									class="absolute inset-x-0 top-0 aspect-square origin-top"
+									style:scale={fill}
+									style:translate="0 {((1 - fill) * 30).toFixed(1)}px"
+								>
 									<Figure klass={actor} crop="bust" />
 								</span>
 							{:else}
@@ -275,14 +287,17 @@
 										</span>
 									</span>
 								{/snippet}
+								<!-- The number people actually glance at, and it was the
+								     smallest mark on the row: a 9px shield next to a 0.5rem
+								     numeral, both at 40% border on a 12% fill. -->
 								<span
-									class="flex items-center gap-1 rounded px-1 py-px border shrink-0"
+									class="flex items-center gap-1 rounded px-1.5 py-0.5 border shrink-0"
 									style:color={tone}
-									style:border-color="color-mix(in srgb, {tone} 40%, transparent)"
-									style:background="color-mix(in srgb, {tone} 12%, transparent)"
+									style:border-color="color-mix(in srgb, {tone} 60%, transparent)"
+									style:background="color-mix(in srgb, {tone} 18%, transparent)"
 								>
-									<Icon name="shield" size={9} />
-									<b class="font-mono text-[0.5rem] font-black tabular-nums leading-none">
+									<Icon name="shield" size={12} />
+									<b class="font-mono text-[0.66rem] font-black tabular-nums leading-none">
 										{delta > 0 ? '+' : ''}{delta}
 									</b>
 								</span>

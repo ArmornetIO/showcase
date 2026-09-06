@@ -186,6 +186,12 @@ src/routes/mockups/*
 # it is a component other pages are likely to want.
 !src/routes/mockups/marketing-landing/
 
+# The dev console redesign (spec 018). Committed for the same reason as
+# `agent-select`: it is not a sketch that stayed on one machine, it is the design
+# `devcog/console/` was ported from and `specs/018-devcog-console/measure.mjs`
+# still measures against. A gate nobody else can open is not one.
+!src/routes/mockups/qa-console/
+
 # Marker for `make showcase-install`; its whole job is to carry the mtime of the
 # last npm ci. Committing it (which we did) makes that mtime the CHECKOUT time in
 # CI, so make compares two files written seconds apart and decides the install is

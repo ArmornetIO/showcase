@@ -7,12 +7,22 @@
 	//
 	// The dais IS in, despite standing where the character does: every ring,
 	// pip and glyph on it is HUD — the turn clock, standing, action points, the
-	// four skills, the upgrade track and the hero power. The figure that used to
+	// four skills, the upgrade track and the signature. The figure that used to
 	// stand in front of it is the part that is gone.
 	//
 	// These are the REAL panels driven by a real `BreachMatch`, not redrawings of
 	// them. A mockup that copies the markup is a second set of pixels somebody
 	// has to keep in step; this one can only go stale if the game does.
+	//
+	// ── This page WON, and it is still here ──────────────────────────────────
+	// Every component below now lives in `examples/breach/hud/` and is mounted by
+	// the game itself. What this page keeps is the SEEDING: a board five rounds
+	// in, the chair passing every 7s, and the connection dropping every fourth
+	// pass. Half the HUD only exists in states a your-turn pose cannot reach —
+	// the waiting plate, the hollow AP pips, the drained loadout, and the turn
+	// takeover, which is an EDGE and so cannot be posed at all, only crossed.
+	// The real game reaches them by being played to them; this reaches them on a
+	// timer, which is the only reason to keep a harness once the design has won.
 	//
 	// The positioning wrappers are lifted verbatim from `Breach.svelte`, down to
 	// the `xl:` breakpoint the floating layout is gated on — so what this shows
@@ -52,21 +62,25 @@
 	// in the acting seat's with its own warning ramp, the seat panel in YOUR hue
 	// with a third copy of that ramp. `hudState` is one ladder all three derive
 	// off, so when it goes amber the whole HUD goes amber in the same frame.
-	import { hudState } from './hud-state.js';
-	// One card holding both halves — `SeatPlate` and `Breech` are its content and
-	// are not mounted directly any more.
-	import BattleCentre from './BattleCentre.svelte';
-	import TopClock from './TopClock.svelte';
-	import TurnVignette from './TurnVignette.svelte';
+	// All three are deleted now; this page and the game mount the same ladder.
+	import { hudState } from '$examples/breach/hud/hud-state.js';
+	// One card holding both halves — `SeatPlate` and `SeatStatus` are its content
+	// and are not mounted directly.
+	import BattleCentre from '$examples/breach/hud/BattleCentre.svelte';
+	import TopClock from '$examples/breach/hud/TopClock.svelte';
+	import TurnVignette from '$examples/breach/hud/TurnVignette.svelte';
 	// The region for things that HAPPEN, as opposed to the panels that answer
 	// standing questions. Empty by default and that is correct in the game — so
 	// the loop below poses a verdict through it, because an empty region is the
 	// one thing a layout page cannot show you.
 	import GameEventsOverlay from '$examples/breach/hud/GameEventsOverlay.svelte';
-	// The roster table, replaced. Local to the mockup on purpose: this is the
-	// design being argued for, and the game keeps its panel until it wins.
-	import TableStrip from './TableStrip.svelte';
-	import LeadChange from './LeadChange.svelte';
+	// The roster table, replaced. It won, so it lives in the game now and this
+	// page mounts the same file — which is what makes the two unable to drift.
+	import TableStrip from '$examples/breach/hud/TableStrip.svelte';
+	import LeadChange from '$examples/breach/hud/LeadChange.svelte';
+	import CardFan from '$examples/breach/CardFan.svelte';
+	import TextScale from '$examples/breach/hud/TextScale.svelte';
+	import { hudScale } from '$examples/breach/hud/hud-scale.svelte.js';
 	// The payload-path ladder and the target sheet, replaced by ONE panel. They
 	// answered half a question each: the ladder knew which rungs were held and
 	// nothing about their condition, the sheet knew everything about whichever
@@ -401,7 +415,8 @@
      and a pair of hard-coded rems that drift leave either a gap under the strip
      or a bar drawn over it. Same numbers as `Breach.svelte`. -->
 <div
-	class="relative flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)]"
+	class="hud-type relative flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)]"
+	style:--hud-zoom={hudScale.value}
 	style:--play-h="76px"
 	style:--play-gap="14px"
 	style:--play-block="104px"
@@ -411,7 +426,7 @@
 		<!-- Top-centre column: connection, refusal, objective — one measured stack,
 		     because the globe's insets are driven off its height. -->
 		<div
-			class="flex flex-col items-center gap-2
+			class="hud-scaled flex flex-col items-center gap-2
 			       xl:absolute xl:top-4 xl:left-1/2 xl:z-[3] xl:max-w-[min(96vw,62rem)] xl:-translate-x-1/2"
 		>
 			<!-- The clock, top centre, above everything else in this column. It is
@@ -429,10 +444,17 @@
 			</div>
 		</div>
 
+		<!-- ── The two rails are one width ────────────────────────────────────────
+		     They were 250px and 340px. Nothing justified the 90px — the buildings
+		     carry one more stat than a feed row, not a third more content — and it
+		     cost twice: the right rail reached far enough in to sit under the seat
+		     chips at the top of the screen, and two rails of different widths read
+		     as a page that could not decide where its margins were. Same clamp both
+		     sides; change it in both places or not at all. -->
 		<!-- Left column: what has happened. -->
 		<div
-			class="flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:left-4 xl:z-[3]
-			       xl:w-[clamp(210px,18vw,250px)] xl:pointer-events-none"
+			class="hud-scaled flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:left-4 xl:z-[3]
+			       xl:w-[clamp(220px,19vw,268px)] xl:pointer-events-none"
 		>
 			<!-- Above the feed rather than inside it: the log is fogged and derived
 			     from rows this viewer can prove, and a lead is a fact about the board
@@ -451,8 +473,8 @@
 		     setting only `overflow-y` forces the other axis to `auto`, and any child
 		     that leans a pixel right grows a horizontal scrollbar. -->
 		<div
-			class="flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:right-4 xl:z-[3]
-			       xl:w-[clamp(260px,25vw,340px)] xl:pointer-events-none"
+			class="hud-scaled flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:right-4 xl:z-[3]
+			       xl:w-[clamp(220px,19vw,268px)] xl:pointer-events-none"
 		>
 		<!-- Not `flex-1`: that made the ladder eat the column and pushed the two
 			     strips below it to the floor, a screen away from what they are about.
@@ -477,13 +499,14 @@
 			     away from the four links. Same width as the buildings by being IN the
 			     column, so the two stay in step without a shared measurement. -->
 			<div
-				class="shrink-0 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_86%,transparent)]
+				class="min-w-0 shrink-0 overflow-x-clip rounded-lg border border-[var(--border)]
+				       bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_86%,transparent)]
 				       px-2.5 py-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.4)] backdrop-blur-md"
 			>
 				<ObjectiveLine {match} />
 			</div>
 
-			<div class="shrink-0">
+			<div class="min-w-0 shrink-0 overflow-x-clip">
 				<GameEventsOverlay {match} class="w-full" />
 			</div>
 
@@ -511,14 +534,76 @@
 		     The socket and any refusal go INTO the bar rather than floating
 		     anywhere: it is already the "what is happening right now" surface, so a
 		     dropped table is the same kind of sentence as whose turn it is. -->
+		<!-- ── The hand ──────────────────────────────────────────────────────────
+		     Brought over from the game so the cards can be tuned against this HUD
+		     rather than the one they were drawn for. It sits ON the felt gradient
+		     and UNDER the battle centre, stacked rather than overlapping: the bar
+		     reads what the hand is doing, and a bar drawn over the cards it is
+		     describing covers them.
+
+		     Deliberately NOT `hud-scaled`. `CardFan` positions its drag ghost by
+		     mixing client coordinates with layout offsets, and it already carries
+		     a note about getting that wrong under an ancestor `zoom` — putting a
+		     second zoom over it is how the card flies off toward the corner
+		     instead of following the cursor. -->
+		<!-- No felt gradient. In the game this block lays black over the BOARD so
+		     the hand has something to sit against; this page has no board, so the
+		     same wash over `--bg` reads as a grey footer bolted to the bottom of
+		     the screen — lighter than the page it is supposed to be darkening. -->
+		<div class="absolute inset-x-0 bottom-[10.5rem] z-[5] h-[16.5rem]">
+			<CardFan {match} class="h-full" />
+		</div>
+
 		<BattleCentre
 			{match}
 			state={hud}
 			{takeover}
 			socket={noticeOn ? socket : null}
 			refusal={null}
-			class="absolute bottom-6 left-1/2 z-[6] w-[min(94vw,54rem)] -translate-x-1/2"
+			onrules={() => {}}
+			class="hud-scaled absolute bottom-6 left-1/2 z-[6] w-[min(94vw,54rem)] -translate-x-1/2"
 		/>
 
+		<!-- Outside every `hud-scaled` subtree on purpose — see `TextScale`. -->
+		<TextScale class="pointer-events-auto absolute bottom-6 left-4 z-[7]" />
 	</div>
 </div>
+
+<style>
+	/* ── The type, and why it was never heavy ────────────────────────────────────
+	   Every label on this HUD asks for `font-mono` + `font-black`. Tailwind v4's
+	   `font-mono` is the SYSTEM stack — SF Mono on this machine — and SF Mono
+	   ships no black. So the browser was quietly serving 600, or synthesising a
+	   smeared bold, on the exact type that had to survive at 8px over a lit
+	   plate. The four self-hosted faces (`static/fonts`) were never in play here
+	   at all: nothing on this page named them.
+
+	   Two rules, in one place, rather than a `font-family` on two hundred spans:
+
+	   1. Numerals stay MONOSPACED, on the real JetBrains Mono, which does ship a
+	      700. Tabular figures are load-bearing on this screen — a clock counting
+	      down and a score changing must not reflow the plate they sit in.
+
+	   2. WORDS — every uppercase label, name and verb — go to Inter 700. It is
+	      the app's own UI face, it has an x-height built for small sizes, and a
+	      real 700 now exists in this app. Orbitron would be heavier still and is
+	      right where the game shouts (a title, a takeover); as a label face at
+	      8px it is exactly the arcade-first legibility trade this HUD keeps
+	      losing. */
+	.hud-type :global(.font-mono) {
+		font-family: var(--mono);
+	}
+
+	.hud-type :global(.font-mono.uppercase.font-black) {
+		font-family: var(--sans);
+		font-weight: 700;
+	}
+
+	/* Applied per CLUSTER rather than once at the root: the rails are pinned to
+	   their corners and the seat card is centred on a translate, so each one
+	   grows from where it is anchored instead of the whole HUD growing off the
+	   left edge of the screen. */
+	.hud-type :global(.hud-scaled) {
+		zoom: var(--hud-zoom, 1);
+	}
+</style>

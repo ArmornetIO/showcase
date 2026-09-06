@@ -496,6 +496,12 @@
         },
         {
           "component": "Backdrop",
+          "note": [
+            "`from` pins the ambiguity: `mesh-studio/gl/renderer.ts` declares a",
+            "`BlendMode` of its own — a WebGL blend function, nothing to do with",
+            "how a backdrop composites — and that one is not public."
+          ],
+          "from": "./backdrop/backdrops.js",
           "symbols": [
             "BACKDROPS"
           ],
@@ -1205,6 +1211,12 @@
           "types": [
             "StackedSegment"
           ]
+        },
+        {
+          "component": "Pips",
+          "types": [
+            "PipShape"
+          ]
         }
       ]
     },
@@ -1627,6 +1639,22 @@
         },
         {
           "component": "PerfPanel"
+        },
+        {
+          "note": [
+            "The HUD is deliberately NOT re-exported as a component — it is",
+            "imported on demand by the host that toggles it, so a page that never",
+            "opens it never downloads it. `hitchWatch` is the part worth having in",
+            "the barrel."
+          ],
+          "symbols": [
+            "hitchWatch",
+            "watchOnScreen"
+          ],
+          "types": [
+            "Hitch",
+            "HitchSnapshot"
+          ]
         },
         {
           "symbols": [

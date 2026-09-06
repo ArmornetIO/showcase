@@ -11,21 +11,43 @@
 	// The mast reads `activeKlass` (whoever is on the clock) and the loadout reads
 	// `seat` (you). They are NOT the same seat, and swapping them is the bug that
 	// makes the plate lie during somebody else's turn.
-	import { Figure, Icon, Tooltip, type IconName } from 'showcase';
-	import Pips from '$lib/display/progress/Pips.svelte';
-	import { klassByKey } from '$examples/breach/internal/rules.js';
-	import TeamFlag from '$examples/breach/hud/TeamFlag.svelte';
-	import { UPGRADE_KIND } from '$examples/breach/internal/upgrades.js';
-	import { fxFor } from '$examples/breach/internal/fx.js';
-	import type { BreachMatch } from '$examples/breach/internal/match.svelte.js';
-	import { PLATE_SHADOW, gemEdge, gemFill, plateFill, type HudState } from './hud-state.js';
+	import { Figure, Icon, Pips, Tooltip, type IconName } from 'showcase';
+	import { kitFor } from './kit.js';
+	import { klassByKey } from '../internal/rules.js';
+	import TeamFlag from './TeamFlag.svelte';
+	import { UPGRADE_KIND } from '../internal/upgrades.js';
+	import { fxFor } from '../internal/fx.js';
+	import type { BreachMatch } from '../internal/match.svelte.js';
+	import type { TableSocket } from '../net.svelte.js';
+	import SeatStatus from './SeatStatus.svelte';
+	import { noticeFor } from './notice.js';
+	import { gemEdge, gemFill, plateFill, type HudState } from './hud-state.js';
 
 	interface Props {
 		match: BreachMatch;
 		state: HudState;
+		/** Passed straight through to `SeatStatus` — the header's right half is the
+		 *  only place on this card that reports the moment. */
+		takeover?: boolean;
+		socket?: TableSocket | null;
+		refusal?: string | null;
+		onrules?: () => void;
 	}
 
-	let { match, state }: Props = $props();
+	let {
+		match,
+		state,
+		takeover = false,
+		socket = null,
+		refusal = null,
+		onrules = () => {}
+	}: Props = $props();
+
+	// When the card has something to SAY rather than something to show. The turn
+	// arriving, a dropped table, a refusal, the match ending — each one owns the
+	// card for as long as it lasts, and `notice` already ranks them (`notice.ts`).
+	const notice = $derived(noticeFor(match, socket, refusal));
+	const moment = $derived(takeover || notice !== null);
 
 	const seat = $derived(match.seat);
 
@@ -50,8 +72,6 @@
 
 	const HEX = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
 
-	const online = $derived(match.track().filter((u) => match.round >= u.at).length);
-	const trackTone = $derived(online > 0 ? seat.color : 'var(--fg-muted)');
 </script>
 
 <!-- ── Content only ───────────────────────────────────────────────────────────
@@ -68,9 +88,18 @@
      stacked caption the body columns used — and at this size the label reads as
      the value's unit, which is what it always was. -->
 {#snippet readout(label: string, value: string, tone: string, pips = false)}
-	<span class="flex min-w-0 items-center gap-1.5">
+	<!-- The AP gem's clothes, at plate scale. A bare label-and-number pair sets
+	     its own width from the label, so `EXPOSURE` and `TRUST ACCRUAL` were the
+	     two widest things in a row that had already run out of card. Inside a
+	     bordered pill the pair is one object with a floor and a ceiling, and it
+	     matches the badge the seat chips wear for exactly this job. -->
+	<span
+		class="flex shrink-0 items-center gap-1.5 rounded-full border-2 px-2 py-[3px]"
+		style:border-color={gemEdge(tone)}
+		style:background={gemFill(tone)}
+	>
 		<span
-			class="shrink-0 font-mono text-[0.5rem] leading-none font-black tracking-[0.22em] text-[var(--fg)] uppercase"
+			class="shrink-0 font-mono text-[0.5rem] leading-none font-black tracking-[0.14em] text-[var(--fg-muted)] uppercase"
 		>
 			{label}
 		</span>
@@ -79,15 +108,12 @@
 				total={3}
 				filled={Math.min(match.res[seat.key] ?? 0, 3)}
 				shape="diamond"
-				size={7}
-				gap={2}
+				size={11}
+				gap={3}
 				color={seat.color}
 			/>
 		{/if}
-		<b
-			class="truncate font-mono text-[0.68rem] leading-none font-black tabular-nums"
-			style:color={tone}
-		>
+		<b class="font-mono text-[0.82rem] leading-none font-black tabular-nums" style:color={tone}>
 			{value}
 		</b>
 	</span>
@@ -104,56 +130,81 @@
 	     in its own hue, and whose turn it is as the same round bordered gem the
 	     hero cards use for AP. The CHANGE still carries the meaning — the gem
 	     lights when the turn is yours — it just no longer shouts it. -->
-	<div class="flex items-center justify-between gap-2 px-3 pt-2">
-		<span class="flex min-w-0 items-baseline gap-2">
+	<div class="flex items-center gap-2 px-3 pt-2">
+		<!-- `shrink-0` on the identity half and `min-w-0` on the status half: the
+		     header is a flex row whose right side holds a sentence, and without a
+		     `min-w-0` a flex child refuses to shrink below its content — so the
+		     sentence pushed the row wider than the card instead of truncating, and
+		     ran out under everything to its right. -->
+		<span class="flex shrink-0 items-center gap-2">
 			<b
 				class="truncate font-mono text-[0.6875rem] leading-none font-black tracking-[0.06em] uppercase"
 				style:color={seat.color}
 			>
 				{seat.name}
 			</b>
-			<span class="font-mono text-[0.5rem] font-black tracking-[0.22em] text-[var(--fg)] uppercase">
-				your seat
-			</span>
-		</span>
-		<!-- ── The readouts ──────────────────────────────────────────────────────
-		     Exposure, rep and the track summary. All three used to be columns in the
-		     body row, each with a caption over it and a status word under it, which
-		     is what kept the track slots and the signature from ever being the same
-		     height — three stacks of three lines, sized by their labels rather than
-		     by what they hold.
+			<!-- The passive rides up here, where `YOUR SEAT` was. That label named
+			     the card you are already looking at — it is the only card on screen
+			     with your character in it — while the passive was taking a whole
+			     line inside the identity block for a rule that never changes all
+			     match. Swapping them is what lets that block stop being 600px. -->
+			<Tooltip placement="bottom">
+				{#snippet tip()}
+					<span class="flex flex-col gap-1">
+						<b class="font-mono text-[0.6rem] tracking-[0.14em] uppercase" style:color={seat.color}>
+							passive · {seat.passive.name}
+						</b>
+						<span class="text-[0.62rem] leading-snug">{seat.passive.text}</span>
+					</span>
+				{/snippet}
+				<span
+					class="flex shrink-0 items-center gap-1 rounded-full border-2 px-1.5 py-[1px] font-mono text-[0.5rem] leading-none font-black tracking-[0.12em] text-[var(--fg)] uppercase"
+					style:border-color={gemEdge(seat.color)}
+					style:background={gemFill(seat.color)}
+				>
+					<Icon name="zap" size={9} />
+					{seat.passive.name}
+				</span>
+			</Tooltip>
 
-		     They are readings, not controls: you look at them, you never press them.
-		     So they read along the header, where the plate had 400px of nothing
-		     between its name and its turn badge, and the body is left to the two
-		     things you actually touch. -->
-		<span class="flex min-w-0 shrink items-center gap-3">
-			{@render readout(match.standingLabel, `${match.standing}`, standTone)}
-			<span class="h-4 w-px bg-[var(--border)]"></span>
-			{@render readout(seat.resource, `${match.res[seat.key] ?? 0}`, seat.color, true)}
-			<span class="h-4 w-px bg-[var(--border)]"></span>
-			{@render readout('track', `${online}/${match.track().length} online`, trackTone)}
+			<!-- ── The readouts ────────────────────────────────────────────────
+			     Back on the header's LEFT, beside the passive. They spent one pass in
+			     the body row, where five `shrink-0` sections already added up past
+			     the card — so the two gems, which are the least urgent things on the
+			     plate, were the ones hanging off its right edge.
+
+			     Left of the divider is the right side of the argument anyway: these
+			     are facts about your seat that hold all match, and the half opposite
+			     is reserved for the moment. -->
+			{#if !moment}
+				{@render readout(match.standingLabel, `${match.standing}`, standTone)}
+				{@render readout(seat.resource, `${match.res[seat.key] ?? 0}`, seat.color, true)}
+			{/if}
 		</span>
 
-		<!-- Not `<klass> up` — the clock says that already. -->
-		<span
-			class="shrink-0 rounded-full border-2 px-1.5 py-[1px] font-mono text-[0.5rem] leading-none font-black tracking-[0.12em] uppercase"
-			style:color={match.isMyTurn ? state.color : 'var(--fg-dim)'}
-			style:border-color={match.isMyTurn
-				? gemEdge(state.color)
-				: 'color-mix(in srgb, var(--fg) 14%, transparent)'}
-			style:background={match.isMyTurn ? gemFill(state.color) : 'transparent'}
-			style:transition="color 200ms ease, background 200ms ease, border-color 200ms ease"
-		>
-			{match.isMyTurn ? 'your turn' : 'waiting'}
-		</span>
+		<!-- ── The half opposite ────────────────────────────────────────────────
+		     What you are about to do: whose turn it is, the card you are holding,
+		     the building you are pointing it at, and why the engine will refuse it.
+
+		     This is the sentence the play row used to carry along the floor of the
+		     screen, and it is the one thing down there that was never a
+		     restatement. Without it the card is five standing facts and no verb —
+		     you can arm a signature and get no confirmation that you did, which is
+		     indistinguishable from a control that does not work.
+
+		     Only when there is no `moment`: a ceremony takes the whole card and
+		     mounts this at `big`, and two copies of the same line would then be on
+		     screen at once. -->
+		{#if !moment}
+			<SeatStatus {match} {state} {socket} {refusal} class="min-w-0 flex-1 justify-end" />
+		{/if}
 	</div>
 
-	<div class="px-3 pt-2 pb-3">
+	<div class="px-3 pt-1.5 pb-2">
 			<!-- ── THE LOADOUT ──────────────────────────────────────────────────── -->
 	<!-- Never dimmed. Everything below this line is a FACT ABOUT YOUR SEAT — your
-	     standing, your resource, what your track has come online, what your hero
-	     power costs. None of it stops being true because somebody else is acting,
+	     standing, your resource, what your track has come online, what your
+	     signature costs. None of it stops being true because somebody else is acting,
 	     and washing it out on their turn made your own panel look disabled at the
 	     exact moment you have time to study it. Whose turn it is is said once, in
 	     the header, in words. -->
@@ -163,8 +214,29 @@
 	     column left holes in it — a REP line with 600px of nothing after it, track
 	     slots flung to the far edge. So the sections sit side by side, divided by
 	     rules rather than by stacking, which is what a wide short plate wants. -->
-	<div class="flex items-center gap-4">
-		<div class="flex min-w-0 flex-1 flex-col gap-2">
+	<!-- ── THE MOMENT TAKES THE CARD ──────────────────────────────────────────
+	     When there is something to SAY — the turn arriving, the table dropping, a
+	     refusal, the match ending — the loadout goes and the words take the whole
+	     card. Not an overlay and not a lane in the header: the gems, the track and
+	     the signature are hidden for those seconds, because a ceremony sharing a
+	     row with three controls is a caption, and the reason to run one at all is
+	     that it is the only thing on the card.
+
+	     They come straight back. Everything here is a standing fact about your
+	     seat — none of it changed while the words were up. -->
+	{#if moment}
+		<div class="flex min-h-[46px] w-full items-center">
+			<SeatStatus {match} {state} {takeover} {socket} {refusal} big class="min-w-0 flex-1" />
+		</div>
+	{:else}
+	<!-- `min-w-0` and a real gap budget: the row is five sections wide and every
+	     one of them was `shrink-0`, so the moment they added up past the card they
+	     kept their size and spilled out of it instead of tightening. -->
+	<div class="flex min-w-0 items-center justify-between gap-3">
+		<!-- `shrink-0`, not `flex-1`. The identity block claiming the row's slack is
+		     what pushed the divider 300px right of the content it divides; the
+		     slack belongs between the sections, not inside one. -->
+		<div class="flex shrink-0 flex-col gap-2">
 		<div class="flex items-center gap-2.5">
 			<!-- ── The character, not a glyph ─────────────────────────────────
 			     This was the seat's mode icon in a hexagon — the same generic mark
@@ -173,7 +245,10 @@
 			     YOU are playing is the last place on screen that should show a
 			     stand-in for you. Same well, same crop, same art as the stack: one
 			     character, drawn once, cropped differently. -->
-			<div class="relative w-[52px] shrink-0">
+			<!-- 46px, not 54. The crest is what sets this row's height, and with the
+			     three readouts moved to the header the row has nothing else asking to
+			     be tall — the whole card comes down with it. -->
+			<div class="relative w-[46px] shrink-0">
 				<span
 					class="absolute inset-x-[2px] inset-y-0 blur-[9px]"
 					style:background={seat.color}
@@ -181,7 +256,7 @@
 					style:opacity="0.5"
 				></span>
 				<div
-					class="relative mx-auto grid h-[54px] w-[48px] place-items-center p-[1.5px]"
+					class="relative mx-auto grid h-[46px] w-[42px] place-items-center p-[1.5px]"
 					style:clip-path={HEX}
 					style:background="color-mix(in srgb, {seat.color} 75%, transparent)"
 				>
@@ -194,7 +269,11 @@
 						     taller-than-wide well zooms the bust until you are looking
 						     at a shoulder. -->
 						<span class="absolute inset-x-0 top-0 aspect-square">
-							<Figure klass={klassByKey(seat.key)} crop="bust" />
+							<Figure
+								klass={klassByKey(seat.key)}
+								crop="bust"
+								art={{ worn: kitFor(seat.key), trim: seat.color }}
+							/>
 						</span>
 					</div>
 				</div>
@@ -205,65 +284,37 @@
 			     is doing, which is one thought, not two. It also pulls the plate's
 			     biggest numeral up next to its biggest glyph instead of leaving a
 			     band of dead air between them. -->
-			<div class="flex min-w-0 flex-1 items-center justify-between gap-2">
-				<span class="flex min-w-0 flex-col gap-1">
-					<!-- The banner, and the seat code after it. This read `RED SIDE · R1`
-					     — the engine's word for a hue, printed at the player. The side
-					     has a name now (see `team-flags`), and the hue it is drawn in is
-					     the same one the whole half of the screen is already wearing. -->
-					<span class="flex min-w-0 items-center gap-1.5">
-						<TeamFlag faction={seat.faction} size="plate" showName />
-						<span class="font-mono text-[0.5rem] font-black tracking-[0.22em] text-[var(--fg)] uppercase">
-							· <b style:color={seat.color}>{seat.seat}</b>
-						</span>
+			<!-- Banner, seat code, and the meter directly under them.
+			     This column held the passive as a second line and then handed the
+			     standing bar a full-width row BELOW the whole identity block — two
+			     stacked rows sized for a plate that is no longer that tall, which is
+			     where the 300px of nothing left of the divider came from. The
+			     passive is in the header now and the bar is up here beside the
+			     crest, so the block is as wide as its widest line and no wider. -->
+			<span class="flex min-w-0 flex-col gap-2">
+				<span class="flex min-w-0 items-center gap-1.5">
+					<TeamFlag faction={seat.faction} size="plate" showName />
+					<span
+						class="font-mono text-[0.5rem] font-black tracking-[0.22em] text-[var(--fg)] uppercase"
+					>
+						· <b style:color={seat.color}>{seat.seat}</b>
 					</span>
-					<!-- A rule that is always running and never changes for the whole
-					     match — so it is the one thing here that does not need to be
-					     readable at a glance. -->
-					<Tooltip placement="bottom">
-						{#snippet tip()}
-							<span class="flex flex-col gap-1">
-								<b class="font-mono text-[0.6rem] tracking-[0.14em] uppercase" style:color={seat.color}>
-									passive · {seat.passive.name}
-								</b>
-								<span class="text-[0.62rem] leading-snug">{seat.passive.text}</span>
-							</span>
-						{/snippet}
-						<!-- The rails' badge, not a tinted rectangle: a square-cornered
-						     colour wash is the one shape this HUD does not use anywhere
-						     else. -->
-						<!-- White on the tint, not the tint's own hue on it. A badge filled
-						     with a colour and lettered in the same colour is the one thing
-						     on this plate you have to lean in to read. -->
-						<span
-							class="flex w-fit items-center gap-1 rounded-full border-2 px-1.5 py-[1px] font-mono text-[0.5rem] leading-none font-black tracking-[0.12em] text-[var(--fg)] uppercase"
-							style:border-color={gemEdge(seat.color)}
-							style:background={gemFill(seat.color)}
-						>
-							<Icon name="zap" size={8} />
-							{seat.passive.name}
-						</span>
-					</Tooltip>
 				</span>
 
-			</div>
-		</div>
-
-		<!-- The meter the header's number belongs to. It stays in the body because
-		     it is the only thing here that is worth seeing without reading — a bar
-		     emptying is legible at the edge of vision and `29` is not. -->
-		<div class="flex flex-col gap-1">
-			<span
-				class="block h-[8px] w-full overflow-hidden bg-[var(--surface-strong)]"
-				class:pulse-soft={match.standing <= 30}
-				style:clip-path="polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%)"
-			>
+				<!-- 176px, not "whatever is left". A bar reads as a proportion and had
+				     no use for the 400px it was being handed. -->
 				<span
-					class="block h-full"
-					style:width="{match.standing}%"
-					style:background={standTone}
-					style:transition="width 300ms ease"
-				></span>
+					class="block h-[8px] w-[176px] overflow-hidden bg-[var(--surface-strong)]"
+					class:pulse-soft={match.standing <= 30}
+					style:clip-path="polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%)"
+				>
+					<span
+						class="block h-full"
+						style:width="{match.standing}%"
+						style:background={standTone}
+						style:transition="width 300ms ease"
+					></span>
+				</span>
 			</span>
 		</div>
 		</div>
@@ -386,7 +437,7 @@
 					match.armedKey = power.key;
 					match.inspectKey = power.key;
 				}}
-				class="relative flex min-w-0 flex-1 items-center gap-2.5 self-stretch overflow-hidden rounded-[8px] border px-3 text-left transition-all disabled:cursor-default"
+				class="relative flex min-w-[190px] flex-1 items-center gap-2.5 self-stretch overflow-hidden rounded-[8px] border px-2.5 text-left transition-all disabled:cursor-default"
 					style:color={spent ? 'var(--fg-dim)' : pfx.hue}
 					style:border-color={spent
 						? 'color-mix(in srgb, var(--fg) 14%, transparent)'
@@ -403,57 +454,113 @@
 							: 'none'}
 					title={power.text}
 				>
-				<span class="shrink-0"><Icon name={pfx.icon as IconName} size={20} /></span>
-				<span class="flex min-w-0 flex-1 flex-col gap-1">
+				<span class="shrink-0"><Icon name={pfx.icon as IconName} size={26} /></span>
+				<span class="flex min-w-0 flex-1 flex-col gap-1.5">
 					<b
 						class="truncate font-mono text-[0.75rem] leading-none font-black tracking-[0.06em] uppercase"
 					>
-						{power.name}
+						{spent ? 'spent' : power.name}
 					</b>
-					<!-- The one line of the move's own text that fits. It is the only
-					     thing on this plate that says what a control DOES, and the
-					     section is now wide enough to carry it. -->
-					<span class="truncate font-mono text-[0.5rem] leading-none text-[var(--fg-muted)]">
-						{spent ? 'spent for this match' : power.text}
+					<!-- AP under the name rather than in a column of its own: the button
+					     is 228px now, not the width of the section, and the move's own
+					     prose has gone to the info glyph. A signature is one line — what
+					     it is called and what it costs. -->
+					<span class="flex items-center gap-2">
+						<b class="font-mono text-[0.68rem] leading-none font-black tabular-nums">
+							{power.ap} AP
+						</b>
+						{#if !spent}
+							<Pips
+								total={power.uses}
+								filled={match.powerCharges}
+								shape="diamond"
+								size={9}
+								gap={3}
+								color={pfx.hue}
+							/>
+						{/if}
 					</span>
 				</span>
-				<span class="flex shrink-0 flex-col items-end gap-1.5">
-					<b class="font-mono text-[0.75rem] leading-none font-black tabular-nums">
-						{power.ap} AP
-					</b>
-					{#if !spent}
-						<Pips
-							total={power.uses}
-							filled={match.powerCharges}
-							shape="diamond"
-							size={7}
-							gap={2}
-							color={pfx.hue}
-						/>
-					{/if}
-				</span>
+
+				<!-- What it DOES, on demand. It was a truncated line of prose under the
+				     name — the only text on the plate that could not be read in full
+				     anyway, spending a third of the widest control to half-say it. -->
+				<Tooltip placement="top">
+					{#snippet tip()}
+						<span class="flex flex-col gap-1">
+							<!-- The category is named HERE and not on the key. "Signature" is
+							     the game's own word for it (spec/glossary.md) and it is worth
+							     teaching — but the key is one control holding one thing, and a
+							     label over it would name what the reader is already reading. -->
+							<b class="font-mono text-[0.6rem] tracking-[0.14em] uppercase" style:color={pfx.hue}>
+								signature · {power.name} · {power.ap} ap
+							</b>
+							<span class="text-[0.62rem] leading-snug">{power.text}</span>
+						</span>
+					{/snippet}
+					<span class="shrink-0 opacity-70"><Icon name="info" size={14} /></span>
+				</Tooltip>
 			</button>
 		{/if}
+
+		<span class="h-12 w-px shrink-0 bg-[var(--border)]"></span>
+
+		<!-- No commit key and no end key. Dragging a card onto a building already
+		     resolves on release, and a selection made while a card is armed commits
+		     it — the buttons were a third path to a move you have two ways to make,
+		     sitting permanently on screen to be pressed occasionally.
+
+		     What is left is the two things you OPEN or SWITCH rather than read.
+		     They came off the top strip when it went; a capability with no route
+		     to it is a regression, and neither of these has another route. -->
+		<Tooltip placement="top">
+			{#snippet tip()}
+				<span class="text-[0.62rem] leading-snug">How a turn works, and what the dice do.</span>
+			{/snippet}
+			<button
+				type="button"
+				class="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full text-[var(--fg-muted)] transition-colors hover:text-[var(--fg)]"
+				onclick={onrules}
+				aria-label="rules"
+			>
+				<Icon name="info" size={15} />
+			</button>
+		</Tooltip>
+
+		<!-- Empty chairs already play themselves. This hands over YOURS as well, so
+		     one person can sit still and watch a fog-of-war game happen around them.
+		     Lit while it is on, because a spectator who cannot tell they have
+		     stopped playing files the whole game as broken. -->
+		<Tooltip placement="top">
+			{#snippet tip()}
+				<span class="text-[0.62rem] leading-snug">
+					{match.auto
+						? 'Your seat is playing itself. Press to take it back.'
+						: 'Hand your seat to the demonstrator and watch.'}
+				</span>
+			{/snippet}
+			<button
+				type="button"
+				class="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full transition-colors"
+				style:color={match.auto ? '#34D399' : 'var(--fg-muted)'}
+				style:background={match.auto ? 'color-mix(in srgb, #34D399 16%, transparent)' : 'transparent'}
+				onclick={() => (match.auto = !match.auto)}
+				aria-pressed={match.auto}
+				aria-label={match.auto ? 'watching' : 'watch'}
+			>
+				<Icon name="play" size={13} />
+			</button>
+		</Tooltip>
 	</div>
+	{/if}
 	</div>
 </div>
 
 <style>
-	/* The CS bomb-timer read. 2 Hz, scale only — nothing that reflows, because
-	   this fires on the beat the globe is least able to spare a layout pass. */
-	.pulse {
-		animation: pulse-scale 500ms ease-in-out infinite;
-	}
-	@keyframes pulse-scale {
-		0%,
-		100% {
-			transform: scale(1);
-		}
-		50% {
-			transform: scale(1.06);
-		}
-	}
-
+	/* The only meter on this HUD with a heartbeat, because it is the only one
+	   that ends the match. Opacity only — nothing that reflows, on the beat the
+	   globe is least able to spare a layout pass. The turn clock's own 2 Hz pulse
+	   is not here: the clock moved to `TopClock` and took its animation with it. */
 	.pulse-soft {
 		animation: pulse-fade 1400ms ease-in-out infinite;
 	}
@@ -468,7 +575,6 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.pulse,
 		.pulse-soft {
 			animation: none;
 		}

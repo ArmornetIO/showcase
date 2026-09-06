@@ -13,9 +13,9 @@
 	//
 	// The crest holds the team's emblem rather than a portrait, because a lead is
 	// the one thing on this feed that belongs to a SIDE and not to a person.
-	import { EMBLEMS, teamFlags } from '$examples/breach/hud/team-flags.svelte.js';
-	import type { Faction } from '$examples/breach/internal/rules.js';
-	import type { BreachMatch } from '$examples/breach/internal/match.svelte.js';
+	import { EMBLEMS, teamFlags } from './team-flags.svelte.js';
+	import type { Faction } from '../internal/rules.js';
+	import type { BreachMatch } from '../internal/match.svelte.js';
 	import { scoreOf } from './score.js';
 
 	interface Props {

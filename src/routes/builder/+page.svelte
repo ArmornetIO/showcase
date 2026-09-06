@@ -10,6 +10,11 @@
 	import CanvasContextMenu from '$lib/builder/CanvasContextMenu.svelte';
 	import AlertBladeHost from '$lib/display/drawer/AlertBladeHost.svelte';
 	import ChatThread from '$lib/display/chat/ChatThread.svelte';
+	import type {
+		CanvasSessionPort,
+		SessionParticipant,
+		SessionState
+	} from '$lib/builder/session.js';
 	import type { ChatEntry } from '$lib/display/chat/ChatThread.svelte';
 	import type { CanvasItem, Group } from '$lib/builder/store.svelte.js';
 	import type { CanvasCamera, TourController, TourStep } from '$lib/primitives/canvas/canvas-camera.js';
@@ -535,6 +540,52 @@
 		layerDropTarget = null;
 	}
 
+	// ── Session ──────────────────────────────────────────────────────────────────
+	// Injected by the host application. Null is the ordinary solo case — the
+	// component library opened on its own — and everything below works without it.
+	let { session = null }: { session?: CanvasSessionPort | null } = $props();
+
+	/** A message addressed to the agent. A mention rather than parsed intent: what
+	 *  the agent acts on must be something the sender chose, not something a
+	 *  regex decided they meant. */
+	const ADDRESS_RE = /(^|\s)@(agent|design)\b/i;
+
+	let participants = $state<SessionParticipant[]>([]);
+	let agentBusy = $state(false);
+	let queueDepth = $state(0);
+	let agentMuted = $state(false);
+	let youId = $state('');
+
+	$effect(() => {
+		if (!session) return;
+		session.onChange((s) => {
+			participants = s.participants;
+			agentBusy = s.agentBusy;
+			queueDepth = s.queueDepth;
+			agentMuted = s.agentMuted;
+			youId = s.youId;
+			// The room's conversation replaces the local list entirely: with a
+			// session attached the server is the record of what was said, and
+			// merging would show this browser's view of a shared history.
+			chatMessages = s.chat.map((m) => ({
+				id: m.id,
+				role: m.authorId === s.youId ? 'user' : 'assistant',
+				author: authorLabel(m.authorId, s),
+				content: m.body,
+				timestamp: m.at
+			}));
+		});
+		void session.join();
+		return () => session?.leave();
+	});
+
+	function authorLabel(id: string, s: SessionState): string {
+		const p = s.participants.find((x) => x.id === id);
+		if (!p) return 'SOMEONE';
+		if (p.kind === 'agent') return 'DESIGN';
+		return id === s.youId ? 'YOU' : (p.name || 'GUEST').toUpperCase();
+	}
+
 	// ── AI panel state ───────────────────────────────────────────────────────────
 	let mockupSlug = $state('');
 	let variants = $state<{ slug: string; version: number; timestamp: number }[]>([]);
@@ -624,7 +675,24 @@
 		return sections.join('\n\n');
 	}
 
+	/**
+	 * Send a message to the room.
+	 *
+	 * With a session attached this goes to every participant and, when addressed,
+	 * to the agent — which answers on the same channel, so nothing below appends
+	 * a reply locally. Replies arrive through `onChange` like anybody else's.
+	 *
+	 * With no session — the component library on its own, no host behind it — the
+	 * old clipboard route is still the honest answer, so it is still offered.
+	 */
 	function sendChat(text: string) {
+		const addressed = ADDRESS_RE.test(text);
+
+		if (session) {
+			session.say(text, addressed);
+			return;
+		}
+
 		chatMessages = [
 			...chatMessages,
 			{ id: uid(), role: 'user', author: 'YOU', content: text, timestamp: Date.now() }
@@ -636,7 +704,7 @@
 				id: uid(),
 				role: 'assistant',
 				author: 'CLAUDE',
-				content: `Got it. Hit "Copy brief" below and paste into your Claude Code session — Claude will write the mockup to \`mockups/${slug}/+page.svelte\` and HMR will reload the preview.`,
+				content: `No design session is attached, so I cannot answer here. Hit "Copy brief" below and paste into your Claude Code session — Claude will write the mockup to \`mockups/${slug}/+page.svelte\` and HMR will reload the preview.`,
 				timestamp: Date.now()
 			}
 		];

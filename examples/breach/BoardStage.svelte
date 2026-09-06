@@ -169,8 +169,17 @@
 </div>
 
 <!-- The tactical rail. Bottom-right, above the scrim, and out of the way of the
-     felt — it is a commander's control, not a card. -->
-<div class="absolute right-3 bottom-[13.5rem] z-[6] pointer-events-auto">
+     felt — it is a commander's control, not a card.
+
+     Offset by the HUD's own right inset rather than by `right-3`: the buildings
+     rail now runs the full height of that side, so a rail pinned to the window
+     edge lands ON it. `insets.right` is already the one description of how much
+     of that side the chrome has taken, so the toolbar cannot drift out of step
+     with a column that changes width. -->
+<div
+	class="absolute bottom-[13.5rem] z-[6] pointer-events-auto"
+	style:right="{(insets.right ?? 0) + 12}px"
+>
 	<TacticalToolbar
 		{match}
 		{camera}

@@ -7,23 +7,28 @@
 	import { BreachMatch } from './internal/match.svelte.js';
 	import BoardStage from './BoardStage.svelte';
 	import CardFan from './CardFan.svelte';
-	import HeroStack from './hud/HeroStack.svelte';
-	import MyStats from './hud/MyStats.svelte';
 	import Lobby from './Lobby.svelte';
 	import { BreachLobby } from './internal/lobby.svelte.js';
 	import type { Seated } from './internal/presence.js';
 	import RulesOverlay from './RulesOverlay.svelte';
-	import PlayTicker from './hud/PlayTicker.svelte';
-	import ConnectionBanner from './hud/ConnectionBanner.svelte';
 	import LogFeed from './hud/LogFeed.svelte';
 	import ObjectiveLine from './hud/ObjectiveLine.svelte';
 	import BuildingStack from './hud/BuildingStack.svelte';
-	import RefusalNotice from './hud/RefusalNotice.svelte';
 	import GameEventsOverlay from './hud/GameEventsOverlay.svelte';
-	import { PlayerPresence } from './presence/index.js';
-	import Ticker from './hud/Ticker.svelte';
 	import { TableSocket } from './net.svelte.js';
 	import { openLocalTable } from './internal/local-table.js';
+	// ── The HUD ──────────────────────────────────────────────────────────────
+	// One state ladder, derived once here and passed down. Three surfaces each
+	// calling the pure function would agree; passing it makes "they cannot
+	// disagree" structural rather than merely true.
+	import { hudState } from './hud/hud-state.js';
+	import BattleCentre from './hud/BattleCentre.svelte';
+	import TableStrip from './hud/TableStrip.svelte';
+	import TopClock from './hud/TopClock.svelte';
+	import LeadChange from './hud/LeadChange.svelte';
+	import TurnVignette from './hud/TurnVignette.svelte';
+	import TextScale from './hud/TextScale.svelte';
+	import { hudScale } from './hud/hud-scale.svelte.js';
 
 	interface Props {
 		/** Bring your own engine — for a host that wants to script or observe the
@@ -182,24 +187,27 @@
 	// guessed, so a panel that grows does not start hiding buildings.
 	const EDGE = 16;
 	const GAP = 12;
-	const TICKER_H = 40;
-	const VERDICT_TOP = 56;
-	/** The play ticker's height, in px. A CONSTANT rather than a measurement:
-	 *  the bar is deliberately fixed at two rows — see PlayTicker — so measuring
-	 *  it would only reintroduce the movement the fixed height exists to stop.
-	 *  The felt is lifted by it and the globe is inset past it from this one
-	 *  number, so the three cannot drift apart. */
-	const PLAY_H = 52;
-	/** How far the banner floats off the bottom edge. It is deliberately NOT
-	 *  zero: a shape touching the frame is a shape welded to it, and the whole
-	 *  point of the pointed ends is that this reads as an object on the table
-	 *  rather than an edge of the window. */
+	/** How far the top cluster floats off the top edge — the `top-4` the column
+	 *  is pinned at. Its HEIGHT is measured rather than constant: the table
+	 *  strips grow a hover card, and the cluster is as tall as the taller of the
+	 *  strips and the clock. */
+	const TOP_EDGE = 16;
+	/** The battle centre's height, in px. A CONSTANT rather than a measurement,
+	 *  and that is the point: the card is deliberately fixed — nothing the match
+	 *  does changes its height — so measuring it would reintroduce exactly the
+	 *  movement the fixed height exists to stop. The felt is lifted by it and the
+	 *  globe is inset past it from this one number, so the three cannot drift. */
+	const PLAY_H = 76;
+	/** How far the card floats off the bottom edge. Deliberately NOT zero: a
+	 *  shape touching the frame is a shape welded to it, and the whole point is
+	 *  that this reads as an object on the table rather than an edge of the
+	 *  window. */
 	const PLAY_GAP = 14;
 	/** Card fan, in px. Matches the `h-[16.5rem]` the felt is drawn at. */
 	const FELT_H = 264;
 	let leftW = $state(0);
 	let rightW = $state(0);
-	let verdictH = $state(0);
+	let topH = $state(0);
 	let floating = $state(true);
 
 	/**
@@ -243,15 +251,53 @@
 	const insets = $derived(
 		floating
 			? {
-					top: (verdictH > 0 ? VERDICT_TOP + verdictH : TICKER_H) + GAP,
+					top: (topH > 0 ? TOP_EDGE + topH : TOP_EDGE) + GAP,
 					right: rightW > 0 ? EDGE + rightW + GAP : 0,
-					// The hand, and the ticker under it. Both are fixed heights, so
-					// this is the only place the two numbers have to agree.
+					// The hand, and the battle centre under it. Both are fixed
+					// heights, so this is the only place the two numbers have to agree.
 					bottom: EDGE + FELT_H + PLAY_H + PLAY_GAP * 2,
 					left: leftW > 0 ? EDGE + leftW + GAP : 0
 				}
-			: { top: TICKER_H + GAP }
+			: { top: TOP_EDGE + GAP }
 	);
+
+	// ── The "your turn" moment ───────────────────────────────────────────────
+	// Fires on the RISING edge of `isMyTurn`. Owned here rather than inside the
+	// two surfaces it drives, so the wash and the plate cannot disagree about
+	// when the moment is.
+	//
+	// `seen` is a plain `let`, not `$state`: an effect that writes state it also
+	// reads is an effect that re-runs itself, and this one only ever needs to
+	// remember what it saw last.
+	let arriving = $state(false);
+	let vignette = $state(0);
+	let seen = false;
+
+	$effect(() => {
+		const mine = match.isMyTurn && match.stage === 'play' && !match.winner && !match.busy;
+		if (mine === seen) return;
+		seen = mine;
+		if (!mine) {
+			arriving = false;
+			vignette = 0;
+			return;
+		}
+		arriving = true;
+		vignette = 0.35;
+		// The plate hands the space back to the sentence; the wash settles to a
+		// level it holds for the rest of the turn. 1080ms of ceremony total —
+		// under the ~1.2s at which a player starts hunting for the information
+		// themselves.
+		const drop = setTimeout(() => (arriving = false), 900);
+		const settle = setTimeout(() => (vignette = 0.18), 1080);
+		return () => {
+			clearTimeout(drop);
+			clearTimeout(settle);
+		};
+	});
+
+	/** One ladder, every surface. See `hud/hud-state.ts`. */
+	const hud = $derived(hudState(match));
 
 	// ── Aiming IS committing ─────────────────────────────────────────────────
 	// Dragging a card onto a building has always resolved on release — see
@@ -288,103 +334,123 @@
 />
 
 <!-- `--play-h` is published here rather than written into two class strings: the
-     felt sits exactly on top of the ticker, and a pair of hard-coded rems that
-     drift leave either a gap under the cards or a bar drawn over them. -->
+     felt sits exactly on top of the battle centre, and a pair of hard-coded rems
+     that drift leave either a gap under the cards or a card drawn over them. -->
 <div
-	class="relative flex flex-col h-screen overflow-hidden text-[var(--fg)]"
+	class="hud-type relative flex flex-col h-screen overflow-hidden text-[var(--fg)]"
+	style:--hud-zoom={hudScale.value}
 	style:--play-h="{PLAY_H}px"
 	style:--play-gap="{PLAY_GAP}px"
 	style:--play-block="{PLAY_H + PLAY_GAP * 2}px"
 >
+	<TurnVignette color={match.seat.color} level={vignette} />
+
 	<div class="relative flex-1 min-h-0">
-		<Ticker {match} onrules={() => (rulesOpen = true)} />
+		<BoardStage {match} {insets} top={TOP_EDGE} />
 
-		<BoardStage {match} {insets} top={TICKER_H} />
+		<!-- ── The scoreboard ────────────────────────────────────────────────────
+		     Round, score and clock top centre, with the two sides either side of
+		     it the way a fixture board has always drawn them. A single run of four
+		     chips put an enemy next to your ally and made the split something you
+		     had to read off the flags.
 
-		<!-- The objective, and above it whatever the connection has to say.
-		     Stacked in one measured column rather than floated separately: the
-		     banner is mounted HERE, outside the lobby, because the lobby
-		     unmounts when the match starts and a connection lost mid-match is
-		     precisely when nothing else on screen will admit it. Sharing the
-		     column means `verdictH` already accounts for it, so the globe's
-		     insets move out of its way for free. -->
+		     Measured rather than constant: the strips grow a hover card, so the
+		     cluster is as tall as the taller of the two. -->
 		<div
-			bind:clientHeight={verdictH}
-			class="flex flex-col items-center gap-2
-			       xl:absolute xl:top-14 xl:left-1/2 xl:-translate-x-1/2 xl:z-[3]
-			       xl:max-w-[min(92vw,54rem)]"
+			bind:clientHeight={topH}
+			class="hud-scaled flex flex-col items-center gap-2
+			       xl:absolute xl:top-4 xl:left-1/2 xl:-translate-x-1/2 xl:z-[3]
+			       xl:max-w-[min(96vw,62rem)]"
 		>
-			<ConnectionBanner {socket} />
-			<RefusalNotice message={refusal} onexpire={() => (refusal = null)} />
-
-			<div
-				class="rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_86%,transparent)]
-				       backdrop-blur-md shadow-[0_8px_28px_rgba(0,0,0,0.4)] px-3 py-1.5
-				       xl:flex-nowrap xl:whitespace-nowrap"
-			>
-				<ObjectiveLine {match} />
+			<div class="flex items-start gap-2">
+				<TableStrip {match} faction="red" />
+				<TopClock {match} state={hud} />
+				<TableStrip {match} faction="blue" />
 			</div>
 		</div>
 
-		<!-- Left column. Who YOU are is not here any more — that is the dais, in
-		     the middle, where you are already looking. What is left is the two
-		     questions the middle cannot answer: who else is at this table, and
-		     what has happened. -->
+		<!-- ── The two rails are one width ───────────────────────────────────────
+		     They were 250px and 340px. Nothing justified the 90px — the buildings
+		     carry one more stat than a feed row, not a third more content — and it
+		     cost twice: the right rail reached far enough in to sit under the seat
+		     chips at the top of the screen, and two rails of different widths read
+		     as a page that could not decide where its margins were. Same clamp
+		     both sides; change it in both places or not at all. -->
+		<!-- Left column: what has happened. -->
 		<div
 			bind:clientWidth={leftW}
-			class="flex flex-col gap-3 xl:absolute xl:top-14 xl:bottom-[6.5rem] xl:left-4 xl:z-[3]
-			       xl:w-[clamp(210px,18vw,250px)] xl:pointer-events-none"
+			class="hud-scaled flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:left-4 xl:z-[3]
+			       xl:w-[clamp(220px,19vw,268px)] xl:pointer-events-none"
 		>
-			<!-- The panel-surface half of PlayerPresence: the roster mode is the
-			     old table panel, now one of six answers to "who else is here". The
-			     board-surface half mounts over the canvas, not in this column. -->
-			<HeroStack {match} />
+			<!-- Above the feed rather than inside it: the log is fogged and derived
+			     from rows this viewer can prove, and a lead is a fact about the board
+			     that every seat can see. It leaves after a few seconds — the
+			     scoreboard is the standing record. -->
+			<LeadChange {match} />
 			<!-- The feed takes what is left of the column and scrolls inside it, so a
-			     long match cannot push the seats off the top. -->
+			     long match cannot push the lead card off the top. -->
 			<LogFeed {match} class="max-h-[40vh] xl:max-h-none flex-1 min-h-0" />
 		</div>
 
-		<!-- ── Game events ───────────────────────────────────────────────────────
-		     Its own region, immediately left of the buildings column. Anchored off
-		     the SAME width expression the right column uses rather than a measured
-		     number: the two are adjacent by construction, so a change to one cannot
-		     leave a gap or an overlap next to the other.
-		     Top-aligned and unbounded downward — an event sizes itself and the
-		     region is empty the rest of the time. -->
-		<div
-			class="hidden xl:absolute xl:top-14 xl:z-[4] xl:flex xl:w-[clamp(240px,22vw,320px)]
-			       xl:right-[calc(clamp(260px,25vw,340px)+2rem)] xl:pointer-events-none"
-		>
-			<GameEventsOverlay {match} class="w-full" />
-		</div>
-
-		<!-- Right column: the objective, and the sheet for whatever is picked. -->
+		<!-- Right column: the objective ladder, and under it whatever just
+		     happened. `overflow-x-clip` on the ladder rather than leaving it to
+		     compute — setting only `overflow-y` forces the other axis to `auto`,
+		     and any child that leans a pixel right grows a horizontal scrollbar. -->
 		<div
 			bind:clientWidth={rightW}
-			class="flex flex-col gap-3 xl:absolute xl:top-14 xl:bottom-[6.5rem] xl:right-4 xl:z-[3]
-			       xl:w-[clamp(260px,25vw,340px)] xl:pointer-events-none"
+			class="hud-scaled flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:right-4 xl:z-[3]
+			       xl:w-[clamp(220px,19vw,268px)] xl:pointer-events-none"
 		>
-			<!-- One panel where the ladder and the target sheet used to be. They
-			     answered half a question each: the ladder knew which rungs were
-			     held and nothing about their condition, the sheet knew everything
-			     about whichever ONE building you last clicked. -->
-			<div class="flex min-h-0 flex-1 flex-col gap-3 xl:overflow-y-auto xl:overflow-x-clip">
+			<!-- Not `flex-1`: that made the ladder eat the column and pushed the two
+			     strips below it to the floor, a screen away from what they are about.
+			     It sizes to content and scrolls only if it outgrows the space, and the
+			     spacer at the end takes whatever is left. -->
+			<div class="flex min-h-0 shrink flex-col gap-3 xl:overflow-y-auto xl:overflow-x-clip">
 				<BuildingStack {match} />
 			</div>
-			<!-- My own seat, pinned to the bottom of the column. `shrink-0` because
-			     it is where the numbers you spend live: a ladder scrolled by a notch
-			     still reads, a hero power sliced off the bottom edge does not. -->
-			<div class="shrink-0"><MyStats {match} /></div>
+
+			<!-- The objective, as a strip under the ladder it is about. It floated
+			     top centre in a panel of its own, which put "take 4 more links" a
+			     screen away from the four links. Same width as the buildings by
+			     being IN the column, so the two stay in step without a shared
+			     measurement. -->
+			<!-- `min-w-0` + `overflow-x-clip`, and not for tidiness: the objective's
+			     announcement state ("LINK TAKEN — <building>") is one nowrap line, and
+			     a flex child defaults to `min-width: auto`, so it refuses to shrink
+			     below its content and pushes itself off the right edge of the screen.
+			     The buildings above cannot show it because they wrap. -->
+			<div
+				class="min-w-0 shrink-0 overflow-x-clip rounded-lg border border-[var(--border)]
+				       bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_86%,transparent)]
+				       px-2.5 py-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.4)] backdrop-blur-md"
+			>
+				<ObjectiveLine {match} />
+			</div>
+
+			<!-- The dice, under the buildings. This floated in its own region to the
+			     LEFT of this column, because the column was full — the seat plate held
+			     the bottom of it. That plate is in the battle centre now, so the
+			     events land here instead of hovering over the board beside the thing
+			     they are about. A resolution is always AT a building, and the building
+			     it hit is in the ladder directly above. -->
+			<div class="min-w-0 shrink-0 overflow-x-clip">
+				<GameEventsOverlay {match} class="w-full" />
+			</div>
+
+			<span class="flex-1"></span>
 		</div>
 
 		<!-- ── The felt ──────────────────────────────────────────────────────────
-		     The hand, and nothing else now. `split` used to open a gap in the
-		     middle of the arc for the dais to stand in — with the dais moved to
-		     the corner that gap is a hole in the hand, so the fan closes up.
+		     The hand, and nothing else. Lifted off the floor by exactly the battle
+		     centre's height, so the two are stacked rather than overlapping: the
+		     card reads what the hand is doing, and a card drawn ON the cards it is
+		     describing covers them.
 
-		     Lifted off the floor by exactly the ticker's height, so the two are
-		     stacked rather than overlapping: the bar reads what the hand is
-		     doing, and a bar drawn ON the cards it is describing covers them. -->
+		     Deliberately NOT `hud-scaled`. `CardFan` positions its drag ghost by
+		     mixing client coordinates with layout offsets, and it already carries
+		     a note about getting that wrong under an ancestor `zoom` — a second
+		     zoom over it is how the card flies off toward the corner instead of
+		     following the cursor. -->
 		<div class="absolute inset-x-0 bottom-[var(--play-block)] z-[5] h-[16.5rem] pointer-events-none">
 			<div
 				class="absolute inset-x-0 bottom-0 h-full"
@@ -394,17 +460,34 @@
 			<CardFan {match} class="h-full" />
 		</div>
 
-		<!-- ── The play ticker ───────────────────────────────────────────────────
-		     The floor of the screen, and the only panel down here now. It is
-		     always mounted and always the same height — see PlayTicker for why
-		     that is the whole point — so nothing above it ever moves because of
-		     it. Above the felt's gradient so its text stays legible, and
-		     pointer-enabled for the one button it carries. -->
-		<PlayTicker
+		<!-- ── The battle centre ─────────────────────────────────────────────────
+		     Your seat and the move you are making, stacked and centred: who you
+		     are on top, what you are about to do underneath.
+
+		     They were in two different corners — the plate pinned bottom-right,
+		     the bar bound between the rails — which meant the two things a player
+		     uses on their own turn were the furthest apart on the board. Centred,
+		     they are one object with one silhouette, and the rails go back to
+		     being what they are: reference you consult, not controls you drive.
+
+		     The socket and any refusal go INTO the card rather than floating
+		     anywhere. It is already the "what is happening right now" surface, so
+		     a dropped table is the same kind of sentence as whose turn it is —
+		     which is why the two floating notices above the board are gone. -->
+		<BattleCentre
 			{match}
-			class="absolute bottom-[var(--play-gap)] left-1/2 z-[6] h-[var(--play-h)]
-			       w-[min(94vw,52rem)] -translate-x-1/2"
+			state={hud}
+			takeover={arriving}
+			{socket}
+			{refusal}
+			onrules={() => (rulesOpen = true)}
+			class="hud-scaled absolute bottom-[var(--play-gap)] left-1/2 z-[6]
+			       w-[min(94vw,54rem)] -translate-x-1/2"
 		/>
+
+		<!-- Outside every `hud-scaled` subtree on purpose — a control that scales
+		     itself is a control you cannot find your way back from. -->
+		<TextScale class="pointer-events-auto absolute bottom-6 left-4 z-[7]" />
 	</div>
 </div>
 
@@ -424,3 +507,39 @@
 		ontakeover={(v) => (match.takeover = v)}
 	/>
 {/if}
+
+<style>
+	/* ── The type, and why it was never heavy ────────────────────────────────────
+	   Every label on this HUD asks for `font-mono` + `font-black`. Tailwind v4's
+	   `font-mono` is the SYSTEM stack — SF Mono on a Mac — and SF Mono ships no
+	   black. So the browser was quietly serving 600, or synthesising a smeared
+	   bold, on the exact type that has to survive at 8px over a lit plate.
+
+	   Two rules, in one place, rather than a `font-family` on two hundred spans:
+
+	   1. Numerals stay MONOSPACED, on the real mono face, which does ship a 700.
+	      Tabular figures are load-bearing here — a clock counting down and a score
+	      changing must not reflow the plate they sit in.
+
+	   2. WORDS — every uppercase label, name and verb — go to the UI face at 700.
+	      It has an x-height built for small sizes. Orbitron would be heavier still
+	      and is right where the game shouts (a title, a takeover); as a label face
+	      at 8px it is exactly the arcade-first legibility trade this HUD keeps
+	      losing. */
+	.hud-type :global(.font-mono) {
+		font-family: var(--mono);
+	}
+
+	.hud-type :global(.font-mono.uppercase.font-black) {
+		font-family: var(--sans);
+		font-weight: 700;
+	}
+
+	/* Applied per CLUSTER rather than once at the root: the rails are pinned to
+	   their corners and the battle centre is centred on a translate, so each one
+	   grows from where it is anchored instead of the whole HUD growing off the
+	   left edge of the screen. */
+	.hud-type :global(.hud-scaled) {
+		zoom: var(--hud-zoom, 1);
+	}
+</style>

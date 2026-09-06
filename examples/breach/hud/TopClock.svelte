@@ -18,7 +18,7 @@
 	// taken, and what blue still holds. That is not a presentation trick — it is
 	// what `match.standing` already computes for each side, and a scoreboard whose
 	// halves are measured in different units is two facts wearing one frame.
-	import type { BreachMatch } from '$examples/breach/internal/match.svelte.js';
+	import type { BreachMatch } from '../internal/match.svelte.js';
 	import ScoreSplit from './ScoreSplit.svelte';
 	import { scoreOf } from './score.js';
 	import { CRITICAL_AT, PLATE_SHADOW_UP, plateFill, type HudState } from './hud-state.js';

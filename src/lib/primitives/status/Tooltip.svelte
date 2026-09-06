@@ -21,6 +21,10 @@
 	let anchorEl = $state<HTMLElement | null>(null);
 	let tipEl = $state<HTMLElement | null>(null);
 	let visible = $state(false);
+	// Stable per instance so the trigger can point `aria-describedby` at the
+	// panel; without it a screen reader announces the trigger with no hint that
+	// the description exists, which for an icon-only trigger is the whole label.
+	const tipId = `tip-${Math.random().toString(36).slice(2, 9)}`;
 	let x = $state(0);
 	let y = $state(0);
 	let timer: ReturnType<typeof setTimeout> | null = null;
@@ -96,6 +100,38 @@
 		visible = false;
 	}
 
+	// `aria-describedby` has to land on the TRIGGER, not on the wrapper: the
+	// wrapper is `role="none"` + `display: contents`, so it is not in the
+	// accessibility tree and an attribute there describes nothing. The trigger
+	// comes in as a snippet, so this is set imperatively on the same element
+	// `place()` measures.
+	$effect(() => {
+		const ref = anchorEl?.firstElementChild;
+		if (!ref) return;
+		if (!visible || !(content || tip)) {
+			ref.removeAttribute('aria-describedby');
+			return;
+		}
+		ref.setAttribute('aria-describedby', tipId);
+		return () => ref.removeAttribute('aria-describedby');
+	});
+
+	// Escape dismisses the tooltip and STOPS THERE. Without this the key falls
+	// through to whatever owns the surrounding panel — in the dev console that is
+	// the Escape ladder, so reading an info dot and pressing Escape closed the
+	// whole console. Capture phase, because the panel's own window listener would
+	// otherwise see the same key first.
+	$effect(() => {
+		if (!visible) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return;
+			e.stopPropagation();
+			hide();
+		};
+		window.addEventListener('keydown', onKey, { capture: true });
+		return () => window.removeEventListener('keydown', onKey, { capture: true });
+	});
+
 	// Reposition on scroll/resize while open so the tooltip tracks its anchor.
 	$effect(() => {
 		if (!visible) return;
@@ -130,6 +166,7 @@
 
 {#if visible && (content || tip)}
 	<div
+		id={tipId}
 		class="tooltip tip-{placement}"
 		role="tooltip"
 		use:portal

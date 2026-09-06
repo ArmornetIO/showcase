@@ -18,8 +18,8 @@ import (
 const usage = `compose — serve and inspect declared micro-frontends
 
   compose print    --resolved            fully defaulted and derived manifest
-  compose validate                       exit non-zero with named problems
-  compose serve                          serve the declared apps
+  compose validate --rules FILE          exit non-zero with named problems
+  compose serve    --rules FILE          serve the declared apps
 
 Run a subcommand with -h for its flags.
 `
@@ -33,6 +33,10 @@ func main() {
 	switch os.Args[1] {
 	case "print":
 		err = runPrint(os.Args[2:])
+	case "validate":
+		err = runValidate(os.Args[2:])
+	case "serve":
+		err = runServe(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "compose: unknown subcommand %q\n\n%s", os.Args[1], usage)
 		os.Exit(2)

@@ -255,3 +255,58 @@ func TestShellHookRunsOncePerApp(t *testing.T) {
 		t.Errorf("shell hook ran %d times for the console across 3 requests, want 1", calls["console"])
 	}
 }
+
+// TestUnbuiltDiagnosticNamesTheAppAndTheCommand pins the ONE exemption from the
+// identical-response rule.
+//
+// A declared app with no bundle is the everyday state of the hot dev loop, and
+// it is also this feature's motivating failure: the app was declared, was not
+// being served, and said nothing about it until a person clicked a link. So the
+// diagnostic has to name the app AND the command, and the command has to be one
+// that exists — `.make/apps.mk` generates a `dev-app-<name>` target per manifest
+// entry precisely so this sentence stays true.
+//
+// The exemption is gated on the dev switch, which is a variable rather than a
+// build tag: a behaviour reachable only under a build tag is a behaviour with
+// no test, and this is the test.
+func TestUnbuiltDiagnosticNamesTheAppAndTheCommand(t *testing.T) {
+	// Declared, granted, and carrying no bundle at all.
+	unbuilt := compose.App{Name: "showcase", Path: "/showcase", AssetPrefix: compose.AssetPrefix("showcase")}
+	set := compose.MustSet(
+		compose.Root(app("console", "/", "index.html")),
+		compose.Also(unbuilt),
+	)
+	h := holder(t, set, oneHostRules)
+	handler := compose.Handler(set, h, compose.HandlerOptions{})
+
+	t.Run("in development", func(t *testing.T) {
+		compose.SetDev(true)
+		defer compose.SetDev(false)
+
+		rec := record()
+		handler.ServeHTTP(rec, newRequest("x", "/showcase/"))
+		if rec.Code != http.StatusServiceUnavailable {
+			t.Fatalf("status = %d, want 503: an unbuilt app is unavailable, not absent", rec.Code)
+		}
+		body := rec.Body.String()
+		for _, want := range []string{`"showcase"`, "make dev-app APP=showcase"} {
+			if !strings.Contains(body, want) {
+				t.Errorf("diagnostic does not contain %q:\n%s", want, body)
+			}
+		}
+	})
+
+	t.Run("outside development", func(t *testing.T) {
+		// No exemption off the dev switch. A production binary that never
+		// enables it cannot leak the diagnostic, and the app is answered
+		// exactly like one that was never built.
+		rec := record()
+		handler.ServeHTTP(rec, newRequest("x", "/showcase/"))
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("status = %d, want 404: the diagnostic escaped development", rec.Code)
+		}
+		if strings.Contains(rec.Body.String(), "showcase") {
+			t.Errorf("the refusal names the app: %q", rec.Body.String())
+		}
+	})
+}

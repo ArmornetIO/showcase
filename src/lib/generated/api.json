@@ -1164,6 +1164,12 @@
         "default": "'hero'"
       },
       {
+        "name": "focus",
+        "type": "Anchor",
+        "optional": true,
+        "description": "Frame one part of the body instead, using the rect the renderer\nprojected for it.\nWhat a thumbnail of a chest emblem needs. `bust` and `chip` are both\nhead crops, so a list of emblems rendered at `chip` is a list of\nidentical heads — the item is off the bottom of every cell. Overrides\n`crop` when set."
+      },
+      {
         "name": "shadow",
         "type": "boolean",
         "optional": true,
@@ -1824,60 +1830,31 @@
     "component": "DevCog",
     "props": [
       {
-        "name": "snap",
-        "type": "FlagSnapshot[]",
-        "optional": false
-      },
-      {
-        "name": "mode",
-        "type": "string",
-        "optional": false
-      },
-      {
-        "name": "modes",
-        "type": "readonly string[]",
+        "name": "groups",
+        "type": "ToolGroup[]",
         "optional": true,
-        "default": "['default']"
-      },
-      {
-        "name": "flagLabel",
-        "type": "(key: string) => string | undefined",
-        "optional": true
+        "description": "Host tool groups, merged with the built-ins and ordered by `order`.",
+        "default": "[]"
       },
       {
         "name": "flagsHref",
         "type": "string",
         "optional": true,
+        "description": "Where flags and serve mode live now.",
         "default": "'/admin/flags'"
-      },
-      {
-        "name": "onToggle",
-        "type": "(key: string, enabled: boolean) => void",
-        "optional": false
-      },
-      {
-        "name": "onModeChange",
-        "type": "(mode: string) => void",
-        "optional": false
-      },
-      {
-        "name": "showPerf",
-        "type": "boolean",
-        "optional": true,
-        "default": "false"
-      },
-      {
-        "name": "qaContent",
-        "type": "Snippet<[NitsController]>",
-        "optional": true,
-        "description": "Host tools for the QA drawer. Receives the nits controller so a tool can\nborrow the one element inspector (`nits.pickOnce`) instead of shipping a\nsecond armed-click mode that fights it for the same clicks."
       },
       {
         "name": "nitConfig",
         "type": "NitConfig",
         "optional": true,
-        "description": "Storage key + AI-prompt branding for the nits tool.",
+        "description": "Storage keys + AI-prompt branding.",
         "default": "DEFAULT_NIT_CONFIG"
+      },
+      {
+        "name": "consoleConfig",
+        "type": "ConsoleConfig",
+        "optional": true,
+        "default": "DEFAULT_CONSOLE_CONFIG"
       }
     ],
     "interfaces": []
@@ -1886,27 +1863,27 @@
     "component": "DevCogCluster",
     "props": [
       {
-        "name": "qaActive",
+        "name": "inspecting",
         "type": "boolean",
         "optional": false
       },
       {
-        "name": "qaCount",
+        "name": "captureCount",
         "type": "number",
         "optional": false
       },
       {
-        "name": "flagsOpen",
+        "name": "consoleOpen",
         "type": "boolean",
         "optional": false
       },
       {
-        "name": "onToggleQa",
+        "name": "onToggleInspect",
         "type": "() => void",
         "optional": false
       },
       {
-        "name": "onToggleFlags",
+        "name": "onToggleConsole",
         "type": "() => void",
         "optional": false
       }
@@ -1936,70 +1913,41 @@
     ],
     "interfaces": []
   },
-  "FlagRow": {
-    "component": "FlagRow",
+  "CaptureGroup": {
+    "component": "CaptureGroup",
     "props": [
       {
-        "name": "flag",
-        "type": "FlagSnapshot",
-        "optional": false
-      },
-      {
-        "name": "label",
-        "type": "string",
-        "optional": true,
-        "description": "Friendly name; falls back to the raw key."
-      },
-      {
-        "name": "onToggle",
-        "type": "(key: string, enabled: boolean) => void",
+        "name": "nits",
+        "type": "NitsController",
         "optional": false
       }
     ],
     "interfaces": []
   },
-  "FlagsPanel": {
-    "component": "FlagsPanel",
+  "Console": {
+    "component": "Console",
     "props": [
       {
-        "name": "snap",
-        "type": "FlagSnapshot[]",
+        "name": "groups",
+        "type": "ToolGroup[]",
         "optional": false
       },
       {
-        "name": "mode",
-        "type": "string",
+        "name": "state",
+        "type": "ConsoleState",
         "optional": false
       },
       {
-        "name": "modes",
-        "type": "readonly string[]",
+        "name": "nits",
+        "type": "NitsController",
         "optional": false
-      },
-      {
-        "name": "flagLabel",
-        "type": "(key: string) => string | undefined",
-        "optional": true
       },
       {
         "name": "flagsHref",
         "type": "string",
-        "optional": false
-      },
-      {
-        "name": "showPerf",
-        "type": "boolean",
-        "optional": false
-      },
-      {
-        "name": "onToggle",
-        "type": "(key: string, enabled: boolean) => void",
-        "optional": false
-      },
-      {
-        "name": "onModeChange",
-        "type": "(mode: string) => void",
-        "optional": false
+        "optional": true,
+        "description": "Where flags and serve mode live now. One link, not a sentence.",
+        "default": "'/admin/flags'"
       },
       {
         "name": "onClose",
@@ -2009,22 +1957,178 @@
     ],
     "interfaces": []
   },
-  "ModeSwitcher": {
-    "component": "ModeSwitcher",
+  "GroupRail": {
+    "component": "GroupRail",
     "props": [
       {
-        "name": "mode",
+        "name": "groups",
+        "type": "ToolGroup[]",
+        "optional": false
+      },
+      {
+        "name": "active",
         "type": "string",
         "optional": false
       },
       {
-        "name": "modes",
-        "type": "readonly string[]",
+        "name": "onselect",
+        "type": "(id: string) => void",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "ControlRow": {
+    "component": "ControlRow",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
         "optional": false
       },
       {
-        "name": "onChange",
-        "type": "(mode: string) => void",
+        "name": "display",
+        "type": "string",
+        "optional": true,
+        "description": "Current value, shown without interaction."
+      },
+      {
+        "name": "applies",
+        "type": "AppliesWhen",
+        "optional": true,
+        "default": "'live'"
+      },
+      {
+        "name": "detail",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "qualifier",
+        "type": "string",
+        "optional": true,
+        "description": "At most one short line. Anything longer belongs in `detail`."
+      },
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": true,
+        "description": "The control. Omit for a label-only heading above a bank."
+      }
+    ],
+    "interfaces": []
+  },
+  "Fader": {
+    "component": "Fader",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "value",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "min",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "max",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "step",
+        "type": "number",
+        "optional": true,
+        "default": "1"
+      },
+      {
+        "name": "format",
+        "type": "(v: number) => string",
+        "optional": true,
+        "default": "(v: number) => String(v)"
+      },
+      {
+        "name": "reference",
+        "type": "number",
+        "optional": true,
+        "description": "Default or measured sweet spot, drawn on the track. Omit it where the\n \"default\" is just an end of the range — a mark there is noise."
+      },
+      {
+        "name": "applies",
+        "type": "AppliesWhen",
+        "optional": true,
+        "default": "'live'"
+      },
+      {
+        "name": "detail",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "oninput",
+        "type": "(v: number) => void",
+        "optional": false
+      },
+      {
+        "name": "onchange",
+        "type": "(v: number) => void",
+        "optional": true,
+        "description": "Fires on release, not per pixel. Supply it when acting on the value is\nexpensive — a fixture rebuild, a refetch — and let `oninput` move only\nthe readout; otherwise a drag runs the expensive thing sixty times."
+      }
+    ],
+    "interfaces": []
+  },
+  "FaderBank": {
+    "component": "FaderBank",
+    "props": [
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false,
+        "description": "2..n <Fader>. One fader in a bank should just be a fader."
+      }
+    ],
+    "interfaces": []
+  },
+  "InfoDot": {
+    "component": "InfoDot",
+    "props": [
+      {
+        "name": "detail",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "placement",
+        "type": "TooltipPlacement",
+        "optional": true,
+        "default": "'left'"
+      }
+    ],
+    "interfaces": []
+  },
+  "Seg": {
+    "component": "Seg",
+    "props": [
+      {
+        "name": "options",
+        "type": "SegOption[]",
+        "optional": false
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "onchange",
+        "type": "(v: string) => void",
         "optional": false
       }
     ],
@@ -2157,57 +2261,6 @@
       {
         "name": "nits",
         "type": "NitsController",
-        "optional": false
-      }
-    ],
-    "interfaces": []
-  },
-  "QaDrawer": {
-    "component": "QaDrawer",
-    "props": [
-      {
-        "name": "nits",
-        "type": "NitsController",
-        "optional": false
-      },
-      {
-        "name": "content",
-        "type": "Snippet<[NitsController]>",
-        "optional": true,
-        "description": "Host-supplied page actions, rendered above the nit batch."
-      },
-      {
-        "name": "onClose",
-        "type": "() => void",
-        "optional": false
-      }
-    ],
-    "interfaces": []
-  },
-  "QaSection": {
-    "component": "QaSection",
-    "props": [
-      {
-        "name": "label",
-        "type": "string",
-        "optional": false
-      },
-      {
-        "name": "grow",
-        "type": "boolean",
-        "optional": true,
-        "description": "Fills the remaining drawer height and drops its trailing rule.",
-        "default": "false"
-      },
-      {
-        "name": "actions",
-        "type": "Snippet",
-        "optional": true,
-        "description": "Buttons rendered inline with the label."
-      },
-      {
-        "name": "children",
-        "type": "Snippet",
         "optional": false
       }
     ],
@@ -5760,6 +5813,18 @@
         "optional": true,
         "description": "Which globe you get, as ONE switch:\n  · 'relief' — ground, solids standing in it, walls standing up.\n  · 'flat'   — a smooth sphere, disc nodes, walls lying on the surface.\n One switch and not three, because the three are not independent: a\n building on a smooth sphere sits on nothing, and a wall standing up\n around flat markers is a fence around a diagram. Each set is coherent\n with itself, and the two are what a viewer would call two views.\n It changes only how the globe is DRAWN. The pack, the camera and the\n territories are identical in both, so switching never moves a node.",
         "default": "$bindable(\"relief\")"
+      }
+    ],
+    "interfaces": []
+  },
+  "GlobeDevControls": {
+    "component": "GlobeDevControls",
+    "props": [
+      {
+        "name": "only",
+        "type": "'render' | 'globe'",
+        "optional": true,
+        "description": "Which half to render. Omitted renders both, which is what a host with a\nsingle flat panel still wants."
       }
     ],
     "interfaces": []

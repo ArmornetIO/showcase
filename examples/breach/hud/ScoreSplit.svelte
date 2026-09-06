@@ -14,8 +14,8 @@
 	// lit numeral; the trailing half falls back to the plate. That is the whole
 	// "who is winning" signal, and it works at the edge of vision, which is where
 	// this bar is actually read from.
-	import { EMBLEMS, teamFlags } from '$examples/breach/hud/team-flags.svelte.js';
-	import type { Faction } from '$examples/breach/internal/rules.js';
+	import { EMBLEMS, teamFlags } from './team-flags.svelte.js';
+	import type { Faction } from '../internal/rules.js';
 	import type { Score } from './score.js';
 
 	interface Props {

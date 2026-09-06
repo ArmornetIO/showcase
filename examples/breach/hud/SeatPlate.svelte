@@ -49,6 +49,9 @@
 	);
 
 	const HEX = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
+
+	const online = $derived(match.track().filter((u) => match.round >= u.at).length);
+	const trackTone = $derived(online > 0 ? seat.color : 'var(--fg-muted)');
 </script>
 
 <!-- ── Content only ───────────────────────────────────────────────────────────
@@ -61,6 +64,35 @@
      order are in `TopClock`. Keeping a second copy here was how the timer ended
      up somewhere nobody could find it — two half-prominent clocks instead of one
      unmissable one. -->
+<!-- Label then value, on one line. A readout in a header cannot afford the
+     stacked caption the body columns used — and at this size the label reads as
+     the value's unit, which is what it always was. -->
+{#snippet readout(label: string, value: string, tone: string, pips = false)}
+	<span class="flex min-w-0 items-center gap-1.5">
+		<span
+			class="shrink-0 font-mono text-[0.5rem] leading-none font-black tracking-[0.22em] text-[var(--fg)] uppercase"
+		>
+			{label}
+		</span>
+		{#if pips}
+			<Pips
+				total={3}
+				filled={Math.min(match.res[seat.key] ?? 0, 3)}
+				shape="diamond"
+				size={7}
+				gap={2}
+				color={seat.color}
+			/>
+		{/if}
+		<b
+			class="truncate font-mono text-[0.68rem] leading-none font-black tabular-nums"
+			style:color={tone}
+		>
+			{value}
+		</b>
+	</span>
+{/snippet}
+
 <div class="flex flex-col">
 	<!-- ── The nameplate ──────────────────────────────────────────────────────
 	     A full-bleed slab of saturated colour with near-black type on it, running
@@ -80,10 +112,29 @@
 			>
 				{seat.name}
 			</b>
-			<span class="font-mono text-[0.5rem] tracking-[0.22em] text-[var(--fg-dim)] uppercase">
+			<span class="font-mono text-[0.5rem] font-black tracking-[0.22em] text-[var(--fg)] uppercase">
 				your seat
 			</span>
 		</span>
+		<!-- ── The readouts ──────────────────────────────────────────────────────
+		     Exposure, rep and the track summary. All three used to be columns in the
+		     body row, each with a caption over it and a status word under it, which
+		     is what kept the track slots and the signature from ever being the same
+		     height — three stacks of three lines, sized by their labels rather than
+		     by what they hold.
+
+		     They are readings, not controls: you look at them, you never press them.
+		     So they read along the header, where the plate had 400px of nothing
+		     between its name and its turn badge, and the body is left to the two
+		     things you actually touch. -->
+		<span class="flex min-w-0 shrink items-center gap-3">
+			{@render readout(match.standingLabel, `${match.standing}`, standTone)}
+			<span class="h-4 w-px bg-[var(--border)]"></span>
+			{@render readout(seat.resource, `${match.res[seat.key] ?? 0}`, seat.color, true)}
+			<span class="h-4 w-px bg-[var(--border)]"></span>
+			{@render readout('track', `${online}/${match.track().length} online`, trackTone)}
+		</span>
+
 		<!-- Not `<klass> up` — the clock says that already. -->
 		<span
 			class="shrink-0 rounded-full border-2 px-1.5 py-[1px] font-mono text-[0.5rem] leading-none font-black tracking-[0.12em] uppercase"
@@ -162,7 +213,7 @@
 					     the same one the whole half of the screen is already wearing. -->
 					<span class="flex min-w-0 items-center gap-1.5">
 						<TeamFlag faction={seat.faction} size="plate" showName />
-						<span class="font-mono text-[0.5rem] tracking-[0.22em] text-[var(--fg-dim)] uppercase">
+						<span class="font-mono text-[0.5rem] font-black tracking-[0.22em] text-[var(--fg)] uppercase">
 							· <b style:color={seat.color}>{seat.seat}</b>
 						</span>
 					</span>
@@ -181,9 +232,11 @@
 						<!-- The rails' badge, not a tinted rectangle: a square-cornered
 						     colour wash is the one shape this HUD does not use anywhere
 						     else. -->
+						<!-- White on the tint, not the tint's own hue on it. A badge filled
+						     with a colour and lettered in the same colour is the one thing
+						     on this plate you have to lean in to read. -->
 						<span
-							class="flex w-fit items-center gap-1 rounded-full border-2 px-1.5 py-[1px] font-mono text-[0.5rem] leading-none font-black tracking-[0.12em] uppercase"
-							style:color={seat.color}
+							class="flex w-fit items-center gap-1 rounded-full border-2 px-1.5 py-[1px] font-mono text-[0.5rem] leading-none font-black tracking-[0.12em] text-[var(--fg)] uppercase"
 							style:border-color={gemEdge(seat.color)}
 							style:background={gemFill(seat.color)}
 						>
@@ -193,37 +246,13 @@
 					</Tooltip>
 				</span>
 
-				<span class="flex shrink-0 flex-col items-end gap-1 leading-none">
-					<b
-						class="font-mono text-[1.75rem] leading-none font-black tabular-nums"
-						style:color={standTone}
-					>
-						{match.standing}
-					</b>
-					<span
-						class="font-mono text-[0.5rem] leading-none tracking-[0.22em] uppercase"
-						style:color={standTone}
-					>
-						{match.standingLabel}
-					</span>
-				</span>
 			</div>
 		</div>
 
-		<!-- The bar the number above belongs to. Full width, because it is the only
-		     meter here that ends the match. -->
+		<!-- The meter the header's number belongs to. It stays in the body because
+		     it is the only thing here that is worth seeing without reading — a bar
+		     emptying is legible at the edge of vision and `29` is not. -->
 		<div class="flex flex-col gap-1">
-			<span class="hidden items-baseline justify-between">
-				<span
-					class="font-mono text-[11px] font-extrabold tracking-[0.14em] uppercase"
-					style:color={standTone}
-				>
-					{match.standingLabel}
-				</span>
-				<b class="font-mono text-[20px] leading-none font-black tabular-nums" style:color={standTone}>
-					{match.standing}
-				</b>
-			</span>
 			<span
 				class="block h-[8px] w-full overflow-hidden bg-[var(--surface-strong)]"
 				class:pulse-soft={match.standing <= 30}
@@ -241,48 +270,19 @@
 
 		<span class="h-12 w-px shrink-0 bg-[var(--border)]"></span>
 
-		<!-- ── Resource ─────────────────────────────────────────────────────── -->
-		<Tooltip placement="top">
-			{#snippet tip()}
-				<span class="text-[0.62rem] leading-snug">
-					{seat.faction === 'red'
-						? `You hold ${match.res[seat.key] ?? 0}. Only 3 ever rides a single roll.`
-						: 'Held, and read by nothing — only the Maintainer’s is wired into a roll.'}
-				</span>
-			{/snippet}
-			<span class="flex shrink-0 flex-col items-center gap-1">
-				<span class="font-mono text-[0.5rem] tracking-[0.22em] text-[var(--fg-dim)] uppercase">
-					{seat.resource}
-				</span>
-				<Pips
-					total={3}
-					filled={Math.min(match.res[seat.key] ?? 0, 3)}
-					shape="diamond"
-					size={8}
-					gap={3}
-					color={seat.color}
-				/>
-				<b
-					class="font-mono text-[14px] leading-none font-black tabular-nums"
-					style:color={(match.res[seat.key] ?? 0) > 0 ? seat.color : 'var(--fg-muted)'}
-				>
-					{match.res[seat.key] ?? 0}
-				</b>
-			</span>
-		</Tooltip>
-
-		<span class="h-12 w-px shrink-0 bg-[var(--border)]"></span>
-
 		<!-- ── The track, as a charge rail ──────────────────────────────────────
 		     Rectangles rather than rings: the slots fill from the bottom like an
 		     ult charging, and they share the bar language the rest of the plate is
 		     built from. `pct` is rounds, not a percentage — which is why the
-		     readout in the middle is a glyph and not a number. -->
-		<div class="flex shrink-0 flex-col items-center gap-1">
-			<span class="font-mono text-[0.5rem] tracking-[0.22em] text-[var(--fg-dim)] uppercase">
-				track
-			</span>
-			<span class="flex items-start gap-1.5">
+		     readout in the middle is a glyph and not a number.
+
+		     The caption over the rail and the status word under each slot are gone
+		     — `2/3 ONLINE` says both in the header, and those two lines were the
+		     reason the slots were 42px in a 66px row. `self-stretch` now, matching
+		     the signature: this half of the plate is two controls, both full
+		     height, and nothing else. -->
+		<div class="flex shrink-0 self-stretch">
+			<span class="flex items-stretch gap-1.5">
 				{#each match.track() as upgrade (upgrade.key)}
 					{@const open = match.round >= upgrade.at}
 					{@const kind = UPGRADE_KIND[upgrade.kind]}
@@ -305,9 +305,9 @@
 								</span>
 							</span>
 						{/snippet}
-						<span class="flex flex-col items-center gap-0.5">
+						<span class="flex items-stretch">
 							<span
-								class="relative grid h-[42px] w-[52px] place-items-center overflow-hidden rounded-[8px] border"
+								class="relative grid w-[52px] place-items-center overflow-hidden rounded-[8px] border"
 								style:border-color={open
 									? `color-mix(in srgb, ${kind.hue} 75%, transparent)`
 									: 'color-mix(in srgb, #FBBF24 55%, transparent)'}
@@ -332,18 +332,16 @@
 								<span class="relative" style:color={open ? kind.hue : '#FBBF24'}>
 									<Icon name={(open ? upgrade.icon : 'lock') as IconName} size={14} />
 								</span>
+								<!-- `+1` when it is online, `R6` when it is not — the same
+								     corner saying what it gives you or when it arrives. The
+								     `1 AWAY` line that used to sit under the slot said the
+								     second of those twice. -->
 								<b
-									class="absolute right-0.5 bottom-0.5 font-mono text-[0.5rem] leading-none font-black tabular-nums"
+									class="absolute right-1 bottom-1 font-mono text-[0.5rem] leading-none font-black tabular-nums"
 									style:color={open ? kind.hue : '#FBBF24'}
 								>
 									{open ? `+${upgrade.value}` : `R${upgrade.at}`}
 								</b>
-							</span>
-							<span
-								class="font-mono text-[0.5rem] leading-none tracking-[0.22em] uppercase"
-								style:color={open ? kind.hue : '#FBBF24'}
-							>
-								{open ? 'online' : `${away} away`}
 							</span>
 						</span>
 					</Tooltip>
@@ -351,16 +349,20 @@
 			</span>
 		</div>
 
-		<!-- ── The ult key ──────────────────────────────────────────────────────
-		     A move with no pile to sit in, so it lives on the sheet — and it is a
-		     card's worth of information, so it gets a card's row.
+		<!-- ── The signature ────────────────────────────────────────────────────
+		     A move with no pile to sit in, so it lives on the sheet.
 
-		     ALWAYS solid, on everybody's turn. Your hero power costing 2 AP is a
-		     fact about your character, not about the clock, and greying it out
-		     between your turns made the one genuinely big button on this panel
-		     look broken. Only SPENT changes the fill — that is the one state where
-		     the thing really is gone — and armability rides the glow, which says
-		     "now" without taking the button away.
+		     It was a 200px card floating in the row with its own rim, fill, spine
+		     and shadow — a panel inside a panel, in a section that had room for
+		     neither. It is built like the TRACK now: a caption above, one slot, a
+		     state word under it. Those three lines are the section, so the slot
+		     simply takes the section: `flex-1`, full height, nothing around it.
+
+		     ALWAYS lit, on everybody's turn. Your signature costing 2 AP is a fact
+		     about your character, not about the clock, and greying it out between
+		     turns made the one genuinely big control on this panel look broken.
+		     Only SPENT changes the fill — the one state where the thing really is
+		     gone — and armability rides the glow.
 
 		     `disabled` still gates the click. Looking available and being clickable
 		     are different questions and only the second one is the button's. -->
@@ -369,6 +371,14 @@
 		{#if power}
 			{@const pfx = fxFor(power.key, seat.faction)}
 			{@const armed = match.armedKey === power.key}
+			<!-- No caption over it and no state word under it. Those two lines are
+			     what the TRACK needs — three slots that have to be told apart and a
+			     countdown that has to be read — and this section holds exactly one
+			     thing, whose name is written across it in the hue of the move. The
+			     label was naming what the reader is already looking at, and `READY`
+			     was saying in a word what the glow says without one.
+			     `self-stretch` in an `items-center` row: it fills its side, top to
+			     bottom, which is the whole point of putting it here. -->
 			<button
 				type="button"
 				disabled={!powerArmable}
@@ -376,55 +386,52 @@
 					match.armedKey = power.key;
 					match.inspectKey = power.key;
 				}}
-				class="relative flex w-[200px] shrink-0 items-center gap-2 overflow-hidden rounded-[10px] border py-2 pr-2.5 pl-3 text-left transition-all disabled:cursor-default"
-				style:color={spent ? 'var(--fg-dim)' : pfx.hue}
-				style:border-color={spent
-					? 'color-mix(in srgb, var(--fg) 14%, transparent)'
-					: armed || powerArmable
-						? `color-mix(in srgb, ${pfx.hue} 78%, transparent)`
-						: gemEdge(pfx.hue)}
-				style:background={spent
-					? 'repeating-linear-gradient(45deg, transparent 0 5px, color-mix(in srgb, var(--fg) 8%, transparent) 5px 10px)'
-					: plateFill(pfx.hue, 26)}
-				style:box-shadow={armed
-					? `0 0 0 1px color-mix(in srgb, ${pfx.hue} 40%, transparent), 0 0 26px color-mix(in srgb, ${pfx.hue} 50%, transparent)`
-					: powerArmable
-						? `0 0 18px color-mix(in srgb, ${pfx.hue} 35%, transparent)`
-						: PLATE_SHADOW}
-				title={power.text}
-			>
-				<!-- A card, not a key. It was a fully saturated gradient slab with
-				     near-black type — the loudest thing on the plate, for a move you
-				     use once a match. The rails' own vocabulary says this exactly:
-				     tinted fill, hue border, hue stripe, hue type. The glow still
-				     does the "now" that the fill used to over-say. -->
-				<span
-					class="absolute inset-y-0 left-0 w-[3px]"
-					style:background={spent ? 'color-mix(in srgb, var(--fg) 20%, transparent)' : pfx.hue}
-				></span>
-				<span class="shrink-0"><Icon name={pfx.icon as IconName} size={15} /></span>
-				<span
-					class="min-w-0 flex-1 truncate font-mono text-[0.62rem] leading-none font-black tracking-[0.06em] uppercase"
+				class="relative flex min-w-0 flex-1 items-center gap-2.5 self-stretch overflow-hidden rounded-[8px] border px-3 text-left transition-all disabled:cursor-default"
+					style:color={spent ? 'var(--fg-dim)' : pfx.hue}
+					style:border-color={spent
+						? 'color-mix(in srgb, var(--fg) 14%, transparent)'
+						: armed || powerArmable
+							? `color-mix(in srgb, ${pfx.hue} 78%, transparent)`
+							: `color-mix(in srgb, ${pfx.hue} 55%, transparent)`}
+					style:background={spent
+						? 'repeating-linear-gradient(45deg, transparent 0 5px, color-mix(in srgb, var(--fg) 8%, transparent) 5px 10px)'
+						: `color-mix(in srgb, ${pfx.hue} 22%, transparent)`}
+					style:box-shadow={armed
+						? `0 0 0 1px color-mix(in srgb, ${pfx.hue} 40%, transparent), 0 0 26px color-mix(in srgb, ${pfx.hue} 50%, transparent)`
+						: powerArmable
+							? `0 0 18px color-mix(in srgb, ${pfx.hue} 35%, transparent)`
+							: 'none'}
+					title={power.text}
 				>
-					{power.name}
-				</span>
-				{#if spent}
-					<b class="shrink-0 font-mono text-[0.5rem] font-black tracking-[0.12em] uppercase">
-						spent
+				<span class="shrink-0"><Icon name={pfx.icon as IconName} size={20} /></span>
+				<span class="flex min-w-0 flex-1 flex-col gap-1">
+					<b
+						class="truncate font-mono text-[0.75rem] leading-none font-black tracking-[0.06em] uppercase"
+					>
+						{power.name}
 					</b>
-				{:else}
-					<b class="shrink-0 font-mono text-[0.62rem] leading-none font-black tabular-nums">
+					<!-- The one line of the move's own text that fits. It is the only
+					     thing on this plate that says what a control DOES, and the
+					     section is now wide enough to carry it. -->
+					<span class="truncate font-mono text-[0.5rem] leading-none text-[var(--fg-muted)]">
+						{spent ? 'spent for this match' : power.text}
+					</span>
+				</span>
+				<span class="flex shrink-0 flex-col items-end gap-1.5">
+					<b class="font-mono text-[0.75rem] leading-none font-black tabular-nums">
 						{power.ap} AP
 					</b>
-					<Pips
-						total={power.uses}
-						filled={match.powerCharges}
-						shape="diamond"
-						size={7}
-						gap={2}
-						color={pfx.hue}
-					/>
-				{/if}
+					{#if !spent}
+						<Pips
+							total={power.uses}
+							filled={match.powerCharges}
+							shape="diamond"
+							size={7}
+							gap={2}
+							color={pfx.hue}
+						/>
+					{/if}
+				</span>
 			</button>
 		{/if}
 	</div>

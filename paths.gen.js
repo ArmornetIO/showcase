@@ -5,7 +5,7 @@
  * written ONCE, in apps.yaml. Editing this file instead means the next
  * generator run silently reverts you — and the drift check will fail the
  * build before that, which is the point.
- * 
+ *
  * Import APP_BASE from a svelte.config.js or vite.config.ts to set the app's
  * base path. The dev proxy is generated from the same manifest entry, so the
  * baked-in prefix and the prefix that routes to it cannot disagree.
@@ -20,7 +20,7 @@ export const APP_BASE = {
 	showcase: '/showcase',
 	breach: '/breach',
 	jobboard: '',
-	installer: '',
+	installer: ''
 };
 
 /** Where each toolchain writes its bundle, relative to the app's source.
@@ -31,7 +31,7 @@ export const APP_BUILD_DIR = {
 	showcase: 'build',
 	breach: 'dist',
 	jobboard: 'build',
-	installer: 'dist',
+	installer: 'dist'
 };
 
 /** Each app's private asset namespace, derived from its NAME. */
@@ -40,5 +40,5 @@ export const APP_ASSETS = {
 	showcase: '/_apps/showcase',
 	breach: '/_apps/breach',
 	jobboard: '/_apps/jobboard',
-	installer: '/_apps/installer',
+	installer: '/_apps/installer'
 };

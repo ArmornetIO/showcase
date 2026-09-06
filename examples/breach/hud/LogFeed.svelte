@@ -67,7 +67,7 @@
 </script>
 
 <div class="pointer-events-auto flex min-h-0 flex-col gap-1.5 {cls}">
-	<span class="pl-0.5 font-mono text-[0.5rem] uppercase tracking-[0.22em] text-[var(--fg-dim)]">
+	<span class="pl-0.5 font-mono text-[0.5rem] font-black uppercase tracking-[0.22em] text-[var(--fg)]">
 		battle log
 		<span class="ml-1 text-[var(--fg-dim)] opacity-60">round {match.round}</span>
 	</span>
@@ -207,9 +207,14 @@
 					     also its "and what about them". Rows nobody played (a round
 					     opening, a region giving somebody up) have no card, and their own
 					     prose is the closest thing to one they have. -->
+					<!-- 0.52rem and black, not 0.44 and regular: this line is the row's
+					     verb — `struck the forge` — and it was the smallest, lightest
+					     type on a card whose whole job is to say what happened. Rows with
+					     no card wore `--fg-dim` on top of that, which is the palette's
+					     quietest grey for the ones that have nothing but these words. -->
 					<span
-						class="flex items-center gap-1 font-mono text-[0.44rem] tracking-[0.1em] uppercase truncate"
-						style:color={fx ? fx.hue : 'var(--fg-dim)'}
+						class="flex items-center gap-1 font-mono text-[0.52rem] font-black tracking-[0.08em] uppercase truncate"
+						style:color={fx ? fx.hue : 'var(--fg)'}
 					>
 						<Icon name={(fx ? fx.icon : r.icon) as IconName} size={9} />
 						<span class="truncate">{card ? card.name : `${r.title} ${r.subject}`}</span>
@@ -234,8 +239,8 @@
 								{/snippet}
 								<span
 									class="flex items-center gap-1 rounded px-1 py-px border min-w-0"
-									style:color="var(--fg-dim)"
-									style:border-color="var(--border)"
+									style:color="var(--fg)"
+									style:border-color="var(--border-strong, var(--border))"
 								>
 									{#if target}
 										<span class="shrink-0 -my-px">
@@ -244,7 +249,7 @@
 									{:else}
 										<Icon name="eye-off" size={9} />
 									{/if}
-									<span class="font-mono text-[0.44rem] uppercase tracking-[0.06em] truncate">
+									<span class="font-mono text-[0.5rem] font-black uppercase tracking-[0.06em] truncate">
 										{target ? target.name.replace(/^The /, '') : region}
 									</span>
 								</span>

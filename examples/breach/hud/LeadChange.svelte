@@ -141,7 +141,7 @@
 			>
 				takes the lead
 			</b>
-			<span class="font-mono text-[0.5rem] tracking-[0.12em] text-[var(--fg-dim)] uppercase">
+			<span class="font-mono text-[0.5rem] font-black tracking-[0.12em] text-[var(--fg)] uppercase">
 				{card.faction === 'red' ? 'links taken' : 'links held'} · {card.faction === 'red'
 					? card.taken
 					: card.held} of 5

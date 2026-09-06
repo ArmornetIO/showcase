@@ -38,12 +38,12 @@
 	const score = $derived(scoreOf(match));
 </script>
 
-<!-- 480px is the strip below it: the clock, the score and the four seat chips are
-     one object at the top of the screen, and two plates that nearly line up read
-     as a mistake in a way two that do not line up at all never would. -->
-<div class="pointer-events-auto flex w-[480px] flex-col gap-1.5">
+<!-- Sized by its contents now, not to a strip below it: the seats moved out to
+     either side, so this plate is the middle of a row rather than the top of a
+     stack, and a fixed width would just pad it. -->
+<div class="pointer-events-auto flex flex-col gap-1.5">
 	<div
-		class="relative flex items-stretch gap-3 overflow-hidden rounded-[10px] border px-3 py-1.5"
+		class="relative flex items-stretch gap-2.5 overflow-hidden rounded-[10px] border px-2.5 py-1.5"
 		style:border-color={running
 			? `color-mix(in srgb, ${state.color} 70%, transparent)`
 			: 'var(--border)'}
@@ -54,16 +54,24 @@
 		     It was a caption line floating above the plate, which is where you put
 		     a label, not a number — and this one is the horizon the whole match is
 		     racing: blue wins by reaching it. Big, left, captioned underneath. -->
-		<div class="flex w-[54px] shrink-0 flex-col items-center justify-center gap-1">
+		<!-- Same width as the clock beside it, so the two numerals sit on a common
+		     rhythm and the caption under one lines up with the drain under the
+		     other. Two number blocks of different widths either side of a score is
+		     the kind of near-miss that reads as a layout bug. -->
+		<div class="flex w-[62px] shrink-0 flex-col items-center justify-center gap-1.5">
 			<span class="flex items-baseline gap-0.5 leading-none">
 				<b class="font-mono text-[1.5rem] leading-none font-black tabular-nums text-[var(--fg)]">
 					{match.round}
 				</b>
-				<span class="font-mono text-[0.75rem] leading-none font-bold tabular-nums text-[var(--fg-muted)]">
+				<span
+					class="font-mono text-[0.75rem] leading-none font-bold tabular-nums text-[var(--fg-muted)]"
+				>
 					/{match.rounds}
 				</span>
 			</span>
-			<span class="font-mono text-[0.5rem] leading-none tracking-[0.22em] text-[var(--fg-dim)] uppercase">
+			<span
+				class="font-mono text-[0.5rem] leading-none font-black tracking-[0.22em] text-[var(--fg)] uppercase"
+			>
 				round
 			</span>
 		</div>
@@ -75,29 +83,27 @@
 
 		<span class="w-px shrink-0 self-stretch bg-[var(--border)]"></span>
 
-		<!-- ── The seconds ───────────────────────────────────────────────────── -->
-		<div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
-			<div class="flex items-baseline gap-2">
-				<b
-					class="font-mono text-[2rem] leading-none font-black tabular-nums"
-					class:pulse={critical}
-					style:color={running ? state.color : 'var(--fg-muted)'}
-					style:letter-spacing="-0.03em"
-					style:text-shadow="0 0 22px color-mix(in srgb, {state.color} 45%, transparent)"
-					style:opacity={match.busy ? 0.45 : 1}
-				>
-					{running ? String(secs).padStart(2, '0') : '--'}
-				</b>
-				<span
-					class="min-w-0 flex-1 truncate text-right font-mono text-[0.5rem] tracking-[0.22em] text-[var(--fg-dim)] uppercase"
-				>
-					{match.busy ? 'resolving' : match.isMyTurn ? 'your turn' : `${match.activeKlass.name} up`}
-				</span>
-			</div>
+		<!-- ── The seconds ─────────────────────────────────────────────────────
+		     Whose turn it is used to be spelled out beside the numeral, which is
+		     what made this block stretch: the words needed 200px and the clock
+		     needed 60. It is said three other ways on this screen — the acting chip
+		     is lit, the seat card's badge reads YOUR TURN, and the whole HUD is
+		     wearing that seat's colour — so the fourth was only buying width.
 
-			<!-- The drain, directly under the number it belongs to. Full width so the
-			     emptying is legible peripherally — which is the only way anyone reads
-			     a timer they are not currently staring at. -->
+		     Same 62px as the round block, and the drain runs the width of the
+		     counter rather than the width of a sentence that is no longer here. -->
+		<div class="flex w-[62px] shrink-0 flex-col items-center justify-center gap-1.5">
+			<b
+				class="font-mono text-[1.5rem] leading-none font-black tabular-nums"
+				class:pulse={critical}
+				style:color={running ? state.color : 'var(--fg-muted)'}
+				style:letter-spacing="-0.03em"
+				style:text-shadow="0 0 22px color-mix(in srgb, {state.color} 45%, transparent)"
+				style:opacity={match.busy ? 0.45 : 1}
+			>
+				{running ? String(secs).padStart(2, '0') : '--'}
+			</b>
+
 			<span
 				class="block h-[5px] w-full overflow-hidden bg-[var(--surface-strong)]"
 				style:clip-path="polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%)"

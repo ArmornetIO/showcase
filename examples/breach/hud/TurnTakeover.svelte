@@ -42,7 +42,7 @@
 			your turn
 		</b>
 		<span
-			class="font-mono text-[0.5rem] leading-none tracking-[0.22em] text-[var(--fg-dim)] uppercase"
+			class="font-mono text-[0.5rem] leading-none font-black tracking-[0.22em] text-[var(--fg)] uppercase"
 		>
 			round {round} · {seconds}s
 		</span>

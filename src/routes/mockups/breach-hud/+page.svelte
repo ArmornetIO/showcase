@@ -412,17 +412,21 @@
 		     because the globe's insets are driven off its height. -->
 		<div
 			class="flex flex-col items-center gap-2
-			       xl:absolute xl:top-4 xl:left-1/2 xl:z-[3] xl:max-w-[min(92vw,54rem)] xl:-translate-x-1/2"
+			       xl:absolute xl:top-4 xl:left-1/2 xl:z-[3] xl:max-w-[min(96vw,62rem)] xl:-translate-x-1/2"
 		>
 			<!-- The clock, top centre, above everything else in this column. It is
 			     the number a player looks up for without being prompted, and the
 			     rail is where you go to read something deliberately — which is how
 			     it ended up somewhere nobody could find it. -->
-			<TopClock {match} state={hud} />
-			<!-- The table, immediately under the clock: chair order left to right,
-			     the seat that is up lit, everything else on a hover card. It replaces
-			     a permanent 250px rail down the left edge — see `TableStrip`. -->
-			<TableStrip {match} />
+			<!-- The two sides either side of the score, the way a fixture board has
+			     always drawn them. The strip used to sit UNDER the clock as one run of
+			     four chips, which put an enemy next to your ally and made the split
+			     something you had to read off the flags. -->
+			<div class="flex items-start gap-2">
+				<TableStrip {match} faction="red" />
+				<TopClock {match} state={hud} />
+				<TableStrip {match} faction="blue" />
+			</div>
 		</div>
 
 		<!-- Left column: what has happened. -->

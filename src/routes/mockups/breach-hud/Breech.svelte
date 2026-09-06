@@ -109,7 +109,7 @@
 				/{match.maxAp()}
 			</span>
 			<span
-				class="ml-0.5 font-mono text-[0.5rem] leading-none tracking-[0.22em] text-[var(--fg-dim)] uppercase"
+				class="ml-0.5 font-mono text-[0.5rem] leading-none font-black tracking-[0.22em] text-[var(--fg)] uppercase"
 			>
 				ap
 			</span>

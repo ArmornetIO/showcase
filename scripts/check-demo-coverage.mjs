@@ -46,7 +46,13 @@ const NO_DEMO_REASON = {
 	// actually drawing something to report on, so the demo is the whole job
 	// rather than a formality — see docs/development/perf-dev-tooling.md. Delete
 	// this line when that page lands; it is a promise, not an exemption.
-	PerfHud: 'demo pending — needs a live scene to report on, see docs/development/perf-dev-tooling.md'
+	PerfHud: 'demo pending — needs a live scene to report on, see docs/development/perf-dev-tooling.md',
+		// TEMPORARY, and the only kind of entry that should be. A HUD that reports
+	// frame time, allocation and per-layer draw rates needs a page that is
+	// actually drawing something to report on, so the demo is the whole job
+	// rather than a formality — see docs/development/perf-dev-tooling.md. Delete
+	// this line when that page lands; it is a promise, not an exemption.
+	Scene: 'demo pending — needs a live scene to report on, see docs/development/perf-dev-tooling.md'
 };
 
 function componentFiles() {

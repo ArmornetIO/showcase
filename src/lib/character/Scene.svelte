@@ -26,6 +26,32 @@
 	let { scene, fit = 'meet', zoom = 1, offset, label }: Props = $props();
 
 	const a = $derived(sceneArt(scene));
+
+	/**
+	 * The paint list cut into runs of equal focus.
+	 *
+	 * A blur has to be a filter on a GROUP, not on each path: filtered
+	 * individually, every facet is blurred to its own edge and the seams between
+	 * them turn into a grid of soft lines through the middle of what should be
+	 * one soft shape. Runs rather than one group per blur VALUE because paint
+	 * order is the whole hidden-surface algorithm here — reordering the list to
+	 * gather the soft things together would put the background in front of the
+	 * subject on any card where the two interleave.
+	 *
+	 * Contiguous runs cost nothing in practice: `paint` sorts back to front, and
+	 * focus is set on the same axis, so the runs come out sorted anyway.
+	 */
+	const bands = $derived.by(() => {
+		const out: { blur: number; tris: typeof a.tris }[] = [];
+		for (const t of a.tris) {
+			const last = out[out.length - 1];
+			if (last && last.blur === t.blur) last.tris.push(t);
+			else out.push({ blur: t.blur, tris: [t] });
+		}
+		return out;
+	});
+
+	const uid = $props.id();
 	const view = $derived.by(() => {
 		const w = a.box.w * zoom;
 		const h = a.box.h * zoom;
@@ -44,8 +70,28 @@
 	aria-label={label}
 	role="img"
 >
-	{#each a.tris as t, i (i)}
-		<path d={t.d} fill={t.fill} stroke={t.edge} stroke-width="0.6" stroke-linejoin="round" />
+	{#each bands as band, b (b)}
+		{#if band.blur}
+			<!-- The filter region has to be grown by hand. The default is 10% of
+			     the bounding box, and a soft edge is wider than that by
+			     definition — at the radii a background wants, the default clips
+			     the blur square and prints its corners. -->
+			<filter
+				id="{uid}-b{b}"
+				x="-20%"
+				y="-20%"
+				width="140%"
+				height="140%"
+				color-interpolation-filters="sRGB"
+			>
+				<feGaussianBlur stdDeviation={band.blur} />
+			</filter>
+		{/if}
+		<g filter={band.blur ? `url(#${uid}-b${b})` : undefined}>
+			{#each band.tris as t, i (i)}
+				<path d={t.d} fill={t.fill} stroke={t.edge} stroke-width="0.6" stroke-linejoin="round" />
+			{/each}
+		</g>
 	{/each}
 </svg>
 

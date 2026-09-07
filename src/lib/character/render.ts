@@ -142,6 +142,8 @@ export interface Tri {
 	fill: string;
 	edge: string;
 	glow: boolean;
+	/** Out-of-focus radius in the same units `d` is drawn in. 0 is sharp. */
+	blur: number;
 }
 
 /**
@@ -180,6 +182,15 @@ export interface Painted {
 	emits: boolean;
 	/** Albedo the mass carries within its own colour. */
 	tint: number;
+	/**
+	 * Throw it out of focus, in world units.
+	 *
+	 * Carried per THING rather than computed from depth, because focus is a
+	 * composition decision and not a fact about the geometry: two objects the
+	 * same distance away are not always both meant to be soft, and the subject
+	 * of a shot is whatever the shot says it is.
+	 */
+	blur?: number;
 }
 
 /**
@@ -205,7 +216,10 @@ export function paint(items: readonly Painted[], frame: TangentFrame, glow = 1):
 			const [fill, edge] = it.emits
 				? [lamp(it.color, t * glow), lamp(it.color, t * glow)]
 				: [shade(it.color, b * t), shade(it.color, b * t * 0.4)];
-			rows.push({ tri: { d: f.d, fill, edge, glow: it.emits }, depth: f.depth });
+			rows.push({
+				tri: { d: f.d, fill, edge, glow: it.emits, blur: it.blur ?? 0 },
+				depth: f.depth
+			});
 		}
 	}
 

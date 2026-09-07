@@ -158,6 +158,14 @@ src/routes/mockups/*
 # gets none of them generated and renders unstyled. Any mockup carrying Tailwind
 # classes has to be visible to git for the same reason.
 !src/routes/mockups/glass-card/
+# The card work, un-ignored for the same reason: the faces are Tailwind all the
+# way down, and half the type scale silently rendered at 16px because the only
+# arbitrary values that survived were the ones some tracked file happened to use
+# too. `breach-cards` prints `breach-locker`'s skin next to its own face, so
+# leaving either one ignored breaks the comparison the page exists to make.
+!src/routes/mockups/breach-cards/
+!src/routes/mockups/breach-locker/
+!src/routes/mockups/breach-outfitter/
 !src/routes/mockups/glass-exposure/
 # Same reason: these are built almost entirely from utility classes.
 # `npm run check` enforces this rule — see scripts/check-sources.mjs.

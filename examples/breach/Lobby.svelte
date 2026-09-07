@@ -30,7 +30,6 @@
 	import type { Faction, MatchSize } from './internal/rules.js';
 	import ConnectionBanner from './hud/ConnectionBanner.svelte';
 	import WelcomeCard from './lobby/WelcomeCard.svelte';
-	import TeamPicker from './lobby/TeamPicker.svelte';
 	import AgentSelect from './lobby/AgentSelect.svelte';
 	import { arrivedOnLink, inviteURL, openTable } from './api.js';
 	import { TableSocket } from './net.svelte.js';
@@ -148,9 +147,29 @@
 		void lobby.issue();
 	});
 
-	const stage = $derived(lobby.seated ? 'select' : 'sides');
+	const titleUp = $derived(!titleDone);
 
-	const titleUp = $derived(!titleDone && stage === 'sides');
+	/**
+	 * Seat the first arrival, on a LOCAL table only.
+	 *
+	 * Picking a side is not a step any more — it is a thing you may do, from the
+	 * flags in the rail, whenever you feel like it. Somebody who opens the game
+	 * and wants to look at characters should be looking at characters, and
+	 * choosing a character needs a seat, so the seat is given rather than
+	 * demanded.
+	 *
+	 * NOT on a networked table, and that is a deliberate exception rather than
+	 * an oversight — see the note in `Breach.svelte`. There, taking a chair on
+	 * connect answers "which side are you on" for a player before their screen
+	 * has finished painting, and four people racing into default chairs is the
+	 * seating problem this whole flow was rebuilt to avoid. A local table has
+	 * nobody to race.
+	 */
+	$effect(() => {
+		if (socket || lobby.seated) return;
+		const seatId = lobby.firstOpenSeatOn('red');
+		if (seatId) lobby.joinSide('red');
+	});
 
 	/**
 	 * Turn the local table into a real one, and hand back a link.
@@ -328,27 +347,14 @@
 		</div>
 	{/if}
 
-	{#if stage === 'sides'}
-		<!-- Mounted UNDER the curtain rather than after it. The curtain used to be
-		     the first arm of this chain, which meant there was nothing behind it to
-		     fade to and the only way off the title was a cut. `inert` is what makes
-		     that safe: the screen is on the page for the whole of the intro, and
-		     without it the tab key reaches controls nobody can see.
-		     This is the first screen now — picking a side is the first thing
-		     anybody does, on a local table, and the rules live in the footer of
-		     the next one. -->
-		<div class="relative z-10 min-h-full grid" inert={titleUp}>
-			<TeamPicker
-				{lobby}
-				{invite}
-				{copied}
-				busy={opening}
-				error={openError}
-				oncopy={copy}
-				onpick={socket && !socket.live ? null : pickSide}
-			/>
-		</div>
-	{:else}
+	<!-- ONE screen. Side and character were two stages of a wizard, then a screen
+	     with a panel over it, and both were the same mistake in different
+	     shapes: a modal standing in for a control that is already on the page.
+	     The rail's two flags ARE the side selector — for the first pick and for
+	     every change after it — so there is nothing left for a separate screen
+	     to do. `inert` while the curtain is up, so the tab key never reaches a
+	     roster the reader cannot see. -->
+	<div class="relative z-10 min-h-full grid" inert={titleUp}>
 		<!-- The host's levers used to float over this screen in their own panel,
 		     pinned above the footer — a second bar of controls on a screen that
 		     already ends in one, overlapping the seat strip on a short window.
@@ -360,12 +366,16 @@
 			{onenter}
 			{invite}
 			{copied}
+			busy={opening}
+			error={openError}
 			oncopy={copy}
 			onfill={fillWithAI}
+			onpickside={socket && !socket.live ? undefined : pickSide}
 			onsize={pickSize}
 			onmode={pickMode}
 		/>
-	{/if}
+	</div>
+
 
 	<!-- The curtain. Over the backdrop, the banner and whichever screen is behind
 	     it — it is the first thing on screen and there is nothing back there worth

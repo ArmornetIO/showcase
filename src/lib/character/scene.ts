@@ -31,7 +31,13 @@ import { groundPatch, type GroundOpts } from './ground.js';
  *  size of the building beside them. */
 const STEP = 100;
 
-/** Where a thing stands, in paces and radians. */
+/**
+ * Where a thing stands, in paces and radians.
+ *
+ * `blur` lives here rather than on `Prop` alone so an ACTOR can be soft too —
+ * a card whose subject is somebody standing behind a crowd wants the crowd out
+ * of focus, and a crowd is people.
+ */
 export interface Spot {
 	/** Right of centre. */
 	e?: number;
@@ -43,6 +49,13 @@ export interface Spot {
 	 *  of another. */
 	h?: number;
 	size?: number;
+	/**
+	 * Throw it out of focus. In PACES, converted to the painter's units here —
+	 * everything else in a scene recipe is a distance in paces, and one field
+	 * quietly measured in something else is the field that gets set to 3 by
+	 * somebody who read the two lines above it.
+	 */
+	blur?: number;
 }
 
 export interface Actor extends Spot {
@@ -53,6 +66,17 @@ export interface Actor extends Spot {
 	trim?: string;
 	/** A ground plate to stand this one in — see `crest.ts`. */
 	crest?: CrestOpts | null;
+	/**
+	 * Overrides the visor — see `status.ts`.
+	 *
+	 * Per ACTOR and not per scene, because the whole use of it is that one
+	 * figure in a crowd is in a different state from the rest: a scene-wide
+	 * lamp can only say "everybody is angry", which is a thing that never
+	 * happens on a card.
+	 */
+	lamp?: string | null;
+	/** Per-part colour overrides — see `ArtOpts.tints`. */
+	tints?: Readonly<Record<string, string>>;
 	/**
 	 * Draw them as a bystander rather than the subject.
 	 *
@@ -184,6 +208,8 @@ export function sceneArt(spec: SceneSpec): Scene {
 			pose: a.pose,
 			worn: a.worn,
 			trim: a.trim,
+			lamp: a.lamp,
+			tints: a.tints,
 			// The crest squares up to the VIEW, and the view is the scene's, so it
 			// takes the scene's yaw less however far this actor has been turned —
 			// otherwise turning a character to face a building drags their ground
@@ -194,7 +220,8 @@ export function sceneArt(spec: SceneSpec): Scene {
 			items.push({
 				...p,
 				solid: place(p.solid, a),
-				tint: a.extra ? p.tint * EXTRA_TINT : p.tint
+				tint: a.extra ? p.tint * EXTRA_TINT : p.tint,
+				blur: (a.blur ?? 0) * STEP
 			});
 		}
 	}
@@ -205,7 +232,8 @@ export function sceneArt(spec: SceneSpec): Scene {
 				solid: place(solid, p),
 				color: p.color,
 				emits: p.emits ?? false,
-				tint: p.tint ?? 1
+				tint: p.tint ?? 1,
+				blur: (p.blur ?? 0) * STEP
 			});
 		}
 	}

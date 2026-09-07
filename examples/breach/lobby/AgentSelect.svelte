@@ -55,16 +55,18 @@
 		 *  everything else the table is waiting on. */
 		invite?: string | null;
 		copied?: boolean;
+		/** Null while a table is being opened. */
+		busy?: boolean;
+		error?: string | null;
 		oncopy?: () => void;
 		onfill?: () => void;
 		onsize?: (s: MatchSize) => void;
 		onmode?: (m: AssignmentMode) => void;
-		/** Whether a player may take a demonstrator's chair mid-match. LOCAL
-		 *  tables only — there is no `set_takeover` intent, because on a real
-		 *  table the chairs belong to the people in them and the server seats
-		 *  those. It lived on the deleted setup screen; this is its only home. */
-		takeover?: boolean;
-		ontakeover?: (v: boolean) => void;
+		/** Move to a side. The rail's flags call this directly rather than
+		 *  reopening the sides panel — switching is one click, and a panel that
+		 *  opens only to be clicked once and dismissed is a dialog standing in
+		 *  for a button. */
+		onpickside?: (side: Faction) => void;
 	}
 
 	let {
@@ -73,11 +75,18 @@
 		onenter,
 		invite = null,
 		copied = false,
+		busy = false,
+		error = null,
 		oncopy,
 		onfill,
 		onsize,
-		onmode
+		onmode,
+		onpickside
 	}: Props = $props();
+
+	/** Fixed order, so the two flags never swap places under the reader when the
+	 *  side they hold changes. */
+	const SIDE_ORDER = ['red', 'blue'] as const satisfies readonly Faction[];
 
 	let hover = $state<string | null>(null);
 
@@ -118,8 +127,8 @@
 	const rulesOpen = $derived(isHost && lobby.phase === 'waiting');
 
 	// The two rule sets, in the shape the shared control takes. `blurb` becomes
-	// `description` and shows in the menu, so the gloss HostSetup prints under
-	// each card is not lost by moving the choice into a footer.
+	// `description` and shows in the menu, so the gloss the deleted setup screen
+	// printed under each card is not lost by moving the choice into a footer.
 	const SIZE_OPTIONS = MATCH_SIZES.map((s) => ({
 		value: s.id,
 		label: s.label,
@@ -185,9 +194,38 @@
 
 	<div class="body">
 		<aside class="rail">
-			<div class="side-plate" style:--sc={SIDES[side].tone}>
-				<span class="sp-name">{SIDES[side].label}</span>
-				<span class="sp-call">{SIDES[side].call}</span>
+			<!-- Both flags, not just yours. The side was a screen you passed
+			     through, so once you were here the other one had stopped existing
+			     — and changing your mind meant going back to a place there was no
+			     way back to. Yours is lit and says its call; the other is the
+			     control that moves you, which is the whole of "switch sides"
+			     without a second screen to hold it. -->
+			<div class="flags">
+				{#each SIDE_ORDER as f (f)}
+					{@const yours = f === side && lobby.seated}
+					{@const n = lobby.countOn(f)}
+					{@const full = n.taken >= n.total && !yours}
+					<button
+						type="button"
+						class="flag"
+						class:on={yours}
+						style:--sc={SIDES[f].tone}
+						disabled={yours || full || !onpickside || locked}
+						title={full ? `${SIDES[f].label} is full` : SIDES[f].blurb}
+						onclick={() => onpickside?.(f)}
+					>
+						<span class="fl-name">{SIDES[f].label}</span>
+						<span class="fl-sub">
+							{#if yours}
+								{SIDES[f].call}
+							{:else if full}
+								side full
+							{:else}
+								{n.total - n.taken} open — switch
+							{/if}
+						</span>
+					</button>
+				{/each}
 			</div>
 
 			<div class="label">
@@ -342,14 +380,26 @@
 			{#if isHost && !lobby.canChoose && onfill}
 				<button type="button" class="lv" onclick={onfill}>fill with demonstrators</button>
 			{/if}
-			{#if invite && oncopy}
-				<button type="button" class="lv ghost" onclick={oncopy}>
-					{copied ? 'link copied' : 'copy invite'}
+			<!-- Host only. A player who followed a link is already at the table —
+			     handing them the link that got them here is an invitation to a
+			     room they are standing in. Before there is a table this is what
+			     creates one, so it reads as the act rather than as a clipboard. -->
+			{#if isHost && oncopy}
+				<button type="button" class="lv ghost" disabled={busy} onclick={oncopy}>
+					{#if busy}
+						opening…
+					{:else if !invite}
+						invite someone
+					{:else}
+						{copied ? 'link copied' : 'copy invite'}
+					{/if}
 				</button>
 			{/if}
 		</div>
 		<div class="hint">
-			{#if !lobby.canChoose}
+			{#if error}
+				<span class="err">{error}</span>
+			{:else if !lobby.canChoose}
 				Nobody picks until every seat is taken — {lobby.blockedBecause}. The host can fill the rest
 				with demonstrators.
 			{:else if !yourTurn}
@@ -470,14 +520,47 @@
 		background: linear-gradient(270deg, rgb(0 0 0 / 0.4), transparent);
 	}
 
-	.side-plate {
-		position: relative;
-		padding: 0.7rem 0.8rem 0.7rem 1rem;
-		border-radius: 9px;
-		border: 1px solid color-mix(in srgb, var(--sc) 55%, transparent);
-		background: linear-gradient(100deg, color-mix(in srgb, var(--sc) 20%, transparent), transparent 72%);
+	/* Two flags, side by side. The one you hold keeps the full plate treatment
+	   the single one had; the other is dimmed to a control, so the pair reads as
+	   "you are here, that is over there" rather than as two equal choices you
+	   have somehow both got. */
+	.flags {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.4rem;
 	}
-	.sp-name {
+	.flag {
+		position: relative;
+		display: block;
+		width: 100%;
+		text-align: left;
+		padding: 0.7rem 0.7rem 0.7rem 0.85rem;
+		border-radius: 9px;
+		border: 1px solid rgb(255 255 255 / 0.08);
+		background: rgb(255 255 255 / 0.02);
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+	.flag:hover:not(:disabled) {
+		border-color: color-mix(in srgb, var(--sc) 55%, transparent);
+		background: color-mix(in srgb, var(--sc) 10%, transparent);
+	}
+	/* Yours. Disabled because there is nowhere to go, so it must not look like a
+	   dead control — it is a plate that happens to be a button. */
+	.flag.on {
+		cursor: default;
+		border-color: color-mix(in srgb, var(--sc) 55%, transparent);
+		background: linear-gradient(
+			100deg,
+			color-mix(in srgb, var(--sc) 20%, transparent),
+			transparent 72%
+		);
+	}
+	.flag:disabled:not(.on) {
+		opacity: 0.4;
+		cursor: default;
+	}
+	.fl-name {
 		display: block;
 		font-size: 0.95rem;
 		font-weight: 800;
@@ -485,7 +568,7 @@
 		text-transform: uppercase;
 		color: var(--sc);
 	}
-	.sp-call {
+	.fl-sub {
 		display: block;
 		font-size: 0.66rem;
 		color: #94a3b8;
@@ -822,6 +905,13 @@
 	.lv:hover {
 		border-color: rgb(255 255 255 / 0.28);
 		color: #f8fafc;
+	}
+	.err {
+		color: #fb7185;
+	}
+	.lv:disabled {
+		opacity: 0.5;
+		cursor: default;
 	}
 	.lv.ghost {
 		background: transparent;

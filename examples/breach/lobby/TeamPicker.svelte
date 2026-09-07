@@ -21,13 +21,25 @@
 		/** Null while the table is still being opened — the sides are shown, and
 		 *  refuse, because a room you cannot join yet is clearer than a spinner. */
 		onpick: ((side: Faction) => void) | null;
-		/** Live invite link, once the host has one to give. */
+		/** Live invite link, once the host has one to give. Null means this table
+		 *  is still local — asking for a link is what makes it real. */
 		invite?: string | null;
 		copied?: boolean;
 		oncopy?: () => void;
+		/** A table is being opened right now. */
+		busy?: boolean;
+		error?: string | null;
 	}
 
-	let { lobby, onpick, invite = null, copied = false, oncopy }: Props = $props();
+	let {
+		lobby,
+		onpick,
+		invite = null,
+		copied = false,
+		oncopy,
+		busy = false,
+		error = null
+	}: Props = $props();
 </script>
 
 <div class="picker">
@@ -75,6 +87,20 @@
 			<code>{invite}</code>
 			<button type="button" onclick={oncopy}>{copied ? 'copied' : 'copy'}</button>
 		</div>
+	{:else}
+		<!-- No link yet, because no table yet. This button is what creates one:
+		     playing alone needs no server, so a visitor who only wanted a look
+		     never opens a table, and the one who wants company says so here. -->
+		<div class="invite">
+			<span class="label">Playing alone</span>
+			<code class="muted">this table is local — nobody else can reach it</code>
+			<button type="button" disabled={busy} onclick={oncopy}>
+				{busy ? 'opening…' : 'invite someone'}
+			</button>
+		</div>
+	{/if}
+	{#if error}
+		<p class="err">{error}</p>
 	{/if}
 </div>
 
@@ -203,6 +229,16 @@
 		letter-spacing: 0.2em;
 		text-transform: uppercase;
 		color: var(--fg-dim, #64748b);
+	}
+	.invite code.muted {
+		color: var(--fg-dim, #64748b);
+		font-style: italic;
+	}
+	.err {
+		margin-top: 0.6rem;
+		font-size: 0.72rem;
+		color: #fb7185;
+		text-align: center;
 	}
 	.invite code {
 		flex: 1;

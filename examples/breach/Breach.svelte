@@ -205,6 +205,24 @@
 	const PLAY_GAP = 14;
 	/** Card fan, in px. Matches the `h-[16.5rem]` the felt is drawn at. */
 	const FELT_H = 264;
+
+	// ── The floor scrim ──────────────────────────────────────────────────────
+	// It has to reach the bottom EDGE of the window, and its stops are derived
+	// rather than typed, for the same reason: the gradient was a child of the
+	// felt, so its 0.88 stop landed `--play-block` above the floor and met
+	// undarkened board there in a straight line the full width of the screen. A
+	// scrim that terminates is a bar. Running it past the frame is what makes it
+	// read as the board going dark toward the floor instead of a panel lying on
+	// it — and deriving the stops keeps the profile OVER THE HAND exactly the one
+	// it was tuned at, which is the part a taller box would otherwise stretch.
+	const SCRIM_H = FELT_H + PLAY_H + PLAY_GAP * 2;
+	const at = (px: number) => `${((px / SCRIM_H) * 100).toFixed(1)}%`;
+	const SCRIM = `linear-gradient(to top,
+		rgba(0,0,0,0.92) 0%,
+		rgba(0,0,0,0.88) ${at(PLAY_H + PLAY_GAP * 2)},
+		rgba(0,0,0,0.5) ${at(PLAY_H + PLAY_GAP * 2 + FELT_H * 0.45)},
+		transparent 100%)`;
+
 	let leftW = $state(0);
 	let rightW = $state(0);
 	let topH = $state(0);
@@ -451,12 +469,16 @@
 		     a note about getting that wrong under an ancestor `zoom` — a second
 		     zoom over it is how the card flies off toward the corner instead of
 		     following the cursor. -->
-		<div class="absolute inset-x-0 bottom-[var(--play-block)] z-[5] h-[16.5rem] pointer-events-none">
-			<div
-				class="absolute inset-x-0 bottom-0 h-full"
-				style:background="linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 45%, transparent 100%)"
-			></div>
+		<!-- Under the felt AND under the battle centre, so the card sits on a
+		     darkened base rather than on a seam. See `SCRIM` for why it is a
+		     sibling of the hand instead of a child of it. -->
+		<div
+			class="absolute inset-x-0 bottom-0 z-[4] pointer-events-none"
+			style:height="{SCRIM_H}px"
+			style:background={SCRIM}
+		></div>
 
+		<div class="absolute inset-x-0 bottom-[var(--play-block)] z-[5] h-[16.5rem] pointer-events-none">
 			<CardFan {match} class="h-full" />
 		</div>
 

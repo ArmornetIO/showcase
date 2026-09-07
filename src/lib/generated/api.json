@@ -1177,10 +1177,53 @@
         "default": "false"
       },
       {
+        "name": "zoom",
+        "type": "number",
+        "optional": true,
+        "description": "Pull back. `1` frames the head; `2` frames twice as much of the world\naround it, so the character is drawn half the size in the same box.\nThe knob that stops a container from deciding how big a character is.\nWithout it the only way to draw a smaller figure was a smaller box —\nwhich is a different picture, not a smaller one — and every surface\nthat wanted a smaller head instead grew a `scale()` transform, an\ninset, or a table of per-character fudges.",
+        "default": "1"
+      },
+      {
         "name": "art",
         "type": "ArtOpts",
         "optional": true,
         "description": "Camera and suit. Omitted everywhere but the studio — a roster wants\n one angle for all four, or the tiles stop being comparable."
+      }
+    ],
+    "interfaces": []
+  },
+  "Scene": {
+    "component": "Scene",
+    "props": [
+      {
+        "name": "scene",
+        "type": "SceneSpec",
+        "optional": false
+      },
+      {
+        "name": "fit",
+        "type": "'meet' | 'slice'",
+        "optional": true,
+        "description": "`meet` keeps the whole scene in frame; `slice` fills the box and lets\n the overflow fall off the edges — which is what card art does.",
+        "default": "'meet'"
+      },
+      {
+        "name": "zoom",
+        "type": "number",
+        "optional": true,
+        "description": "Pull back. Above 1 the scene sits smaller in the same box, with more\n air around it.",
+        "default": "1"
+      },
+      {
+        "name": "offset",
+        "type": "{ x?: number; y?: number }",
+        "optional": true,
+        "description": "Nudge the framing, in fractions of the scene's own size. Positive `y`\n moves the picture UP in the window, which is how you put the horizon\n where you want it rather than in the middle."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": true
       }
     ],
     "interfaces": []

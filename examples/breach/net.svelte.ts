@@ -60,9 +60,16 @@ export interface Intent {
 }
 
 /** What the server sends. One envelope with a discriminator — a switch on
- *  `type` is the whole protocol. */
+ *  `type` is the whole protocol.
+ *
+ *  These strings are the WIRE, and their spelling is `breachproto` in Go
+ *  (`internal/proto/breachproto`), not a name chosen here. `seat_view` was
+ *  `snapshot` in this file for exactly as long as it took somebody to play a
+ *  game: the server has only ever sent `seat_view`, so every table update fell
+ *  through `#frame`'s default and was dropped in silence — a live socket, a
+ *  granted capability, frames arriving, and a board that never moved. */
 export interface Frame {
-	type: 'snapshot' | 'event' | 'error';
+	type: 'seat_view' | 'event' | 'error';
 	view?: TableView;
 	res?: Resolution;
 	code?: string;
@@ -510,7 +517,7 @@ export class TableSocket {
 	 *  lets a second capability exist without the module growing a third. */
 	#frame(type: string, payload: Uint8Array): void {
 		switch (type) {
-			case 'snapshot':
+			case 'seat_view':
 				this.#apply(decodePayload<{ view: TableView }>(payload).view);
 				return;
 			case 'event': {
@@ -786,6 +793,16 @@ export class TableSocket {
 	}
 	setMode(mode: Intent['mode']) {
 		this.send({ op: 'set_mode', mode });
+	}
+	/** Resize the table. Host only, and the server refuses it once the match has
+	 *  started — `set_size` reseats, and reseating a game in progress would take
+	 *  a chair out from under somebody mid-turn.
+	 *
+	 *  Missing until now, which is why the size was settled on the setup screen
+	 *  and then frozen: the op existed on the wire and in the lobby store, and
+	 *  the one thing nobody had written was the line that sends it. */
+	setSize(size: Intent['size']) {
+		this.send({ op: 'set_size', size });
 	}
 	fillAI() {
 		this.send({ op: 'fill_ai' });

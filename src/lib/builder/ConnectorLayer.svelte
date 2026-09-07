@@ -114,6 +114,7 @@
 <svg
 	class="conn-layer"
 	class:conn-layer--interactive={interactive}
+	class:conn-layer--private={builder.shared}
 	width={builder.canvasW}
 	height={builder.canvasH}
 	aria-hidden="true"
@@ -174,6 +175,13 @@
 	}
 	.conn-layer--interactive .conn-hit {
 		pointer-events: stroke;
+	}
+
+	/* In a shared session connectors are the one thing on the canvas nobody else
+	   can see. Drawn faintly so that reads as deliberate rather than as a line
+	   that failed to send — the notice says it once, this keeps saying it. */
+	.conn-layer--private {
+		opacity: 0.55;
 	}
 
 	.conn-line {

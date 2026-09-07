@@ -24,12 +24,11 @@
 	// had already sat down. Splitting it is the whole change.
 
 	import { cubicOut } from 'svelte/easing';
-	import { Backdrop, Button, LogoForge, Panel, prefersReducedMotion } from 'showcase';
+	import { Backdrop, LogoForge, prefersReducedMotion } from 'showcase';
 	import { BreachLobby } from './internal/lobby.svelte.js';
 	import type { AssignmentMode } from './internal/lobby.svelte.js';
 	import type { Faction, MatchSize } from './internal/rules.js';
 	import ConnectionBanner from './hud/ConnectionBanner.svelte';
-	import HostSetup from './lobby/HostSetup.svelte';
 	import WelcomeCard from './lobby/WelcomeCard.svelte';
 	import TeamPicker from './lobby/TeamPicker.svelte';
 	import AgentSelect from './lobby/AgentSelect.svelte';
@@ -67,15 +66,21 @@
 	}: Props = $props();
 
 	// ── Where we are ─────────────────────────────────────────────────────────
-	// One flag, not a state machine: `hosting` is false until the game master
-	// has opened a table or chosen to play alone. Everything after that is
-	// derived from the lobby, which is the thing the server also drives.
-	let opened = $state(false);
+	// No flag and no setup step. A visitor lands on the sides screen with a
+	// LOCAL table, and the rules are the footer's — editable until the match
+	// starts, which is what made the old "settle the rules while the room is
+	// empty" screen redundant. Nothing is locked in any more, so there is
+	// nothing for a screen to lock.
+	//
+	// The server table is opened LAZILY, by asking for an invite. Somebody who
+	// only wanted a look never creates one.
 	let invite = $state<string | null>(null);
 	let opening = $state(false);
 	let openError = $state<string | null>(null);
 	let copied = $state(false);
 
+	/** The local table's rules, and the ones a server table is opened WITH. The
+	 *  footer edits these before there is a socket and sends intents after. */
 	let size = $state<MatchSize>('2v2');
 	let mode = $state<AssignmentMode>('lot');
 
@@ -89,10 +94,15 @@
 	 * whole thing IS the travel.
 	 *
 	 * It is never raised again. An arrival on an invite link skips it too, and
-	 * not as an optimisation: `stage` is already past `setup` for them, so the
-	 * title would play over a room three people are waiting in.
+	 * not as an optimisation: the title would play over a room three people are
+	 * already waiting in.
+	 *
+	 * That skip used to be implicit — an invited player's `stage` was past
+	 * `setup`, and the curtain only covered `setup`. With the setup screen gone
+	 * everybody starts on the same screen, so the condition has to be stated
+	 * rather than inherited from where they happened to land.
 	 */
-	let titleDone = $state(prefersReducedMotion());
+	let titleDone = $state(prefersReducedMotion() || !!arrivedOnLink());
 
 	/** Whether the forge has finished and the name is being said over the held
 	 *  frame. A second flag rather than a stage, because it is not a place: it
@@ -106,7 +116,6 @@
 	$effect(() => {
 		const id = arrivedOnLink();
 		if (!id || socket) return;
-		opened = true;
 		onjoin?.(id);
 	});
 
@@ -139,21 +148,31 @@
 		void lobby.issue();
 	});
 
-	const stage = $derived(
-		!opened && !socket ? 'setup' : lobby.seated ? 'select' : 'sides'
-	);
+	const stage = $derived(lobby.seated ? 'select' : 'sides');
 
-	const titleUp = $derived(!titleDone && stage === 'setup');
+	const titleUp = $derived(!titleDone && stage === 'sides');
 
+	/**
+	 * Turn the local table into a real one, and hand back a link.
+	 *
+	 * The point of no return, and now the ONLY thing that reaches the server
+	 * before a match: asking to invite somebody is the moment a table has to
+	 * exist for them to arrive at. It carries the rules the footer currently
+	 * holds, so a table opened after five minutes of fiddling opens as what is
+	 * on screen rather than as the defaults.
+	 *
+	 * The seating is rebuilt when the server answers — `applyRemote` overwrites
+	 * whatever was local — so a side already picked is re-taken below rather
+	 * than assumed to survive.
+	 */
 	async function openRoom() {
+		if (invite || opening) return;
 		opening = true;
 		openError = null;
 		try {
 			const table = await openTable({ size, mode });
 			invite = inviteURL(table.invite);
-			opened = true;
 			onjoin?.(table.table_id);
-			void copy();
 		} catch (err) {
 			openError = err instanceof Error ? err.message : 'could not open a table';
 		} finally {
@@ -161,14 +180,27 @@
 		}
 	}
 
-	/** No server, no room, no waiting. The host takes a side and the rest of the
-	 *  table is demonstrators the moment they do. */
-	function playAlone() {
-		lobby.setMode(mode);
-		opened = true;
-	}
+	/** The side this client picked before the table was real, so it can be taken
+	 *  again once the server owns the seating. Cleared the moment it is used —
+	 *  a re-seat that fires twice would give the chair away and take it back. */
+	let localSide = $state<Faction | null>(null);
+
+	// Re-take the seat on the table the server just built. The local pick was
+	// made against seating that no longer exists, and without this the host is
+	// standing in a room they thought they were sitting in — which is the state
+	// `fill_ai` then fills the chair they appear to occupy.
+	$effect(() => {
+		if (!socket?.live || !localSide) return;
+		const seatId = lobby.firstOpenSeatOn(localSide);
+		localSide = null;
+		if (seatId) socket.takeSeat(seatId);
+	});
 
 	async function copy() {
+		// Asking for the link is what opens the table, so this is the one caller
+		// that must not bail on `invite` being null — it is null precisely
+		// because nobody has asked yet.
+		if (!invite) await openRoom();
 		if (!invite) return;
 		try {
 			await navigator.clipboard.writeText(invite);
@@ -195,7 +227,13 @@
 		const seatId = lobby.firstOpenSeatOn(side);
 		if (!seatId) return;
 		if (socket?.live) socket.takeSeat(seatId);
-		else lobby.joinSide(side);
+		else {
+			lobby.joinSide(side);
+			// Remembered, not just applied: if this table is opened to the server
+			// later, the local seating is thrown away and this is what re-takes
+			// the chair.
+			localSide = side;
+		}
 	}
 
 	/** Fill the rest of the table with demonstrators. The host's answer to
@@ -206,7 +244,31 @@
 		else lobby.fillWithAI();
 	}
 
-	const isHost = $derived(!socket || socket.isHost);
+	/** The table's rules, changed after it was opened.
+	 *
+	 *  Routed the same way every other decision on this screen is: to the server
+	 *  when there is one, locally when there is not. `lobby.setSize` rebuilds the
+	 *  seating itself and says in its own doc that a networked table never calls
+	 *  it — the server's seating arrives through `applyRemote` and overwrites
+	 *  anything local, so calling both would draw a board that flickers between
+	 *  two authorities.
+	 *
+	 *  These stay live until the match starts rather than being frozen at open.
+	 *  The server already allowed it (`OpSetSize`/`OpSetMode` are host-only and
+	 *  phase-gated, not open-once); the only thing that made the rules final was
+	 *  that the controls existed on one screen you could never return to. A host
+	 *  who opened a 2v2 and had one person turn up had to open a new table. */
+	function pickSize(s: MatchSize) {
+		size = s;
+		if (socket?.live) socket.setSize(s);
+		else lobby.setSize(s);
+	}
+
+	function pickMode(m: AssignmentMode) {
+		mode = m;
+		if (socket?.live) socket.setMode(m);
+		else lobby.setMode(m);
+	}
 
 	/**
 	 * How the curtain leaves.
@@ -266,66 +328,43 @@
 		</div>
 	{/if}
 
-	{#if stage === 'setup'}
+	{#if stage === 'sides'}
 		<!-- Mounted UNDER the curtain rather than after it. The curtain used to be
 		     the first arm of this chain, which meant there was nothing behind it to
 		     fade to and the only way off the title was a cut. `inert` is what makes
 		     that safe: the screen is on the page for the whole of the intro, and
-		     without it the tab key reaches a form nobody can see. -->
+		     without it the tab key reaches controls nobody can see.
+		     This is the first screen now — picking a side is the first thing
+		     anybody does, on a local table, and the rules live in the footer of
+		     the next one. -->
 		<div class="relative z-10 min-h-full grid" inert={titleUp}>
-			<HostSetup
-				{size}
-				{mode}
-				{takeover}
-				busy={opening}
-				error={openError}
-				onsize={(s) => {
-					size = s;
-					lobby.setSize(s);
-				}}
-				onmode={(m) => {
-					mode = m;
-					lobby.setMode(m);
-				}}
-				{ontakeover}
-				onopen={openRoom}
-				onsolo={playAlone}
-			/>
-		</div>
-	{:else if stage === 'sides'}
-		<div class="relative z-10 min-h-full grid">
 			<TeamPicker
 				{lobby}
 				{invite}
 				{copied}
+				busy={opening}
+				error={openError}
 				oncopy={copy}
 				onpick={socket && !socket.live ? null : pickSide}
 			/>
 		</div>
 	{:else}
-		<AgentSelect {lobby} {socket} {onenter} />
-
-		<!-- The host's two levers, floated over the select screen rather than
-		     given a panel of their own: each is pressed once, by one of the four. -->
-		{#if isHost && !lobby.canChoose}
-			<div class="absolute bottom-20 left-1/2 -translate-x-1/2 z-20">
-				<Panel padding="dense">
-					<div class="flex items-center gap-3">
-						<span class="font-mono text-[0.55rem] text-[var(--fg-dim)]">
-							{lobby.blockedBecause} — nobody may pick yet.
-						</span>
-						<Button size="xs" variant="primary" onclick={fillWithAI}>
-							fill with demonstrators
-						</Button>
-						{#if invite}
-							<Button size="xs" variant="ghost" onclick={copy}>
-								{copied ? 'link copied' : 'copy invite'}
-							</Button>
-						{/if}
-					</div>
-				</Panel>
-			</div>
-		{/if}
+		<!-- The host's levers used to float over this screen in their own panel,
+		     pinned above the footer — a second bar of controls on a screen that
+		     already ends in one, overlapping the seat strip on a short window.
+		     AgentSelect's footer owns them now, beside the sentence explaining
+		     why picking is closed, which is the thing they answer. -->
+		<AgentSelect
+			{lobby}
+			{socket}
+			{onenter}
+			{invite}
+			{copied}
+			oncopy={copy}
+			onfill={fillWithAI}
+			onsize={pickSize}
+			onmode={pickMode}
+		/>
 	{/if}
 
 	<!-- The curtain. Over the backdrop, the banner and whichever screen is behind

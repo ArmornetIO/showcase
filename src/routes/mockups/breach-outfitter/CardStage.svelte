@@ -1,6 +1,6 @@
 <script lang="ts">
 	// ── The card, playing ────────────────────────────────────────────────────
-	// The same `CardFaceV2` the deck prints, at a size you can work at, with the
+	// The same `CardFace` the GAME deals, at a size you can work at, with the
 	// clip clock wired into its cast. Nothing here is a preview of the card —
 	// it IS the card, which is the only arrangement where tuning it means
 	// anything.
@@ -8,7 +8,7 @@
 	// Drag to turn, exactly as the mannequin stage does, and writing through the
 	// same value the panel's slider reads. Two paths to one number is how a
 	// control starts disagreeing with the thing it moves.
-	import CardFaceV2 from '../breach-cards/CardFaceV2.svelte';
+	import CardFace from '$examples/breach/cards/CardFace.svelte';
 	import { CLIPS } from '$lib/character/poses.js';
 	import { FRAMES } from '$lib/character/poses.js';
 	import type { CardBench } from './cards.svelte.js';
@@ -57,7 +57,7 @@
 		onpointerup={drop}
 		onpointercancel={drop}
 	>
-		<CardFaceV2
+		<CardFace
 			ability={bench.card.ability}
 			fx={bench.fx}
 			owner={bench.owner}

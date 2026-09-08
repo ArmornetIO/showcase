@@ -18,13 +18,14 @@
 	import type { Faction } from '$examples/breach/internal/rules.js';
 	import { item, bySlot, DEFAULT_LOADOUT } from '../breach-locker/catalog.js';
 	import CardSkin from '../breach-locker/CardSkin.svelte';
-	import CardFaceV2 from './CardFaceV2.svelte';
+	import CardFace from '$examples/breach/cards/CardFace.svelte';
 	import { fxFor } from '$examples/breach/internal/fx.js';
 
-	// Both faces, side by side on the same catalogue. The redesign is only worth
-	// shipping if it beats the one it replaces at the size a hand is read at, and
-	// that is not a question you can answer from a screenshot of one of them.
-	let face = $state<'v2' | 'v1'>('v2');
+	// The face as the game deals it, or the same face wearing the locker's
+	// cosmetics. Two views of ONE component now that the scene face has replaced
+	// the icon one in the game — a frame and a finish are judged against the art
+	// they sit over, and the art is what changed.
+	let face = $state<'bare' | 'dressed'>('bare');
 
 	let side = $state<Faction>('red');
 	let owner = $state<string>('all');
@@ -103,8 +104,10 @@
 			</div>
 
 			<div class="seg">
-				<button class:active={face === 'v2'} onclick={() => (face = 'v2')}>Scene</button>
-				<button class:active={face === 'v1'} onclick={() => (face = 'v1')}>Old</button>
+				<button class:active={face === 'bare'} onclick={() => (face = 'bare')}>Bare</button>
+				<button class:active={face === 'dressed'} onclick={() => (face = 'dressed')}
+					>Dressed</button
+				>
 			</div>
 
 			<select bind:value={owner} aria-label="Character">
@@ -138,7 +141,7 @@
 		{#each cards as c (c.ability.key + c.owner)}
 			{@const id = c.ability.key + c.owner}
 			<figure>
-				{#if face === 'v2'}
+				{#if face === 'bare'}
 					<!-- The whole card is the button. A separate "play" control beside
 					     each face would be forty controls in a wall of forty cards, and
 					     the thing being reviewed is the card, not the chrome round it. -->
@@ -152,7 +155,7 @@
 						onfocus={() => (hovered = id)}
 						onblur={() => (hovered = hovered === id ? null : hovered)}
 					>
-						<CardFaceV2
+						<CardFace
 							ability={c.ability}
 							fx={fxFor(c.ability.key, side)}
 							owner={klassByKey(c.owner)}
@@ -167,6 +170,7 @@
 						ability={c.ability}
 						faction={side}
 						skills={seat.skills}
+						owner={klassByKey(c.owner)}
 						seatColor={tone}
 						frame={item(frameKey)}
 						finish={item(finishKey)}

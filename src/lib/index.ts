@@ -250,9 +250,24 @@ export type { CharacterSkin, Shape } from './character/characters.js';
 export { art, figureFacets, DEFAULT_ART } from './character/render.js';
 export type { Art, ArtOpts, Tri } from './character/render.js';
 export { CLIPS, FRAMES, poseAt, REST } from './character/poses.js';
-export type { Clip, ClipId, Pose } from './character/poses.js';
+export type { Clip, ClipId, ClipOpts, Pose } from './character/poses.js';
 export { STATUSES, lampLevel, statusById } from './character/status.js';
 export type { Status, StatusId } from './character/status.js';
+
+// More than one figure under one camera and one depth sort. The `Scene`
+// INTERFACE from the same module stays private: it is what `sceneArt` returns,
+// and a consumer that wanted it would be reaching for the paint list rather
+// than the component that paints it.
+export { default as Scene } from './character/Scene.svelte';
+export { sceneArt, heightOf } from './character/scene.js';
+export type { SceneSpec, Actor, Prop, Spot } from './character/scene.js';
+
+// Aliased, because a barrel that already publishes mode glyphs and supply-chain
+// glyphs cannot also publish a bare `GLYPHS` and expect anybody to know which
+// one they imported. These are the CHARACTER marks — extruded plates in the
+// figure's own frame, not SVG icons.
+export { glyph as charGlyph, GLYPHS as CHAR_GLYPHS } from './character/glyphs.js';
+export type { Glyph } from './character/glyphs.js';
 export { PIECES, box, gable, tooth, prism, octagon } from './mesh-studio/pieces/pieces.js';
 export type { Piece, Solid, PieceVert, PieceId } from './mesh-studio/pieces/pieces.js';
 export {

@@ -16,10 +16,9 @@
 	// cost or change what a card does — and a new frame ships without anybody
 	// re-reading the rules. It also means the layers work on every card in the
 	// game for free, including ones that do not exist yet.
-	import CardFace from '$examples/breach/CardFace.svelte';
+	import CardFace from '$examples/breach/cards/CardFace.svelte';
 	import { fxFor } from '$examples/breach/internal/fx.js';
-	import type { Ability, Faction, Skill } from '$examples/breach/internal/rules.js';
-	import type { IconName } from 'showcase';
+	import type { Ability, Faction, Klass, Skill } from '$examples/breach/internal/rules.js';
 	import type { CosmeticItem } from './catalog.js';
 
 	interface Props {
@@ -27,8 +26,12 @@
 		faction: Faction;
 		/** The seat's rating in this card's skill — printed on the face. */
 		skills: Record<Skill, number>;
-		/** The cost gem's hue. In game this is the seat colour, which is exactly
-		 *  the thing the banner replaces. */
+		/** Whose card it is: the character standing in the art, and the byline
+		 *  under the name. The face derives its whole picture from this. */
+		owner: Klass;
+		/** The tint on the BACK and on the cosmetic layers. Not the cost gem —
+		 *  that is the card's own hue now, and a cosmetic that could move it
+		 *  would be a cosmetic that changes what a card costs. */
 		seatColor: string;
 		frame?: CosmeticItem;
 		finish?: CosmeticItem;
@@ -47,6 +50,7 @@
 		ability,
 		faction,
 		skills,
+		owner,
 		seatColor,
 		frame,
 		finish,
@@ -82,17 +86,11 @@
 			</svg>
 		</div>
 	{:else}
-		<CardFace
-			{ability}
-			{fx}
-			{seatColor}
-			affordable={true}
-			disabled={false}
-			armed={false}
-			raised={false}
-			icon={fx.icon as IconName}
-			skillMod={skills[ability.skill]}
-		/>
+		<!-- `scale` through to the face rather than a `transform` on the wrapper.
+		     The face scales itself with `zoom`, which takes its typography and its
+		     borders with it; a transform on the outside would print a poster with
+		     caption-sized type on it. -->
+		<CardFace {ability} {fx} {owner} {scale} skillMod={skills[ability.skill]} />
 
 		{#if finish?.css}
 			<span
@@ -128,13 +126,6 @@
 		height: calc(188px * var(--s));
 		flex-shrink: 0;
 	}
-	/* The face is fixed at 136×188 by the game; scaling the wrapper rather than
-	   restyling it keeps this a viewer and not a fork. */
-	.skin > :global(:first-child) {
-		transform: scale(var(--s));
-		transform-origin: 0 0;
-	}
-
 	.lay,
 	.finish {
 		position: absolute;

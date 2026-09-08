@@ -20,7 +20,7 @@ it. Nothing here invents a character or a card.
 | subject | base | drawn by |
 |---|---|---|
 | Operator | a `Klass` off `ROSTER` | `$lib/character/Figure.svelte` — the real faceted figure |
-| Cards | an `Ability` out of `CATALOGUE` | `examples/breach/CardFace.svelte` — the real printed face |
+| Cards | an `Ability` out of `CATALOGUE` | `examples/breach/cards/CardFace.svelte` — the real printed face |
 
 **Nothing is forked to make this work.** Headwear is an SVG layer over `Figure`, anchored to the
 `bust` rect that `art()` already publishes — same viewBox, same `preserveAspectRatio`, so a

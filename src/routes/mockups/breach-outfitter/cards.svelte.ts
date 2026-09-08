@@ -27,7 +27,7 @@ import {
 	type Doing,
 	type SceneAnim,
 	type Shot
-} from '../breach-cards/card-scene.js';
+} from '$examples/breach/cards/card-scene.js';
 
 /** Every building a card can be set at. Sorted, because this is a picker and an
  *  insertion-ordered list of two dozen names is a list nobody can find a name

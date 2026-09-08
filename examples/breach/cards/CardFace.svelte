@@ -1,7 +1,7 @@
 <script lang="ts">
-	// ── Card, redesigned around a SCENE ──────────────────────────────────────
-	// The old face put a line icon in a ring on a coloured wash. That is a
-	// bullet point, not card art: it says which family the card is in and
+	// ── Card — one ability as a playing card, built around a SCENE ───────────
+	// The face this replaced put a line icon in a ring on a coloured wash. That
+	// is a bullet point, not card art: it says which family the card is in and
 	// nothing else, and forty of them side by side read as one deck of the same
 	// card in six colours.
 	//
@@ -15,18 +15,16 @@
 	// label, hairlines between the columns. That treatment is already the way
 	// AP reads on the table strip, and two surfaces in one game printing the
 	// same number two different ways is how a player learns to distrust both.
-	import { Icon, type IconName } from 'showcase';
-	import Scene from '$lib/character/Scene.svelte';
-	import { SKILL_GLYPH } from '$examples/breach/parts/skill-glyphs.js';
-	import type { Ability, Klass } from '$examples/breach/internal/rules.js';
-	import type { CardFx } from '$examples/breach/internal/fx.js';
+	import { Backdrop, Icon, Scene } from 'showcase';
+	import { SKILL_GLYPH } from '../parts/skill-glyphs.js';
+	import type { Ability, Klass } from '../internal/rules.js';
+	import type { CardFx } from '../internal/fx.js';
 	import { sceneFor, shotFor, type Shot, type SceneAnim } from './card-scene.js';
-	import Backdrop from '$lib/backdrop/Backdrop.svelte';
 	// The HUD's badge treatment, not a second opinion about it. `hud-state` calls
 	// this "the tinted-not-filled treatment every badge in this game wears (the AP
 	// gem, the LINK tab)" — and the cost pip on a card IS the AP gem. Two surfaces
 	// printing the same fact two ways is how a player learns to distrust both.
-	import { gemEdge, gemFill } from '$examples/breach/hud/hud-state.js';
+	import { gemEdge, gemFill } from '../hud/hud-state.js';
 
 	interface Props {
 		ability: Ability;
@@ -37,6 +35,15 @@
 		 *  card in another seat, and this is the line that says so. */
 		skillMod: number;
 		raised?: boolean;
+		/**
+		 * The card can be played right now — the seat can afford it and it is
+		 * their turn. False greys the whole face.
+		 *
+		 * One prop and not the pair of `affordable` / `disabled` the fan used to
+		 * pass: they were ANDed into one opacity on arrival, so two booleans that
+		 * can only ever produce two outcomes were two chances to disagree.
+		 */
+		playable?: boolean;
 		scale?: number;
 		/** Live edits to the card's shot, from an editor. Absent everywhere the
 		 *  card is merely being PLAYED — the deck prints what `card-scene` says. */
@@ -56,6 +63,7 @@
 		owner,
 		skillMod,
 		raised = false,
+		playable = true,
 		scale = 1,
 		shot,
 		anim,
@@ -120,6 +128,7 @@
      icon strokes at once, which is what "a bigger card" actually means. -->
 <div
 	class="relative flex select-none flex-col overflow-hidden rounded-[12px] border"
+	class:opacity-40={!playable}
 	style:width="136px"
 	style:height="188px"
 	style:zoom={scale}

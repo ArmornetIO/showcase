@@ -11,7 +11,7 @@
 	// card is worth nothing if the result lives in a browser tab, so the panel
 	// prints exactly what changed, in the shape `card-scene.ts` keys on.
 	import { SETTINGS, STAND_INS, type CardBench } from './cards.svelte.js';
-	import { DOING_KEYS } from '../breach-cards/card-scene.js';
+	import { DOING_KEYS } from '$examples/breach/cards/card-scene.js';
 
 	interface Props {
 		bench: CardBench;

@@ -100,6 +100,7 @@
 						ability={locker.ability}
 						faction={locker.klass.faction}
 						skills={locker.klass.skills}
+						owner={locker.klass}
 						seatColor={color}
 						frame={l.frame}
 						finish={l.finish}

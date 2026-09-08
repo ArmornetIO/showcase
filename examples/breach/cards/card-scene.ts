@@ -17,21 +17,31 @@
 // are both `econ`-ish red cards with a crowd and a building, and they should
 // not look remotely alike. So `SHOT` overrides the derivation per card, and the
 // derivation is what a card falls back to until it has been through the room.
-import { ALL_PIECES } from '$lib/mesh-studio/pieces/piece-catalogue.js';
-import { box, type Piece, type PieceVert, type Solid } from '$lib/mesh-studio/pieces/pieces.js';
-import type { SceneSpec, Actor, Prop } from '$lib/character/scene.js';
-import type { CharacterSkin } from '$lib/character/characters.js';
-import type { Pose, ClipId, ClipOpts } from '$lib/character/poses.js';
-import { poseAt } from '$lib/character/poses.js';
-import { statusById } from '$lib/character/status.js';
-// The same call that stamps an emblem on a figure's chest, used as scenery —
-// see `COURT_SEAL`. A device the model already knows how to draw beats a device
-// authored twice.
-import { glyph, GLYPHS } from '$lib/character/glyphs.js';
-import type { BackdropId } from '$lib/backdrop/backdrops.js';
-import { structureById, type Ability, type Klass } from '$examples/breach/internal/rules.js';
-import type { CardFx } from '$examples/breach/internal/fx.js';
-import { kitFor } from '$examples/breach/hud/kit.js';
+import {
+	ALL_PIECES,
+	box,
+	poseAt,
+	statusById,
+	// The same call that stamps an emblem on a figure's chest, used as scenery —
+	// see `COURT_SEAL`. A device the model already knows how to draw beats a
+	// device authored twice.
+	charGlyph as glyph,
+	CHAR_GLYPHS as GLYPHS,
+	type Piece,
+	type PieceVert,
+	type Solid,
+	type SceneSpec,
+	type Actor,
+	type Prop,
+	type CharacterSkin,
+	type Pose,
+	type ClipId,
+	type ClipOpts,
+	type BackdropId
+} from 'showcase';
+import { structureById, type Ability, type Klass } from '../internal/rules.js';
+import type { CardFx } from '../internal/fx.js';
+import { kitFor } from '../hud/kit.js';
 
 // ── What somebody in the shot is DOING ───────────────────────────────────────
 // A standing figure has no verb, and a card whose art has no verb is a portrait
@@ -2546,6 +2556,317 @@ const DIF_BENCH: Piece = [
 const DIF_WALL: Piece = [box(-4.5, 4.5, -0.07, 0.07, 0, 3.6)];
 
 /**
+ * ── THE PICKING LINE ─────────────────────────────────────────────────────────
+ * A belt, a parked cradle beside it, two identical crates, and a stack of lit
+ * marks on each saying how high a number it carries.
+ *
+ * The card's rule is arithmetic — the resolver takes the bigger version — so the
+ * picture had to make a NUMBER visible, and a numeral is four unreadable pixels
+ * at the size a hand is held at. A count of stacked marks is the same fact as a
+ * silhouette: one column is plainly taller than the other from across a room,
+ * and taller is exactly what wins.
+ *
+ * `sleeper` already owns identical figures where only one differs. This borrows
+ * the arrangement to say the opposite thing and that is why it is allowed: there
+ * the odd one survives by being indistinguishable, and here it wins by
+ * ADVERTISING. Nothing is hidden on this card. The wrong package is the loudest
+ * object in the frame and that is the whole of the attack.
+ */
+/** Belt top. `work` puts a runner's hands at about 0.55, and a picking line the
+ *  pose cannot reach is a table with a man standing near it. */
+const CNF_BELT_H = 0.56;
+/** One crate, authored once and used everywhere — the claim is that they are the
+ *  same object, so two pieces that merely looked alike would be a bug waiting for
+ *  somebody to tune one of them. */
+const cnfCrate = (e = 0, n = 0, h = 0): Piece => [
+	box(e - 0.3, e + 0.3, n - 0.28, n + 0.28, h, h + 0.42),
+	box(e - 0.33, e + 0.33, n - 0.31, n + 0.31, h + 0.42, h + 0.47)
+];
+const CNF_CRATE: Piece = cnfCrate();
+
+/**
+ * The version, as a column of marks.
+ *
+ * Sized off the card and not off the crate: at the width this is framed at a
+ * pace is about 26 pixels in a hand, so a mark under a tenth of a pace tall is
+ * two pixels and the difference between two of them and five is texture. At this
+ * pitch five stand 0.79 proud — twice the crate's own height, which is what makes
+ * "the taller stack" legible before anything else on the card is.
+ */
+const CNF_TALLY = (n: number): Piece =>
+	Array.from({ length: n }, (_, i) => box(-0.11, 0.11, -0.08, 0.08, i * 0.17, i * 0.17 + 0.11));
+
+/** The line itself, with rollers. The rollers are not decoration: a plain slab
+ *  is a table, and what makes a surface a CONVEYOR is a regular repeat running
+ *  in the direction things travel. */
+const CNF_BELT: Piece = [
+	box(-2.6, 1.5, -0.36, 0.36, CNF_BELT_H - 0.08, CNF_BELT_H),
+	box(-2.6, 1.5, -0.4, -0.34, 0, CNF_BELT_H - 0.08),
+	...Array.from({ length: 9 }, (_, i) =>
+		box(-2.5 + i * 0.46, -2.5 + i * 0.46 + 0.09, -0.38, 0.38, CNF_BELT_H, CNF_BELT_H + 0.035)
+	)
+];
+
+/** Where the one that was already here sits. Deliberately NOT on the belt and
+ *  deliberately the same height — the internal package is not worse, it is not
+ *  older, it is not smaller. It simply is not moving. */
+const CNF_CRADLE: Piece = [
+	box(0.95, 2.3, -0.34, 0.34, CNF_BELT_H - 0.08, CNF_BELT_H),
+	box(0.95, 1.02, -0.34, 0.34, CNF_BELT_H, CNF_BELT_H + 0.16),
+	box(2.23, 2.3, -0.34, 0.34, CNF_BELT_H, CNF_BELT_H + 0.16)
+];
+
+/** The mouth the belt runs out of. Boxes around a gap, because the renderer has
+ *  no apertures — and the gap is what makes the wall a place things come FROM
+ *  rather than a wall the line happens to be parked against. */
+const CNF_MOUTH: Piece = [
+	box(-2.0, -0.7, -0.12, 0.12, 1.5, 1.72),
+	box(-2.0, -1.86, -0.12, 0.12, 0.72, 1.5),
+	box(-0.84, -0.7, -0.12, 0.12, 0.72, 1.5)
+];
+
+/** Dark inside it. Not an emitter — the one thing this card must not say is that
+ *  anybody could see where the crate came from. */
+const CNF_MOUTH_BACK: Piece = [box(-1.86, -0.84, -0.04, 0.04, 0.72, 1.5)];
+
+/** Overhead ducting. Content on this card is wide and short and the upper third
+ *  is otherwise bare; a run of pipe on hangers fills it. Hung LOW — the cost gem
+ *  and the leaves badge own the top corners, and a horizontal run through them is
+ *  a horizontal run through the numbers a player is reading. */
+const CNF_DUCT: Piece = [
+	box(-4.2, 4.2, -0.22, 0.22, 2.35, 2.62),
+	...[-2.6, -0.4, 1.8].map((e) => box(e - 0.1, e + 0.1, -0.16, 0.16, 2.62, 3.0))
+];
+
+/** More of the same, stacked at the front. The lower third of this card is bare
+ *  floor otherwise, and a pile of the identical crate is the fill that also
+ *  argues the card: the line does not stop, and none of them can be told apart
+ *  either. */
+const CNF_PALLET: Piece = [
+	box(-1.05, 1.05, -0.62, 0.62, 0, 0.12),
+	...cnfCrate(-0.62, -0.08, 0.12),
+	...cnfCrate(0.02, 0.06, 0.12),
+	...cnfCrate(0.62, -0.05, 0.12),
+	...cnfCrate(-0.3, 0.0, 0.59)
+];
+
+const CNF_WALL: Piece = [box(-5, 5, -0.07, 0.07, -3, 4.2)];
+
+/**
+ * ── THE BUILD RUNNER ─────────────────────────────────────────────────────────
+ * A key board bolted to the machine that does the work, and the machine's own
+ * out-tray full of copies of everything on it.
+ *
+ * The same object twice in two states, which is the only honest picture of this
+ * card: hung on hooks, in order, counted — and loose in a tray, lit, spilling.
+ * Nothing is forced, nothing is broken and nobody is holding a tool. A job ran
+ * and printed what it was holding, which is what actually happened to Codecov
+ * and to every repository that ever echoed an environment.
+ *
+ * The status light is GREEN and stays green in both states. `fx` says it in one
+ * line — "the token walks out and the job finishes green" — and a card whose
+ * whole horror is that the pipeline reports success cannot afford to turn its
+ * own light red at the moment of theft.
+ */
+/** Console height, set by `work` on a ghost — the tallest build in the roster at
+ *  1.66, so its hands sit a little above a runner's. */
+const HRV_DECK_H = 0.62;
+
+/**
+ * How far the board and its keys stand off the cabinet's front face.
+ *
+ * The cabinet front is at −0.5 and the board was first authored on the machine's
+ * mid-plane, which put it INSIDE the box: `paint` sorts by facet centroid and a
+ * tall cabinet's centroid is high, so a small flat thing at the same depth loses
+ * to it and two of the five keys simply never drew. A quarter of a pace clear
+ * costs a tenth of a pace of drop on screen and it never loses.
+ */
+const HRV_PROUD = -0.75;
+
+/**
+ * One key, hanging. A bow, a shaft and two teeth, and no smaller than this: at
+ * card size a key is a lollipop with notches, and the notches are the only thing
+ * that stops it being a pin.
+ *
+ * Authored twice rather than transformed, because the flat one below is not this
+ * one rotated — a key lying in a tray shows its FACE and a key on a hook shows
+ * its edge, and the renderer preserves winding through translation only.
+ */
+const hrvKey = (e: number, h: number): Piece => [
+	box(e - 0.105, e + 0.105, HRV_PROUD - 0.028, HRV_PROUD + 0.028, h + 0.22, h + 0.42),
+	box(e - 0.04, e + 0.04, HRV_PROUD - 0.028, HRV_PROUD + 0.028, h, h + 0.25),
+	box(e + 0.04, e + 0.125, HRV_PROUD - 0.028, HRV_PROUD + 0.028, h + 0.03, h + 0.077),
+	box(e + 0.04, e + 0.125, HRV_PROUD - 0.028, HRV_PROUD + 0.028, h + 0.12, h + 0.168)
+];
+
+/** The same key on its side, seen from above. Long axis across the card, teeth
+ *  standing off in `n`, and a twentieth of a pace thick — flat enough that the
+ *  tray reads as holding paper-thin things rather than as holding bricks. */
+const hrvKeyFlat = (e: number, n: number): Piece => [
+	box(e - 0.21, e - 0.03, n - 0.105, n + 0.105, 0, 0.05),
+	box(e - 0.03, e + 0.24, n - 0.04, n + 0.04, 0, 0.05),
+	box(e + 0.11, e + 0.18, n + 0.04, n + 0.125, 0, 0.05),
+	box(e + 0.19, e + 0.24, n + 0.04, n + 0.125, 0, 0.05)
+];
+
+/** Five on the rail, evenly. Even spacing is the point — this is an inventory,
+ *  and what an inventory looks like is a pitch nobody has broken. */
+const HRV_HUNG: Piece = [-0.8, -0.4, 0, 0.4, 0.8].flatMap((e) => hrvKey(e, 1.34));
+
+/** The rail they hang off, and the plate behind them. Without the plate the keys
+ *  are five marks floating on a cabinet face; with it they are a BOARD, which is
+ *  a thing somebody put up on purpose. */
+const HRV_BOARD: Piece = [
+	box(-0.98, 0.98, HRV_PROUD + 0.028, HRV_PROUD + 0.09, 1.2, 1.86),
+	box(-0.98, 0.98, HRV_PROUD - 0.03, HRV_PROUD + 0.028, 1.74, 1.8)
+];
+
+/** The machine. A cabinet with a console shelf out front and a vent stack above,
+ *  so it reads as something that RUNS rather than as a locker. */
+const HRV_RIG: Piece = [
+	box(-1.05, 1.05, -0.5, 0.5, 0, 1.95),
+	box(-1.1, 1.1, -0.56, 0.56, 1.95, 2.05),
+	box(-1.15, 1.15, -0.66, 0.5, HRV_DECK_H - 0.08, HRV_DECK_H),
+	...[-0.6, 0, 0.6].map((e) => box(e - 0.22, e + 0.22, -0.44, 0.44, 2.05, 2.62))
+];
+
+/** Ready. The only lit thing on the card until it is played, and it does not
+ *  change when it is — see the header. Proud of the face for the same sort
+ *  reason as the board. */
+const HRV_GREEN: Piece = [box(0.5, 0.95, HRV_PROUD - 0.02, HRV_PROUD + 0.02, 0.82, 0.98)];
+
+/** Louvres down the cabinet face. The rig is the biggest solid in the frame and a
+ *  flat field of it has no size; a repeat gives it one and says it is a machine. */
+const HRV_VENTS: Piece = Array.from({ length: 5 }, (_, i) =>
+	box(-0.85, 0.3, -0.53, -0.5, 0.16 + i * 0.11, 0.16 + i * 0.11 + 0.055)
+);
+
+/**
+ * The out-tray, on a stub bracket off the cabinet's left flank.
+ *
+ * It was under the console shelf first, which is where a real one would be and
+ * which is exactly why it did not work: the shelf overhangs 0.66 at hand height,
+ * the camera looks down fifteen degrees, and everything lying in the tray was
+ * behind that overhang. Out on the flank it is clear of the machine, and it puts
+ * the spill down-left of the board — the two states of the same object on a
+ * diagonal rather than stacked.
+ */
+const HRV_TRAY: Piece = [
+	box(-2.2, -1.02, -0.42, 0.42, 0.5, 0.58),
+	box(-2.2, -1.02, -0.48, -0.42, 0.5, 0.72),
+	box(-2.26, -2.2, -0.48, 0.42, 0.5, 0.72),
+	box(-1.9, -1.06, -0.1, 0.1, 0, 0.5)
+];
+
+/** The copies. Five, the same count as the board, at offsets that share no pitch
+ *  with each other — the whole difference between hung and printed is order, and
+ *  a tidy row in the tray would say somebody filed them. */
+const HRV_SPILT: Piece = [
+	[-1.85, -0.14],
+	[-1.5, 0.19],
+	[-1.72, 0.02],
+	[-1.42, -0.22],
+	[-1.62, 0.3]
+].flatMap(([e, n]) => hrvKeyFlat(e, n));
+
+/** Light in the tray, under them. A pile of lit objects with a dark floor under
+ *  it reads as five separate marks; a wash beneath makes it one spill. */
+const HRV_GLOW: Piece = [box(-2.16, -1.06, -0.38, 0.38, 0.575, 0.595)];
+
+/** The same machine again, further back. A card that showed one runner would be
+ *  a card about one build; a second says the pipeline, and it fills the right of
+ *  a frame that is otherwise cabinet, tray and wall. */
+const HRV_SIBLING: Piece = [
+	box(-1.05, 1.05, -0.46, 0.46, 0, 1.8),
+	box(-1.1, 1.1, -0.52, 0.52, 1.8, 1.9)
+];
+
+/** What it is plugged into, running out under the camera. The lower third of
+ *  this card is bare floor otherwise, and a cable run is the one piece of
+ *  scenery that fills it while also saying what the machine is: a thing wired to
+ *  everything, which is exactly why it holds every key in the place. */
+const HRV_CABLES: Piece = [-0.55, -0.2, 0.15].map((e) =>
+	box(e - 0.075, e + 0.075, -3.2, -0.5, 0, 0.1)
+);
+
+const HRV_WALL: Piece = [box(-6, 6, -0.07, 0.07, -3, 4.4)];
+
+/**
+ * ── THE WATCH SCOPE ──────────────────────────────────────────────────────────
+ * The Observatory's instrument, swung well off its bearing, with a planted mark
+ * lit where it now points and the real thing sitting dark where it used to.
+ *
+ * The rules text is not about a forgery, it is about ATTENTION — "the next look
+ * at this region is a look at the wrong region" — so a card about a faked
+ * artefact would have been the category's picture rather than this card's. What
+ * moved is the scope.
+ *
+ * The bearing ring is what makes the swing legible. A tube pointing somewhere is
+ * pointing nowhere in particular; a tube pointing somewhere ON A GRADUATED RING
+ * has an angle, and an angle can be wrong. Same device as `exception`'s piers —
+ * you cannot see an irregularity without a regular thing beside it.
+ */
+/** Ring radius. Sized so both marks sit inside the window at `width: 4.4` with
+ *  the scope between them — the card is the ANGLE between two points, and a ring
+ *  wide enough to crop loses one of them. */
+const FLG_R = 1.62;
+
+/** Graduations. Sixteen, even, and every fourth one taller — a scale, not a
+ *  fence. They were half this at first and read as debris rather than as a ring;
+ *  what makes a repeat legible at card size is not how many there are but whether
+ *  each one clears the ground it sits on. */
+const FLG_RING: Piece = Array.from({ length: 16 }, (_, i) => {
+	const a = (i / 16) * Math.PI * 2;
+	const e = Math.cos(a) * FLG_R;
+	const n = Math.sin(a) * FLG_R;
+	return box(e - 0.075, e + 0.075, n - 0.075, n + 0.075, 0, i % 4 === 0 ? 0.3 : 0.17);
+});
+
+/** The mount: a drum, a yoke and the trunnion the tube swings on. */
+const FLG_MOUNT: Piece = [
+	box(-0.42, 0.42, -0.42, 0.42, 0, 0.5),
+	box(-0.3, 0.3, -0.3, 0.3, 0.5, 0.72),
+	box(-0.36, -0.24, -0.14, 0.14, 0.72, 1.28),
+	box(0.24, 0.36, -0.14, 0.14, 0.72, 1.28)
+];
+
+/** The tube. Authored lying along `e` and turned by `face` at placement, so the
+ *  bearing it is pointing on is ONE number a reader can check against the ring
+ *  instead of a set of coordinates that have to be trusted. */
+const FLG_TUBE: Piece = [
+	box(-0.22, 1.5, -0.19, 0.19, 1.06, 1.44),
+	box(1.5, 1.62, -0.24, 0.24, 1.01, 1.49),
+	box(-0.5, -0.22, -0.13, 0.13, 1.13, 1.37)
+];
+
+/**
+ * The traverse wheel, on the drum's far-right quarter.
+ *
+ * Placed there and not on the near side, which is where a person would actually
+ * stand: `n` and `e` both push a thing LEFT on screen at this bearing, so the
+ * whole card drifts that way, and the only clear ground for a figure is behind
+ * and to the right. The wheel is where the pose has to reach it from.
+ *
+ * Top at 0.62 for the usual reason: `work` on a ghost puts the hands there.
+ */
+const FLG_WHEEL: Piece = [
+	box(0.54, 0.72, 0.2, 0.38, 0, 0.56),
+	box(0.44, 0.82, 0.12, 0.46, 0.56, 0.62)
+];
+
+/** What it is looking at now. A post with somebody else's maker's mark on it —
+ *  the chevron is the MAINTAINER's emblem, worn on the chest of a seat this card
+ *  does not belong to, and it is the only pink object on an orange card. */
+const FLG_POST: Piece = [box(-0.08, 0.08, -0.08, 0.08, 0, 0.62)];
+const FLG_MARK: Piece = glyph(GLYPHS.chevron, 0.36, 0.06);
+
+/** What it stopped looking at. `SWEEP_IMPLANT` for the third time and on purpose
+ *  — it is the deck's object for "the thing that is really there", matte on
+ *  `sweep` because nothing distinguished it and matte again here because nothing
+ *  is pointed at it. */
+const FLG_PLINTH: Piece = [box(-0.24, 0.24, -0.24, 0.24, 0, 0.3)];
+
+/**
  * The building a card is played AGAINST, when the card does not name one.
  *
  * `targets` first, because a card that names its targets has told us exactly
@@ -5017,6 +5338,260 @@ const SHOT: Record<string, Shot> = {
 		],
 		ground: { tint: 0.06, relief: 0.05, cells: 16, far: 3.6 },
 		look: { e: 0.45, n: 0, h: 2.77, width: 4.7 }
+	},
+
+	// ── Dependency Confusion ──────────────────────────────────────────────────
+	// "Publish the internal package name publicly, at a higher version. The
+	// resolver does the rest."
+	//
+	// TWO IDENTICAL CRATES, ONE ON THE BELT AND ONE PARKED, AND THE ONE MOVING IS
+	// THE ONE WITH THE TALLER STACK OF MARKS ON IT.
+	//
+	// The category's picture here is a poisoned package — something visibly wrong
+	// going into something clean. That is a picture of a DIFFERENT card. Nothing
+	// about the wrong package is wrong: it has the right name, it is the right
+	// shape, it came off the same kind of pallet, and the only fact in the world
+	// that separates it from the real one is a larger integer.
+	//
+	// So the two crates are one piece placed twice and the number is a column of
+	// marks, because a numeral is four unreadable pixels at 136 and a taller stack
+	// is a silhouette. Taller is also literally what wins, which means the card
+	// states its own rule rather than illustrating it.
+	//
+	// `sleeper` already owns identical objects where only one differs, and this
+	// borrows that arrangement to say the opposite thing — there the odd one
+	// survives by being indistinguishable, here it wins by ADVERTISING. Nothing
+	// is concealed on this card. The mouth in the wall is dark for the same
+	// reason: the one thing nobody could see was where it came from.
+	//
+	// Deck bearing rather than square on. The belt is the movement and a conveyor
+	// square to the camera is a table; turned, it has a direction, and a direction
+	// is the difference between goods and furniture.
+	confusion: {
+		cast: 1,
+		doing: 'work',
+		// Off the left end of the belt, turned back in at the crate he has just set
+		// on it. NOT in front of it, which is where he stood first and where he ate
+		// the taller stack — the one object on this card that cannot be occluded is
+		// the number.
+		lead: { e: -2.3, n: 1.6, h: 0, face: -0.3 },
+		backdrop: { piece: CNF_WALL, size: 1, e: 0, n: 4.4, face: 0, tint: 0.24 },
+		extras: [
+			{ piece: CNF_DUCT, color: '#4A3844', tint: 0.5, e: 0, n: 3.2 },
+
+			// Dark, and NOT an emitter. A lit mouth would say somebody could see
+			// where the crate came in from, which is the one thing this card is
+			// about nobody being able to do.
+			{ piece: CNF_MOUTH_BACK, color: '#120C12', tint: 1, e: -0.15, n: 4.34 },
+			{ piece: CNF_MOUTH, color: '#5A4353', tint: 0.62, e: -0.15, n: 4.36 },
+
+			{ piece: CNF_BELT, color: '#3A2C36', tint: 0.72, e: -0.15, n: 2.4 },
+			{ piece: CNF_CRADLE, color: '#3A2C36', tint: 0.6, e: -0.15, n: 2.4 },
+
+			// The one that was already here. Same piece, same colour, same tint as
+			// the one below it — every field identical on purpose, because the whole
+			// claim is that there is nothing to tell them apart.
+			{ piece: CNF_CRATE, color: '#6B5260', tint: 0.85, e: 1.45, n: 2.4, h: CNF_BELT_H },
+			{
+				piece: CNF_TALLY(2),
+				color: '#F9A8D4',
+				emits: true,
+				tint: 0.3,
+				e: 1.45,
+				n: 2.4,
+				h: CNF_BELT_H + 0.47
+			},
+
+			{ piece: CNF_CRATE, color: '#6B5260', tint: 0.85, e: -0.9, n: 2.4, h: CNF_BELT_H },
+			// The card's hue, on the smallest object in the frame and the brightest.
+			// The wall carries the row's pink at a quarter strength and this carries
+			// it at full: on a face where two things are identical, the only place
+			// the eye is allowed to land is the one difference.
+			{
+				piece: CNF_TALLY(5),
+				color: '#F9A8D4',
+				emits: true,
+				tint: 0.45,
+				e: -0.9,
+				n: 2.4,
+				h: CNF_BELT_H + 0.47
+			},
+
+			// Nearest the camera and last in the list, so it sorts over the belt
+			// legs it stands in front of.
+			{
+				piece: CNF_PALLET,
+				color: '#6B5260',
+				tint: 0.52,
+				e: -0.15,
+				n: 1.15,
+				face: 0.22,
+				blur: 0.006
+			}
+		],
+		ground: { tint: 0.06, relief: 0.05, cells: 16, far: 3.2 },
+		// Aimed at a point at the scene's own depth rather than at `n: 0`. The
+		// square-on cards can leave it at nought because `n` costs them height and
+		// nothing else; on the deck bearing it also costs a pace of SIDEWAYS per
+		// two paces of depth, so a window centred at the origin sits well right of
+		// everything standing in the shot.
+		look: { e: -0.25, n: 2.4, h: 1.53, width: 4.85 }
+	},
+
+	// ── Harvest the Runner ────────────────────────────────────────────────────
+	// "The build has every credential the pipeline owns, and it prints them when
+	// asked. Steal the tokens, not the code."
+	//
+	// A KEY BOARD ON THE BUILD MACHINE, AND THE MACHINE'S OWN OUT-TRAY FILLING UP
+	// WITH COPIES OF EVERY KEY ON IT.
+	//
+	// Six keys hung on hooks at an even pitch, and six of the same key lying flat
+	// in the tray in no order at all. Same object, two states, and the entire
+	// difference between holding credentials and having leaked them.
+	//
+	// The obvious picture is a theft — a hand at a cabinet, a lever, a broken
+	// lock. There is no break-in in any of the incidents behind this card. Codecov
+	// changed one line of a shell script; `tj-actions` printed to a log anybody
+	// could read. So nothing on this card is forced, nothing is held, and the
+	// machine is not even inconvenienced: it is doing exactly what it does.
+	//
+	// The status light is GREEN and it does not change when the card is played.
+	// `fx` puts it in one line — the token walks out and the job finishes green —
+	// and a card whose whole horror is a successful build cannot afford to turn
+	// its own light red at the moment of the theft.
+	//
+	// The play state is the print. At rest this is a machine holding keys, which
+	// is a true and unremarkable picture of a CI runner; played, the tray fills.
+	// `whenPlayed` rather than `wakes` because what changes here is the world and
+	// not a person's mind — nobody in this shot decides anything.
+	harvest: {
+		cast: 1,
+		doing: 'work',
+		// At the console shelf, off the right-hand end so the tray and the board
+		// are both clear of him. `work` needs something under the hands and the
+		// shelf is what it is at that height for.
+		lead: { e: 1.7, n: 2.9, h: 0, face: 0.72 },
+		// Behind the far cabinet, not between it and the near one — a backdrop at
+		// the default depth would have cut the rank in half.
+		backdrop: { piece: HRV_WALL, size: 1, e: 0, n: 6.6, face: 0, tint: 0.22 },
+		extras: [
+			// Deepest first, and down in tint — it is the same machine and it must
+			// not compete with the one whose keys are on the board.
+			{ piece: HRV_SIBLING, color: '#3A3038', tint: 0.55, e: 0.4, n: 5.6 },
+
+			{ piece: HRV_CABLES, color: '#241E24', tint: 0.9, e: 0, n: 3.4 },
+			{ piece: HRV_RIG, color: '#3A3038', tint: 0.7, e: 0, n: 3.4 },
+			{ piece: HRV_VENTS, color: '#241E24', tint: 0.9, e: 0, n: 3.4 },
+			// Green, and the only lit thing in the rest state. A card with no
+			// emitter at all reads as unfinished rather than as dark.
+			{ piece: HRV_GREEN, color: '#34D399', emits: true, tint: 0.45, e: 0, n: 3.4 },
+
+			{ piece: HRV_BOARD, color: '#2A242A', tint: 0.85, e: 0, n: 3.4 },
+			// Matte. On the board they are an asset somebody counted, and an asset
+			// nobody has taken does not glow.
+			{ piece: HRV_HUNG, color: '#C9A227', tint: 0.95, e: 0, n: 3.4 },
+
+			{ piece: HRV_TRAY, color: '#2E262C', tint: 0.8, e: 0, n: 3.4 }
+		],
+		// The print. Placed at the rig's own origin because the tray is authored in
+		// the machine's coordinates — the spill and the thing it spilled out of
+		// cannot be two placements that have to agree.
+		whenPlayed: [
+			// Under them first, and dim. A wash as bright as the keys lying on it
+			// merges with them and the tray becomes one yellow slab — it is there to
+			// say the pile is lit from below, not to be seen.
+			{ piece: HRV_GLOW, color: '#FB923C', emits: true, tint: 0.12, e: 0, n: 3.4 },
+			// The card's hue, at the one moment it is the subject. Tinted well down:
+			// `lamp()` adds a flat 112 to every channel and at full emission a row of
+			// orange keys goes to pale paper.
+			{ piece: HRV_SPILT, color: '#FFB347', emits: true, tint: 0.5, e: 0, n: 3.4, h: 0.58 }
+		],
+		ground: { tint: 0.06, relief: 0.05, cells: 16, far: 3.2 },
+		look: { e: 0.09, n: 3.4, h: 1.17, width: 4.6 }
+	},
+
+	// ── False Flag ────────────────────────────────────────────────────────────
+	// "Feed them an actor they will believe. The next look at this region is a
+	// look at the wrong region."
+	//
+	// THE WATCH SCOPE SWUNG OFF ITS BEARING, A PLANTED MARK LIT WHERE IT NOW
+	// POINTS, AND THE REAL THING SITTING DARK ON THE OTHER SIDE OF THE RING.
+	//
+	// The obvious picture is the forgery — a bench, a die, somebody else's maker's
+	// mark being pressed into an artefact. That is a picture of misattribution in
+	// general, and the rules text is not about the artefact at all: it is about
+	// ATTENTION, and what a card about attention has to show is where the
+	// instrument is looking. So the subject is the scope, and the forged mark is
+	// only bait standing at the end of the wrong bearing.
+	//
+	// The graduated ring is what makes the swing legible. A tube pointing
+	// somewhere is pointing nowhere in particular; a tube pointing somewhere on a
+	// SCALE has an angle, and an angle can be wrong — the same argument as
+	// `exception`'s piers, which is the deck's device for making an irregularity
+	// visible by putting a regular thing beside it.
+	//
+	// The mark is a CHEVRON, which is the Maintainer's emblem — a seat this card
+	// does not belong to — and it is the only pink object on an orange card. A
+	// player does not have to be told who is being framed; the colour is somebody
+	// else's and it is the brightest thing in the frame.
+	//
+	// The dark thing on the near right is `SWEEP_IMPLANT`, its third outing and
+	// the third instrument that fails to be pointed at it. Matte on `sweep`
+	// because nothing distinguished it, lit on `retrohunt` because somebody put a
+	// light on it deliberately, and matte again here for the plainest reason of
+	// the three: the light is aimed somewhere else.
+	//
+	// The Observatory is the backdrop rather than a wall, which is `stage()`'s own
+	// default doing exactly its job — this card targets the Observatory and
+	// nothing else, and the dome standing over its own misdirected instrument is
+	// the second sentence.
+	falseflag: {
+		cast: 1,
+		doing: 'work',
+		// Behind the mount with both hands down on the traverse wheel. He is not
+		// looking through anything: turning the scope is the whole act, and it
+		// takes about as long as it looks like it takes.
+		lead: { e: 1.28, n: 3.32, h: 0, face: -0.85 },
+		// Well back and dimmer than the default, and pushed a long way EAST — at
+		// this bearing five paces of depth costs three of screen-left, so a dome
+		// authored over the instrument would stand off the card's left edge.
+		backdrop: { size: 1.15, e: 3.0, n: 6.0, face: 0.3, tint: 0.32 },
+		extras: [
+			// The instrument is lit well up from where it started. Everything on
+			// this card is brown at night and the first pass had the scope, the
+			// mount and the ground all at one value — the swing cannot be read off
+			// a silhouette that has merged with the floor it stands on.
+			{ piece: FLG_RING, color: '#8A6E52', tint: 0.72, e: 0, n: 2.9 },
+			{ piece: FLG_MOUNT, color: '#6B5A4A', tint: 0.9, e: 0, n: 2.9 },
+			{ piece: FLG_WHEEL, color: '#7A6656', tint: 0.95, e: 0, n: 2.9 },
+			// 2.75 rad puts the tip on the ring at (−1.50, −0.62) — see the post
+			// below, which stands exactly there. The bearing is ONE number in both
+			// places so a reader can check the scope is pointing at the bait rather
+			// than take two sets of coordinates on trust.
+			{ piece: FLG_TUBE, color: '#8A7364', tint: 1, e: 0, n: 2.9, face: 2.75 },
+
+			// The bait, on the ring at the bearing the scope now holds.
+			{ piece: FLG_POST, color: '#6B5A4A', tint: 0.85, e: -1.5, n: 2.28 },
+			{
+				piece: FLG_MARK,
+				color: '#F472B6',
+				emits: true,
+				tint: 0.38,
+				e: -1.5,
+				n: 2.28,
+				h: 0.62,
+				face: -0.35
+			},
+
+			// The real one, on the far side of the ring, unlit and unlooked-at. On a
+			// plinth because `paint` sorts by facet centroid: a knee-high object on
+			// the floor loses the sort to the mount beside it and simply stops being
+			// drawn, and a fifth of a pace of lift is the whole fix.
+			{ piece: FLG_PLINTH, color: '#4A3A32', tint: 0.7, e: 1.43, n: 2.14 },
+			{ piece: SWEEP_IMPLANT, color: '#8A3A32', tint: 0.95, e: 1.43, n: 2.14, h: 0.3 }
+		],
+		ground: { tint: 0.07, relief: 0.06, cells: 18, far: 3.6 },
+		look: { e: 0.17, n: 2.9, h: 1.11, width: 4.15 }
 	}
 };
 

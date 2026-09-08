@@ -417,11 +417,30 @@ export const wornAt = (anchor: Anchor) =>
  * hat that arrives here is a hat that turns, sorts, shades and poses for free,
  * and one that arrives any other way is a sticker again.
  */
-export function assemble(shape: Shape, worn: readonly string[] = []): Part[] {
+export function assemble(
+	shape: Shape,
+	worn: readonly string[] = [],
+	/**
+	 * Which build the worn items are CUT for, when it is not the one wearing
+	 * them.
+	 *
+	 * The file's whole rule is that an item may carry no constant of its own, so
+	 * everything below is written against the anchors of whoever puts it on and
+	 * therefore always fits. This is the one seam through that guarantee, and it
+	 * exists because "always fits" is a property somebody eventually needs to
+	 * break on purpose: a figure in clothes measured for a different body is a
+	 * figure in somebody else's clothes, which is a thing no colour can say.
+	 *
+	 * It changes the ANCHORS the items are built against and nothing else. The
+	 * body is still the body — so a runner in brute-cut kit is a runner whose hat
+	 * is a third too wide and sits low, rather than a brute.
+	 */
+	fit: Shape = shape
+): Part[] {
 	const items = worn.map((k) => WEARABLES[k]).filter((w): w is Wearable => !!w);
 	if (!items.length) return figure(shape);
 
-	const a = measure(shape);
+	const a = measure(fit);
 	const gone = new Set(items.flatMap((w) => w.suppress ?? []));
 	const body = gone.size ? figure(shape).filter((p) => !p.tag || !gone.has(p.tag)) : figure(shape);
 	// Stamped here rather than in each item's `parts()`: an author writing a hat

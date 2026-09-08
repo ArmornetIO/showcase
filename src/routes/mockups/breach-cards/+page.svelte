@@ -31,6 +31,21 @@
 	let faceDown = $state(false);
 	let scale = $state(1);
 
+	// Which card is on the table. A gallery that could only show cards being READ
+	// could not review the half of a face that only exists once it is PLAYED —
+	// `sleeper` is a picture of nothing at all until then. One at a time, because
+	// what is being judged is a card standing out from the ones beside it.
+	//
+	// Two ways in, and they are not redundant. HOVER is the reviewing gesture:
+	// moving across a wall of forty and watching each one go off costs no clicks
+	// and is the only way to compare the play states at speed. CLICK pins one, so
+	// a state you want to sit and look at survives the pointer leaving — which
+	// hover alone cannot do, and which is exactly what you need to screenshot one
+	// or to read it next to its neighbour.
+	let pinned = $state<string | null>(null);
+	let hovered = $state<string | null>(null);
+	const isPlayed = (id: string) => pinned === id || hovered === id;
+
 	// The layers, picked straight off the catalogue — this page is the viewer for
 	// them, so it has no loadout of its own to keep in step.
 	let frameKey = $state(DEFAULT_LOADOUT.frame);
@@ -45,6 +60,9 @@
 		...new Set(CATALOGUE.filter((c) => c.side === side).map((c) => c.owner))
 	]);
 
+	// The deck, and only the deck. A signature is never dealt and never held — it
+	// is a button on the character sheet — so printing one here would invent a
+	// card the game does not have.
 	const cards = $derived(
 		CATALOGUE.filter((c) => c.side === side && (owner === 'all' || c.owner === owner))
 	);
@@ -118,15 +136,32 @@
 
 	<div class="deck" style:--gap="{Math.round(18 * scale)}px">
 		{#each cards as c (c.ability.key + c.owner)}
+			{@const id = c.ability.key + c.owner}
 			<figure>
 				{#if face === 'v2'}
-					<CardFaceV2
-						ability={c.ability}
-						fx={fxFor(c.ability.key, side)}
-						owner={klassByKey(c.owner)}
-						skillMod={seat.skills[c.ability.skill]}
-						{scale}
-					/>
+					<!-- The whole card is the button. A separate "play" control beside
+					     each face would be forty controls in a wall of forty cards, and
+					     the thing being reviewed is the card, not the chrome round it. -->
+					<button
+						class="play"
+						aria-pressed={pinned === id}
+						title="Play {c.ability.name}"
+						onclick={() => (pinned = pinned === id ? null : id)}
+						onpointerenter={() => (hovered = id)}
+						onpointerleave={() => (hovered = hovered === id ? null : hovered)}
+						onfocus={() => (hovered = id)}
+						onblur={() => (hovered = hovered === id ? null : hovered)}
+					>
+						<CardFaceV2
+							ability={c.ability}
+							fx={fxFor(c.ability.key, side)}
+							owner={klassByKey(c.owner)}
+							skillMod={seat.skills[c.ability.skill]}
+							played={isPlayed(id)}
+							raised={isPlayed(id)}
+							{scale}
+						/>
+					</button>
 				{:else}
 					<CardSkin
 						ability={c.ability}
@@ -253,6 +288,20 @@
 		display: flex;
 		flex-direction: column;
 		gap: 7px;
+	}
+	/* No chrome of its own — the card already has a border, a radius and a lift,
+	   and a button drawn round one is a second frame arguing with the first. */
+	.play {
+		padding: 0;
+		background: none;
+		border: none;
+		cursor: pointer;
+		line-height: 0;
+		border-radius: 12px;
+	}
+	.play:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
 	}
 	figcaption {
 		display: flex;

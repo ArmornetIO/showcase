@@ -32,6 +32,7 @@
 		selected = $bindable(null),
 		selectedEdge = $bindable(null),
 		focusMode = true,
+		marks = new Map(),
 	}: {
 		tables: ErdTable[];
 		fks: ErdForeignKey[];
@@ -42,6 +43,10 @@
 		selected?: string | null;
 		selectedEdge?: string | null;
 		focusMode?: boolean;
+		/** Annotation colors keyed by `table` or `table.column`. Deliberately a
+		 *  bare color map, not a lint type: this layer draws marks, it does not
+		 *  know what a finding is, so any future annotator can reuse it. */
+		marks?: Map<string, string>;
 	} = $props();
 
 	const ctx = getContext<CanvasContextValue>(CANVAS_CTX);
@@ -389,7 +394,10 @@
 						/>
 						<rect x="0" y="0" width={p.w} height="2.5" rx="1.25" fill={g?.color} opacity="0.85" />
 						<text x="10" y="20" class="erd-tname">{t.name}</text>
-						<text x={p.w - 10} y="20" text-anchor="end" class="erd-rows">
+						{#if marks.has(t.name)}
+							<circle cx={p.w - 10} cy="12" r="3.5" fill={marks.get(t.name)} />
+						{/if}
+						<text x={p.w - (marks.has(t.name) ? 20 : 10)} y="20" text-anchor="end" class="erd-rows">
 							{eff === 'collapsed' ? `${t.columns.length} cols` : t.approxRows > 0 ? fmtRows(t.approxRows) : ''}
 						</text>
 					</g>
@@ -398,6 +406,7 @@
 						{@const rowY = HEADER_H + i * ROW_H}
 						{@const isLit = lit?.has(c.name) ?? false}
 						{@const isFkCol = !!c.fk}
+						{@const mark = marks.get(`${t.name}.${c.name}`)}
 						<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
 						<g
 							onpointerenter={() => (hoveredCol = { table: t.name, col: c.name })}
@@ -406,6 +415,12 @@
 							onclick={isFkCol ? (e) => { const fk = fks.find((f) => (f.fromTable === t.name && f.fromColumns.includes(c.name)) || (f.toTable === t.name && f.toColumns.includes(c.name))); if (fk) onEdgeClick(e, fk.id); } : undefined}
 						>
 							<rect x="1" y={rowY} width={p.w - 2} height={ROW_H} fill={isLit ? g?.color ?? 'var(--accent)' : 'transparent'} opacity={isLit ? 0.14 : 1} />
+							{#if mark}
+								<!-- Left rail rather than a row tint: the row already uses fill for
+								     hover/selection, and two meanings on one channel is unreadable. -->
+								<rect x="1" y={rowY} width="2.5" height={ROW_H} fill={mark} />
+								<rect x="1" y={rowY} width={p.w - 2} height={ROW_H} fill={mark} opacity="0.08" />
+							{/if}
 							{#if c.pk}
 								<text x="10" y={rowY + 14.5} class="erd-key">⚷</text>
 							{/if}

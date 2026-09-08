@@ -23,8 +23,8 @@
 		OUTCOME_COLOR,
 		OUTCOME_LABEL,
 		TERRITORIES,
-		abilityByKey,
 		klassByKey,
+		moveByKey,
 		structureById
 	} from '../internal/rules.js';
 	import { fxFor } from '../internal/fx.js';
@@ -78,7 +78,10 @@
 	<div class="flex min-h-0 flex-col overflow-y-auto overflow-x-clip pr-1">
 		{#each shown as r (r.id)}
 			{@const actor = r.actor ? klassByKey(r.actor) : null}
-			{@const card = r.card ? abilityByKey(r.card) : null}
+			<!-- `moveByKey`: a signature power arrives in `r.card` like any other
+			     key, and the CATALOGUE-only lookup returned null for it — the four
+			     loudest rows in the match lost their name and their icon. -->
+			{@const card = r.card ? moveByKey(r.card) : null}
 			{@const target = r.structure ? structureById(r.structure) : null}
 			{@const region = r.where ? TERRITORIES[r.where].name : null}
 			{@const fx = card && actor ? fxFor(card.key, actor.faction) : null}

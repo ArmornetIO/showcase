@@ -14,6 +14,9 @@
 		TABLES,
 		FOREIGN_KEYS,
 		GROUPS,
+		LINT_TABLES,
+		LINT_FOREIGN_KEYS,
+		LINT_GROUPS,
 		DRIFT,
 		NO_DRIFT,
 		LEDGER,
@@ -27,6 +30,15 @@
 	// the empty case cannot rot unseen.
 	let drifted = $state(true);
 	const report = $derived(drifted ? DRIFT : NO_DRIFT);
+
+	// Same reasoning one level down: the lint overlay has two states worth
+	// seeing, and the clean one is the one that rots if it is never rendered.
+	let schema = $state('drifted');
+	const erd = $derived(
+		schema === 'drifted'
+			? { tables: LINT_TABLES, foreignKeys: LINT_FOREIGN_KEYS, groups: LINT_GROUPS }
+			: { tables: TABLES, foreignKeys: FOREIGN_KEYS, groups: GROUPS }
+	);
 
 	let source = $state('live');
 	let target = $state('ledger');
@@ -43,7 +55,7 @@
 </svelte:head>
 
 <div class="px-3 sm:px-6 py-4 sm:py-5">
-	<ShowcaseBlock component="ErdDiagram ErdLayer ErdTableList ErdToolbar ErdInspector">
+	<ShowcaseBlock component="ErdDiagram ErdLayer ErdTableList ErdToolbar ErdInspector ErdLintPanel">
 		<h3 class="component-name">ErdDiagram</h3>
 		<p class="component-desc">
 			The schema diagram: a table list, a pannable canvas of tables and foreign keys, a toolbar for
@@ -52,8 +64,30 @@
 			<code class="demo-code">ErdToolbar</code> and <code class="demo-code">ErdInspector</code> —
 			select a table to open the inspector.
 		</p>
+		<p class="component-desc">
+			Press <code class="demo-code">l</code> for the lint overlay: naming and reference conventions
+			inferred from the schema itself, not a house style. The drifted variant below plants one
+			defect per rule — a camelCase column, an <code class="demo-code">org_id</code> with no
+			constraint, an FK bound to
+			<code class="demo-code">users</code> while a <code class="demo-code">sessions</code> table
+			exists, a timestamp missing the <code class="demo-code">_at</code> the other seven carry, and
+			an unclaimed table. The clean schema reports nothing, which is the other half of the demo.
+		</p>
+		<div class="toggle-row">
+			<ViewToggle
+				options={[
+					{ value: 'drifted', label: 'Drifted' },
+					{ value: 'clean', label: 'Clean' }
+				]}
+				value={schema}
+				onchange={(v: string) => (schema = v)}
+			/>
+		</div>
+		<!-- Deliberately not {#key}-ed: remounting would reset the lint toggle on
+		     every switch, and reaching the empty state is the point of the pair.
+		     ErdDiagram re-seeds its own layout when the table set changes. -->
 		<div class="stage stage--tall">
-			<ErdDiagram tables={TABLES} foreignKeys={FOREIGN_KEYS} groups={GROUPS} />
+			<ErdDiagram tables={erd.tables} foreignKeys={erd.foreignKeys} groups={erd.groups} />
 		</div>
 	</ShowcaseBlock>
 
@@ -150,6 +184,16 @@
 	}
 	.stage--tall {
 		height: 620px;
+	}
+	/* ShowcaseBlock wraps each demo in an inline-flex `.demo-variant`, which
+	   shrink-wraps to its content. For a component that fills its container
+	   that means the canvas resolves to zero width and renders blank — which is
+	   what the diagram did here. Scoped to this page: every other demo wants
+	   the shrink-wrap. */
+	.stage :global(.demo-variant) {
+		display: flex;
+		width: 100%;
+		height: 100%;
 	}
 	.toggle-row {
 		display: flex;

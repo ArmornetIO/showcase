@@ -280,34 +280,63 @@
 	);
 
 	// ── The "your turn" moment ───────────────────────────────────────────────
-	// Fires on the RISING edge of `isMyTurn`. Owned here rather than inside the
-	// two surfaces it drives, so the wash and the plate cannot disagree about
-	// when the moment is.
+	// Fires ONCE per turn that is mine. Owned here rather than inside the two
+	// surfaces it drives, so the wash and the plate cannot disagree about when
+	// the moment is.
 	//
-	// `seen` is a plain `let`, not `$state`: an effect that writes state it also
-	// reads is an effect that re-runs itself, and this one only ever needs to
-	// remember what it saw last.
+	// Latched on WHICH TURN it is, not on a boolean. `busy` was in that boolean,
+	// and `busy` falls at the end of every resolution — so the plate replayed the
+	// arrival after each card, and worst of all after the LAST one, announcing
+	// "your turn" into the 900ms gap before the out-of-AP effect ends it. Being
+	// mid-turn is not a new turn. `round:phase` is, and both halves are kept
+	// current on a networked table as well as a local one.
+	//
+	// `busy` no longer decides WHETHER the moment happens, only that it is not
+	// happening right now: a turn can arrive while somebody else's resolution is
+	// still playing out, and the ceremony belongs after that, not under it.
+	//
+	// Plain `let`, not `$state`: an effect that writes state it also reads is an
+	// effect that re-runs itself, and this one only ever needs to remember which
+	// turn it last announced.
 	let arriving = $state(false);
 	let vignette = $state(0);
-	let seen = false;
+	let announced: string | null = null;
+
+	/** The wash at rest, held for the remainder of a turn that is mine. */
+	const WASH_HELD = 0.18;
+	/** The wash at the moment of arrival, before it settles to `WASH_HELD`. */
+	const WASH_ARRIVAL = 0.35;
 
 	$effect(() => {
-		const mine = match.isMyTurn && match.stage === 'play' && !match.winner && !match.busy;
-		if (mine === seen) return;
-		seen = mine;
+		const mine = match.isMyTurn && match.stage === 'play' && !match.winner;
 		if (!mine) {
+			announced = null;
 			arriving = false;
 			vignette = 0;
 			return;
 		}
+		const turn = `${match.round}:${match.phase}`;
+		// Read before the latch so the effect re-runs when the resolution ends.
+		if (match.busy) {
+			// A resolution is on screen and the plate is not — but the wash is the
+			// turn, not the moment, so it holds. Jumping it to the settled level
+			// rather than leaving it wherever the ceremony got to is what stops a
+			// card played inside the first second from freezing the arrival state:
+			// the teardown below has just cancelled the timer that would have.
+			arriving = false;
+			if (announced === turn) vignette = WASH_HELD;
+			return;
+		}
+		if (announced === turn) return;
+		announced = turn;
 		arriving = true;
-		vignette = 0.35;
+		vignette = WASH_ARRIVAL;
 		// The plate hands the space back to the sentence; the wash settles to a
 		// level it holds for the rest of the turn. 1080ms of ceremony total —
 		// under the ~1.2s at which a player starts hunting for the information
 		// themselves.
 		const drop = setTimeout(() => (arriving = false), 900);
-		const settle = setTimeout(() => (vignette = 0.18), 1080);
+		const settle = setTimeout(() => (vignette = WASH_HELD), 1080);
 		return () => {
 			clearTimeout(drop);
 			clearTimeout(settle);

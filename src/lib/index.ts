@@ -773,6 +773,21 @@ export type {
 	EnvironmentsReport
 } from './model-explorer/types.js';
 
+// The schema linter behind ErdDiagram's lint overlay — naming and reference
+// conventions inferred from the schema itself rather than a house style.
+// The function is exported as well as the overlay because it is pure over
+// ErdData and needs no browser: the same rules that paint the diagram can
+// run in a CI check or a CLI. ErdLintPanel stays unexported, same as
+// ErdInspector.
+export { lintErd, canon, squash, LINT_RULES } from './model-explorer/erd-lint.js';
+export type {
+	LintReport,
+	LintFinding,
+	LintRule,
+	LintSeverity,
+	LintOptions
+} from './model-explorer/erd-lint.js';
+
 // ── Browser agent (WASM Agent Line) ──────────────────────────────────────────
 // The WebAssembly Agent Line client every armornet agent runs, compiled for the
 // browser, plus the registry that shares its ONE connection out per capability.

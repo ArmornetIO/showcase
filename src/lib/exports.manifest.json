@@ -1740,6 +1740,24 @@
             "rather than redeclared per consumer so a schema-manager front end — dbmgr's",
             "own embedded console today — parses the same shapes the server emits."
           ]
+        },
+        {
+          "symbols": ["lintErd", "canon", "squash", "LINT_RULES"],
+          "types": [
+            "LintReport",
+            "LintFinding",
+            "LintRule",
+            "LintSeverity",
+            "LintOptions"
+          ],
+          "note": [
+            "The schema linter behind ErdDiagram's lint overlay — naming and reference",
+            "conventions inferred from the schema itself rather than a house style.",
+            "The function is exported as well as the overlay because it is pure over",
+            "ErdData and needs no browser: the same rules that paint the diagram can",
+            "run in a CI check or a CLI. ErdLintPanel stays unexported, same as",
+            "ErdInspector."
+          ]
         }
       ]
     },

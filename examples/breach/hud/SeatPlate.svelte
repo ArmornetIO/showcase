@@ -60,6 +60,8 @@
 
 	const power = $derived(match.power);
 	const spent = $derived(match.powerCharges <= 0);
+	// A signature on cooldown is waiting, not gone — see HeroDais.
+	const cooling = $derived(spent && match.powerReadyIn > 0);
 	const powerArmable = $derived(
 		!!power &&
 			!spent &&
@@ -459,7 +461,9 @@
 					<b
 						class="truncate font-mono text-[0.75rem] leading-none font-black tracking-[0.06em] uppercase"
 					>
-						{spent ? 'spent' : power.name}
+						{#if cooling}
+							back in {match.powerReadyIn}
+						{:else}{spent ? 'spent' : power.name}{/if}
 					</b>
 					<!-- AP under the name rather than in a column of its own: the button
 					     is 228px now, not the width of the section, and the move's own

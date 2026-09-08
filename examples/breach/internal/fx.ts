@@ -219,7 +219,66 @@ export const CARD_FX: Record<string, CardFx> = {
 	// prettier-ignore
 	quarantine: { leaves: 'garrison', vector: 'none', impact: 'bloom', hue: '#A78BFA', word: 'seals', icon: 'lock', power: 2, powerLabel: 'RNDS', squad: { count: 2, shape: 'brute' } },
 	// prettier-ignore
-	attribute: { leaves: 'nothing', vector: 'trace', impact: 'burst', hue: '#34D399', word: 'names', icon: 'flag', power: 1, powerLabel: 'WIN', squad: { count: 2, shape: 'runner' } }
+	attribute: { leaves: 'nothing', vector: 'trace', impact: 'burst', hue: '#34D399', word: 'names', icon: 'flag', power: 1, powerLabel: 'WIN', squad: { count: 2, shape: 'runner' } },
+
+	// ── The counters, and the attacks that earned them ────────────────────────
+	// `leaves`, `power` and `squad` here MUST match cardFx in internal/breach/
+	// cardfx.go — those three decide state and Go owns them. A card missing from
+	// this table is not invisible, which is worse: `fxFor` hands back the
+	// faction default, so every one of them renders the same hue, the same verb
+	// and a printed power of ZERO. Sixteen cards reading "strike · 0 · ROLL" is
+	// how a gallery lies about a deck it is supposed to be reviewing.
+
+	// Social takeover — the account changes hands and nobody new is standing in
+	// the building.
+	// prettier-ignore
+	takeover: { leaves: 'nothing', vector: 'seep', impact: 'bloom', hue: '#F472B6', word: 'phishes', icon: 'link', power: -4, powerLabel: 'WALL', squad: { count: 3, shape: 'ghost' } },
+	// The resolver fetched it, so it is IN the tree and it stays there.
+	// prettier-ignore
+	confusion: { leaves: 'implant', vector: 'trace', impact: 'burst', hue: '#F472B6', word: 'resolves', icon: 'package', power: 2, powerLabel: 'ATK', squad: { count: 3, shape: 'runner' } },
+	// One plugin, many machines — a small squad that is everywhere at once.
+	// prettier-ignore
+	extension: { leaves: 'implant', vector: 'seep', impact: 'burst', hue: '#F472B6', word: 'installs', icon: 'download', power: 1, powerLabel: 'ATK', squad: { count: 2, shape: 'runner' } },
+	// The token walks out and the job finishes green.
+	// prettier-ignore
+	harvest: { leaves: 'nothing', vector: 'trace', impact: 'burst', hue: '#FB923C', word: 'harvests', icon: 'key', power: 3, powerLabel: 'ATK', squad: { count: 3, shape: 'ghost' } },
+	// The data leaves. Nothing stays, which is why egress is the only place it
+	// can be caught.
+	// prettier-ignore
+	exfil: { leaves: 'nothing', vector: 'trace', impact: 'burst', hue: '#FB923C', word: 'exfiltrates', icon: 'upload', power: 2, powerLabel: 'ATK', squad: { count: 2, shape: 'ghost' } },
+	// A badge, not a body: the insider was already allowed to be there.
+	// prettier-ignore
+	insider: { leaves: 'nothing', vector: 'seep', impact: 'bloom', hue: '#FB923C', word: 'buys', icon: 'credit-card', power: -4, powerLabel: 'WALL', squad: { count: 2, shape: 'brute' } },
+	// Poisoning the feed moves a number blue reads, not a wall red climbs.
+	// prettier-ignore
+	falseflag: { leaves: 'nothing', vector: 'trace', impact: 'bloom', hue: '#FB923C', word: 'misleads', icon: 'rss', power: -3, powerLabel: 'WALL', squad: { count: 2, shape: 'drone' } },
+	// The smallest implant on the board and the hardest to notice: one figure,
+	// and the paperwork says it belongs there.
+	// prettier-ignore
+	exception: { leaves: 'implant', vector: 'seep', impact: 'none', hue: '#FB923C', word: 'waives', icon: 'file-text', power: 1, powerLabel: 'ATK', squad: { count: 1, shape: 'ghost' } },
+
+	// Blue's new controls are GARRISONS for the reason harden is: the number
+	// they buy is people standing on the wall, and red gets it down by taking
+	// them off it.
+	// prettier-ignore
+	review: { leaves: 'garrison', vector: 'none', impact: 'bloom', hue: '#38BDF8', word: 'reviews', icon: 'users', power: 3, powerLabel: 'WALL', squad: { count: 3, shape: 'brute' } },
+	// prettier-ignore
+	shortlived: { leaves: 'garrison', vector: 'none', impact: 'bloom', hue: '#38BDF8', word: 'expires', icon: 'clock', power: 3, powerLabel: 'WALL', squad: { count: 2, shape: 'brute' } },
+	// prettier-ignore
+	egress: { leaves: 'garrison', vector: 'none', impact: 'bloom', hue: '#38BDF8', word: 'fences', icon: 'network', power: 3, powerLabel: 'WALL', squad: { count: 3, shape: 'brute' } },
+	// prettier-ignore
+	webauthn: { leaves: 'garrison', vector: 'none', impact: 'bloom', hue: '#38BDF8', word: 'binds', icon: 'shield-check', power: 3, powerLabel: 'WALL', squad: { count: 2, shape: 'brute' } },
+	// prettier-ignore
+	vendorfork: { leaves: 'garrison', vector: 'none', impact: 'bloom', hue: '#38BDF8', word: 'forks', icon: 'git-fork', power: 2, powerLabel: 'WALL', squad: { count: 2, shape: 'brute' } },
+	// Revocation puts a wall BACK rather than adding to it, so it leaves nobody
+	// on it. The 4 is how much softening it can undo.
+	// prettier-ignore
+	revoke: { leaves: 'nothing', vector: 'trace', impact: 'bloom', hue: '#38BDF8', word: 'revokes', icon: 'rotate-ccw', power: 4, powerLabel: 'BACK', squad: { count: 2, shape: 'brute' } },
+	// Static reads. Like every other look, the hunter does not stay.
+	// prettier-ignore
+	retrohunt: { leaves: 'nothing', vector: 'sweep', impact: 'scan', hue: '#34D399', word: 'rescans', icon: 'zoom-in', power: 2, powerLabel: 'SITE', squad: { count: 4, shape: 'drone' } },
+	// prettier-ignore
+	inventory: { leaves: 'nothing', vector: 'sweep', impact: 'scan', hue: '#34D399', word: 'inventories', icon: 'clipboard-list', power: 1, powerLabel: 'SITE', squad: { count: 3, shape: 'drone' } }
 };
 
 export const fxFor = (key: string, faction: 'red' | 'blue'): CardFx =>

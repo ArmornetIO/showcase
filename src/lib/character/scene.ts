@@ -21,7 +21,7 @@ import { pieceProjector, studioFrame } from '../mesh-studio/pieces/piece-facets.
 import { at, lift, turn } from './solids.js';
 import { measure } from './builds.js';
 import { figureParts, paint, DEFAULT_ART, type Painted, type Tri, type Rect } from './render.js';
-import type { CharacterSkin } from './characters.js';
+import type { CharacterSkin, Shape } from './characters.js';
 import type { Pose } from './poses.js';
 import type { CrestOpts } from './crest.js';
 import { groundPatch, type GroundOpts } from './ground.js';
@@ -61,6 +61,16 @@ export interface Spot {
 export interface Actor extends Spot {
 	who: CharacterSkin;
 	worn?: readonly string[];
+	/**
+	 * Which build the worn items are cut for, if not this one's — see
+	 * `wearables.assemble`.
+	 *
+	 * On a card this is one thing and one thing only: somebody in clothes that
+	 * are not theirs. The anchors are a third wider on a brute than on a runner,
+	 * so a runner in brute-cut kit wears a hat that overhangs its own skull and
+	 * sits low on it, which is what a disguise looks like from across a room.
+	 */
+	wornFit?: Shape;
 	pose?: Pose;
 	/** The hue worn items fly in. */
 	trim?: string;
@@ -207,6 +217,7 @@ export function sceneArt(spec: SceneSpec): Scene {
 			suit: spec.suit,
 			pose: a.pose,
 			worn: a.worn,
+			wornFit: a.wornFit,
 			trim: a.trim,
 			lamp: a.lamp,
 			tints: a.tints,

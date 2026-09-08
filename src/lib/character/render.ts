@@ -12,7 +12,7 @@ import { lift, orbit, swing } from './solids.js';
 import { measure } from './builds.js';
 import { assemble, wearable, wornKey, type Anchor } from './wearables.js';
 import type { Solid } from '../mesh-studio/pieces/pieces.js';
-import type { CharacterSkin } from './characters.js';
+import type { CharacterSkin, Shape } from './characters.js';
 import { poseKey, REST, type Pose } from './poses.js';
 import { crestParts, type CrestOpts } from './crest.js';
 
@@ -46,6 +46,10 @@ export interface ArtOpts {
 	 *  assembled into the same part list the body is, so they turn, sort, shade
 	 *  and pose with it. */
 	worn?: readonly string[];
+	/** Which build the worn items are CUT for — see `assemble`. Omitted means
+	 *  the wearer's own, which is the only answer anything dressing itself
+	 *  wants; set it to put a figure in clothes made for somebody else. */
+	wornFit?: Shape;
 	/** The hue worn items fly in — the PLAYER's colour, not the class's plate.
 	 *  A hat belongs to the account; the shoulders under it do not. */
 	trim?: string;
@@ -129,7 +133,14 @@ function lamp(color: string, k: number): string {
  * write that shape constantly — `art(k, { pose: walking ? clip : undefined })`
  * — and it crashed in `poseKey`, several frames from the call that caused it.
  */
-function settings(opts: ArtOpts): Required<Omit<ArtOpts, 'lamp'>> & { lamp: string | null } {
+function settings(
+	opts: ArtOpts
+	// `wornFit` is out of the `Required` set beside `lamp`, and for a stronger
+	// reason: `lamp` has a default of `null`, and this has no expressible default
+	// at all. Absent means "whatever build is wearing them", which is not a
+	// `Shape` — naming one here would be picking a body for everybody who did not
+	// ask. Read straight off `opts` where it is used.
+): Required<Omit<ArtOpts, 'lamp' | 'wornFit'>> & { lamp: string | null; wornFit?: Shape } {
 	const out = { ...DEFAULT_ART };
 	for (const [k, v] of Object.entries(opts)) {
 		if (v !== undefined) (out as Record<string, unknown>)[k] = v;
@@ -161,7 +172,7 @@ export interface Tri {
 export function figureFacets(
 	k: CharacterSkin,
 	frame: TangentFrame,
-	opts: Pick<ArtOpts, 'suit' | 'pose' | 'lamp' | 'glow' | 'worn' | 'trim' | 'tints' | 'crest'> = {}
+	opts: Pick<ArtOpts, 'suit' | 'pose' | 'lamp' | 'glow' | 'worn' | 'wornFit' | 'trim' | 'tints' | 'crest'> = {}
 ): Tri[] {
 	return paint(figureParts(k, opts), frame, settings(opts).glow);
 }
@@ -238,7 +249,7 @@ export function paint(items: readonly Painted[], frame: TangentFrame, glow = 1):
  */
 export function figureParts(
 	k: CharacterSkin,
-	opts: Pick<ArtOpts, 'suit' | 'pose' | 'lamp' | 'glow' | 'worn' | 'trim' | 'tints' | 'crest'> = {}
+	opts: Pick<ArtOpts, 'suit' | 'pose' | 'lamp' | 'glow' | 'worn' | 'wornFit' | 'trim' | 'tints' | 'crest'> = {}
 ): Painted[] {
 	const { suit, pose, worn, trim, tints, crest } = settings(opts);
 	// Identity stays the plate; only the emitting surface takes the status.
@@ -257,7 +268,10 @@ export function figureParts(
 	// composited over it. It is scenery rather than anatomy, so it is never
 	// posed and never measured; `art` takes its bounds off `assemble` alone,
 	// which is what stops a ring around a character from reframing them.
-	const scene = [...assemble(k.shape, worn), ...(crest ? crestParts(k.shape, crest) : [])];
+	const scene = [
+		...assemble(k.shape, worn, opts.wornFit),
+		...(crest ? crestParts(k.shape, crest) : [])
+	];
 	return scene.map((part) => {
 		// Pose first, then project. The bob rides everything; the swing only the
 		// part that carries a limb tag.
@@ -333,7 +347,7 @@ export function art(k: CharacterSkin, opts: ArtOpts = {}): Art {
 	// The worn set and its colour are IN the signature, and have to be: this
 	// cache is keyed on everything that changes a pixel, so a loadout left out
 	// of it would hand back the figure wearing the previous hat for ever.
-	const id = `${k.key}|${k.color}|${suit}|${lamped}|${glow.toFixed(2)}|${yaw.toFixed(3)}|${pitch.toFixed(3)}|${poseKey(pose)}|${wornKey(worn)}|${trim}|${tintKey(tints)}|${crest ? JSON.stringify(crest) : ''}`;
+	const id = `${k.key}|${k.color}|${suit}|${lamped}|${glow.toFixed(2)}|${yaw.toFixed(3)}|${pitch.toFixed(3)}|${poseKey(pose)}|${wornKey(worn)}|${opts.wornFit ?? ''}|${trim}|${tintKey(tints)}|${crest ? JSON.stringify(crest) : ''}`;
 	const cached = cache.get(id);
 	if (cached) return cached;
 	// One clip is 24 frames; a few characters, angles and tunings on top of that
@@ -381,7 +395,7 @@ export function art(k: CharacterSkin, opts: ArtOpts = {}): Art {
 	// Hoisted above the bounds passes: both of them need the shoulder line, and
 	// the hit rects further down need the same measurements.
 	const a = measure(k.shape);
-	const dressed = assemble(k.shape, worn);
+	const dressed = assemble(k.shape, worn, opts.wornFit);
 	for (const part of dressed) part.solid.verts.forEach(grow);
 
 	// ── The bust, measured from the head and not from the figure ────────────

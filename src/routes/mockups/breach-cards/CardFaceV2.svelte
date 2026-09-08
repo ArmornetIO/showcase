@@ -44,6 +44,10 @@
 		/** Play the scene. See `SceneAnim`: which frame is showing is a fact about
 		 *  the moment, not about the card. */
 		anim?: SceneAnim;
+		/** The card is on the table, not in the hand. Same class of fact as
+		 *  `anim` — see `sceneFor`. Cards whose shot names no `wakes` are drawn
+		 *  identically either way. */
+		played?: boolean;
 	}
 
 	let {
@@ -54,10 +58,11 @@
 		raised = false,
 		scale = 1,
 		shot,
-		anim
+		anim,
+		played = false
 	}: Props = $props();
 
-	const scene = $derived(sceneFor(ability, owner, fx, shot, anim));
+	const scene = $derived(sceneFor(ability, owner, fx, shot, anim, played));
 
 	// The texture is the only part of a shot that is NOT geometry, so it cannot
 	// ride in the `SceneSpec` — it is resolved here, from the same merge

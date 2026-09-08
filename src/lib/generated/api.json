@@ -6491,6 +6491,12 @@
         "type": "Record<string, ErdGroup>",
         "optional": true,
         "default": "{}"
+      },
+      {
+        "name": "lintOptions",
+        "type": "LintOptions",
+        "optional": true,
+        "description": "Host jargon for the linter — abbreviations it treats as one word,\n role-qualified name stems. Defaults suit most schemas."
       }
     ],
     "interfaces": []
@@ -6597,6 +6603,13 @@
         "type": "boolean",
         "optional": true,
         "default": "true"
+      },
+      {
+        "name": "marks",
+        "type": "Map<string, string>",
+        "optional": true,
+        "description": "Annotation colors keyed by `table` or `table.column`. Deliberately a\n bare color map, not a lint type: this layer draws marks, it does not\n know what a finding is, so any future annotator can reuse it.",
+        "default": "new Map()"
       }
     ],
     "interfaces": []
@@ -6609,6 +6622,33 @@
         "type": "LedgerEntry[]",
         "optional": true,
         "default": "[]"
+      }
+    ],
+    "interfaces": []
+  },
+  "ErdLintPanel": {
+    "component": "ErdLintPanel",
+    "props": [
+      {
+        "name": "report",
+        "type": "LintReport",
+        "optional": false
+      },
+      {
+        "name": "selected",
+        "type": "string | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "onjump",
+        "type": "(table: string) => void",
+        "optional": false
+      },
+      {
+        "name": "onclose",
+        "type": "() => void",
+        "optional": false
       }
     ],
     "interfaces": []
@@ -6675,6 +6715,18 @@
         "type": "boolean",
         "optional": true,
         "default": "$bindable(true)"
+      },
+      {
+        "name": "lintMode",
+        "type": "boolean",
+        "optional": true,
+        "default": "$bindable(false)"
+      },
+      {
+        "name": "lintCount",
+        "type": "number",
+        "optional": true,
+        "default": "0"
       },
       {
         "name": "onarrange",

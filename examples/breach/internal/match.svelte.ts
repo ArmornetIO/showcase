@@ -23,6 +23,7 @@ import {
 	canTarget,
 	computeOdds,
 	klassByKey,
+	moveByKey,
 	outcomeFor,
 	powerOf,
 	roll2d6,
@@ -297,7 +298,7 @@ export interface RemoteMatchView {
 	/** This seat's own move, priced by the server. Absent for a character without
 	 *  one. Only the charge count is read: the move itself is generated data both
 	 *  sides already hold, and a second copy is a second thing to disagree. */
-	power?: { key: string; charges: number };
+	power?: { key: string; charges: number; readyIn?: number };
 	/** The cards this seat is holding, by the server's reckoning. Absent for a
 	 *  bystander, who holds none.
 	 *
@@ -708,6 +709,10 @@ export class BreachMatch {
 	readonly power = $derived<Power | null>(powerOf(this.seat.key) ?? null);
 	/** What is left of it. Shown at zero rather than hidden — see `charges`. */
 	readonly powerCharges = $derived(this.power ? this.chargesOf(this.power.key) : 0);
+	/** Rounds until a spent charge returns, and only ever set while it is spent.
+	 *  Zero at a power with no cooldown, which is a signature that really is gone
+	 *  for the match — the button says "spent" rather than counting down. */
+	powerReadyIn = $state(0);
 
 	readonly armed = $derived<Ability | null>(this.moveFor(this.seat.key, this.armedKey) ?? null);
 	readonly target = $derived(this.selectedId ? structureById(this.selectedId) : undefined);
@@ -929,6 +934,11 @@ export class BreachMatch {
 		if (m.power) {
 			const prev = untrack(() => this.charges);
 			this.charges = { ...prev, [m.power.key]: m.power.charges };
+			// Only ever the seat's OWN power, so this never has to be merged the
+			// way charges are: the server sends no other chair's countdown, and
+			// showing a stale one for a seat you have swapped away from would read
+			// as your signature being on somebody else's clock.
+			this.powerReadyIn = m.power.readyIn ?? 0;
 		}
 		// A seat's own cards, from the only deck that counts. Merged rather than
 		// replaced for the same reason as `charges`: a seat is sent nobody's hand
@@ -1785,7 +1795,12 @@ export class BreachMatch {
 	 *  which is a server this client is too old to draw. */
 	#beatFor(res: RemoteResolution): Beat | null {
 		const actor = res.actor_key ? klassByKey(res.actor_key) : null;
-		const ability = (res.card_key ? abilityByKey(res.card_key) : undefined) ?? null;
+		// `moveByKey`, not `abilityByKey`: the server sends a signature power in the
+		// same `card_key` field as a hand card, and the generated lookup only knows
+		// the CATALOGUE. Resolving to null here costs the beat its `fx` and — since
+		// `pov` requires an ability — the cutaway, so the loudest card in the game
+		// played as a silent one on every server-ruled table.
+		const ability = (res.card_key ? moveByKey(res.card_key) : undefined) ?? null;
 		// A fogged action names no building, so the ripple hangs on an arbitrary one
 		// in the right region and `foggedAnchorId` moves it off that one again.
 		const target =

@@ -33,13 +33,36 @@
 
 	let { match, spread = 132, split = 0, class: cls = '' }: Props = $props();
 
-	let hoverKey = $state<string | null>(null);
+	let hoverUid = $state<string | null>(null);
 
 	/** The seat's hand, as instances. Cards come off the deck now, so two copies
 	 *  of the same card can be held at once — every read below is by instance,
 	 *  and the `{#each}` is keyed on `uid` rather than the card's key. A shared
 	 *  key in a keyed each block is not a cosmetic problem in Svelte, it throws. */
 	const hand = $derived(match.handOf(match.seat.key));
+
+	/**
+	 * The instance the player last put a finger on.
+	 *
+	 * `armedKey`, `inspectKey` and `drag.key` are card KEYS and have to be:
+	 * which of two identical copies you play is a question the rules have no
+	 * answer to, and `commit` sends a key to the server. But a hand holds
+	 * instances, so matching a lift state on the key lifted BOTH copies — hover
+	 * did the same thing off `ability.key`. Only the fan knows which one the
+	 * pointer was over, so only the fan can answer it, and it is a
+	 * presentational answer that belongs nowhere else.
+	 */
+	let touchedUid = $state<string | null>(null);
+
+	/** The one instance wearing the armed / inspected state: the copy actually
+	 *  touched while it is still in hand, else the first copy — for a card armed
+	 *  from somewhere other than this fan. */
+	const markedUid = $derived.by(() => {
+		const key = match.armedKey ?? match.inspectKey;
+		if (!key) return null;
+		const touched = hand.find((c) => c.uid === touchedUid);
+		return touched?.key === key ? touched.uid : (hand.find((c) => c.key === key)?.uid ?? null);
+	});
 
 	/**
 	 * Where the ghost is DRAWN, as distinct from where the pointer IS.
@@ -119,12 +142,9 @@
 		{@const offset = raw + (raw < 0 ? -split : split)}
 		{@const affordable = (match.ap[match.seat.key] ?? 0) >= ability.ap}
 		{@const playable = affordable && !match.busy && !match.winner && match.isMyTurn}
-		{@const lifted =
-			hoverKey === ability.key ||
-			match.armedKey === ability.key ||
-			match.inspectKey === ability.key}
+		{@const lifted = hoverUid === card.uid || markedUid === card.uid}
 		{@const dealt = i < match.dealtCount}
-		{@const flying = match.drag?.key === ability.key}
+		{@const flying = match.drag?.key === ability.key && markedUid === card.uid}
 		<div
 			class="absolute left-1/2 bottom-0 pointer-events-auto select-none touch-none"
 			style:transform={dealt
@@ -135,9 +155,10 @@
 			style:transition="transform 520ms cubic-bezier(0.16, 0.9, 0.3, 1), opacity 300ms ease-out"
 			style:z-index={lifted ? 40 : 10 + i}
 			style:cursor={playable ? 'grab' : 'default'}
-			onpointerenter={() => (hoverKey = ability.key)}
-			onpointerleave={() => (hoverKey = null)}
+			onpointerenter={() => (hoverUid = card.uid)}
+			onpointerleave={() => (hoverUid = null)}
 			onpointerdown={(e) => {
+				touchedUid = card.uid;
 				match.armedKey = ability.key;
 				match.inspectKey = ability.key;
 				startDrag(e, ability.key);
@@ -146,7 +167,10 @@
 			tabindex="0"
 			aria-label={ability.name}
 			onkeydown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') match.inspectKey = ability.key;
+				if (e.key === 'Enter' || e.key === ' ') {
+					touchedUid = card.uid;
+					match.inspectKey = ability.key;
+				}
 			}}
 		>
 			<!-- `owner` is the seat: a hand is dealt from that character's own deck,

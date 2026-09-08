@@ -90,25 +90,47 @@
 		<span class="shrink-0" style:color={fx.hue}>
 			<Icon name={fx.icon as IconName} size={glyph} />
 		</span>
-		<b class="shrink-0 font-mono {head} leading-none font-black uppercase">
-			{card.name}
-		</b>
-		{#if match.target}
-			<span class="shrink-0 font-mono text-[0.9rem] text-[var(--fg-muted)]">→</span>
-			<b
-				class="min-w-0 truncate font-mono {head} leading-none font-bold text-[var(--fg-muted)] uppercase"
-			>
-				{match.target.name}
-			</b>
-		{/if}
-		<!-- No published odds. The card says what it does, the building shows what
-		     it is, and the dice decide; a percentage in front of that only invites
-		     the player to resent the roll afterwards. -->
-		{#if match.blockReason}
-			<span class="min-w-0 truncate font-mono text-[0.62rem] font-bold" style:color={state.color}>
-				· {match.blockReason.text}
+		<!-- ── Two rows, not four siblings ──────────────────────────────────────
+		     The aim and the refusal were both `min-w-0 truncate` on one line, so
+		     flexbox split the leftover width between them and ellipsised BOTH:
+		     `EARNEST CONTRIBUTION → THE F… · not your side of …`, which is two
+		     half-facts where there was room for one whole one.
+
+		     A refusal is a whole sentence — "take Artifact Registry first — the
+		     payload needs the whole chain" — so it cannot share a line with a
+		     building name and it cannot be `shrink-0` either. It gets its own,
+		     which leaves exactly one truncating element per row: the target on
+		     the first, nothing on the second. -->
+		<span class="flex min-w-0 flex-col gap-[2px]">
+			<span class="flex min-w-0 items-center gap-2">
+				<b class="shrink-0 font-mono {head} leading-none font-black uppercase">
+					{card.name}
+				</b>
+				{#if match.target}
+					<span class="shrink-0 font-mono text-[0.9rem] text-[var(--fg-muted)]">→</span>
+					<b
+						class="min-w-0 truncate font-mono {head} leading-none font-bold text-[var(--fg-muted)] uppercase"
+					>
+						{match.target.name}
+					</b>
+				{/if}
 			</span>
-		{/if}
+			<!-- No published odds. The card says what it does, the building shows
+			     what it is, and the dice decide; a percentage in front of that only
+			     invites the player to resent the roll afterwards. -->
+			{#if match.blockReason}
+				<span
+					class="font-mono text-[0.62rem] leading-[1.25] font-bold"
+					style:display="-webkit-box"
+					style:-webkit-line-clamp="2"
+					style:-webkit-box-orient="vertical"
+					style:overflow="hidden"
+					style:color={state.color}
+				>
+					{match.blockReason.text}
+				</span>
+			{/if}
+		</span>
 	{:else if !match.isMyTurn}
 		<span class="shrink-0" style:color={match.activeKlass.color}>
 			<Icon name={match.activeKlass.icon as IconName} size={glyph} />

@@ -419,6 +419,30 @@ export class BreachMatch {
 	 *  table, where the phase index is the only answer there is. */
 	activeKey = $state<string | null>(null);
 	yourTurn = $state<boolean | null>(null);
+
+	/**
+	 * Where this match's decisions actually get made.
+	 *
+	 * Null for a local game: the engine below is the authority and mutates
+	 * itself. Set for a networked one — and for an offline table hosted by the
+	 * rules module, which is the same port with a different other end. The three
+	 * methods that CHANGE the board become requests, and the answer arrives as a
+	 * snapshot through `applyRemote`.
+	 *
+	 * Deliberately not "send an action and also apply it locally". An optimistic
+	 * update is a second implementation of a rule, and the copy that disagrees is
+	 * always the one on the screen.
+	 *
+	 * Declared up here with the rest of the flow, and not down by the methods it
+	 * drives, because `isMyTurn` is a `$derived` that reads it — a class field
+	 * may not read one declared below it.
+	 *
+	 * `$state.raw`: whether there is an authority to wait for decides whether a
+	 * null `yourTurn` means "not yet" or "derive it", so the assignment has to be
+	 * reactive. Raw and not deep — the port is a bag of methods, replaced
+	 * wholesale and never mutated, and proxying it would only wrap the calls.
+	 */
+	remote = $state.raw<RemotePort | null>(null);
 	/** Whose HUD is on screen — the fog is computed from here. */
 	seatKey = $state('maintainer');
 	winner = $state<Faction | null>(null);
@@ -562,7 +586,34 @@ export class BreachMatch {
 	readonly activeKlass = $derived<Klass>(
 		ROSTER.find((r) => r.key === (this.activeKey ?? this.seatOrder[this.phase])) ?? ROSTER[0]
 	);
-	readonly isMyTurn = $derived(this.yourTurn ?? this.activeKlass.key === this.seat.key);
+	/**
+	 * Whether the chair you are watching from is the one on the clock.
+	 *
+	 * Three gates, and the opening needed all three. `yourTurn ?? <derive it
+	 * locally>` looked like a safe fallback and was not: it answered a question
+	 * it did not yet have the data for, and answered it YES.
+	 *
+	 *   stage      Before `play` there is no turn to own. `seatKey` defaults to
+	 *              the Maintainer, so an unseated match matched `seatOrder[0]`
+	 *              and claimed the opening turn for whoever was watching —
+	 *              through the whole wasm fetch, before `takeSeat` had run.
+	 *   remote     With an authority to ask, its answer is the only one. Null
+	 *              means "has not spoken yet", and the honest reading of that is
+	 *              NOT your turn. Only a table with no port at all derives it.
+	 *   activeKey  Otherwise the phase index, which is the answer rather than a
+	 *              guess once the engine owns it.
+	 *
+	 * The takeover plate fires on the transition into this, so a false positive
+	 * is not a flicker — it is the full 900ms ceremony announcing a turn you do
+	 * not have.
+	 */
+	readonly isMyTurn = $derived(
+		this.stage !== 'play'
+			? false
+			: this.remote
+				? this.yourTurn === true
+				: this.activeKlass.key === this.seat.key
+	);
 
 	/** What THIS seat is allowed to know. Red sees its side's work; blue sees
 	 *  only what it has turned over. The game lives in the gap between the two. */
@@ -821,20 +872,6 @@ export class BreachMatch {
 		if (!t) return null;
 		return STRUCTURES.find((s) => s.territory === t && s.id !== id)?.id ?? id ?? null;
 	});
-
-	/**
-	 * Where this match's decisions actually get made.
-	 *
-	 * Null for a local game: the engine below is the authority and mutates
-	 * itself. Set for a networked one, and the three methods that CHANGE the
-	 * board become requests instead — the server rules, and the answer arrives
-	 * as a snapshot through `applyRemote`.
-	 *
-	 * Deliberately not "send an action and also apply it locally". An optimistic
-	 * update is a second implementation of a rule, and the copy that disagrees is
-	 * always the one on the screen.
-	 */
-	remote: RemotePort | null = null;
 
 	#pendingTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1308,7 +1345,12 @@ export class BreachMatch {
 	 */
 	async takeSeat(key: string) {
 		this.seatKey = key;
-		this.phase = Math.max(0, this.seatOrder.indexOf(key));
+		// `phase` is deliberately NOT moved to this chair. It is whose TURN it is,
+		// and sitting down does not make it yours — but it used to be written from
+		// the seat index here, so `activeKlass` resolved to you the instant you
+		// took a chair and every seat was told the opening turn was theirs. On an
+		// offline table the engine corrected it a frame later; on a networked one
+		// the first snapshot did. Either way the takeover plate had already fired.
 		this.armedKey = null;
 		this.inspectKey = null;
 		this.dealtCount = 0;

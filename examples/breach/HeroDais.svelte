@@ -253,10 +253,7 @@
 		<button
 			type="button"
 			disabled={!powerArmable}
-			onclick={() => {
-				match.armedKey = power.key;
-				match.inspectKey = power.key;
-			}}
+			onclick={() => match.arm(power.key)}
 			class="relative grid place-items-center w-9 h-9 rounded-lg border-2 transition-all
 			       disabled:cursor-default"
 			style:color={spent ? 'color-mix(in srgb, var(--fg) 25%, transparent)' : fx.hue}

@@ -159,8 +159,7 @@
 			onpointerleave={() => (hoverUid = null)}
 			onpointerdown={(e) => {
 				touchedUid = card.uid;
-				match.armedKey = ability.key;
-				match.inspectKey = ability.key;
+				match.arm(ability.key);
 				startDrag(e, ability.key);
 			}}
 			role="button"

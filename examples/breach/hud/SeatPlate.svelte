@@ -435,10 +435,7 @@
 			<button
 				type="button"
 				disabled={!powerArmable}
-				onclick={() => {
-					match.armedKey = power.key;
-					match.inspectKey = power.key;
-				}}
+				onclick={() => match.arm(power.key)}
 				class="relative flex min-w-[190px] flex-1 items-center gap-2.5 self-stretch overflow-hidden rounded-[8px] border px-2.5 text-left transition-all disabled:cursor-default"
 					style:color={spent ? 'var(--fg-dim)' : pfx.hue}
 					style:border-color={spent

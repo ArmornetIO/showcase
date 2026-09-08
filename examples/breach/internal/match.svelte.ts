@@ -756,6 +756,34 @@ export class BreachMatch {
 		return this.inHand(seatKey, key);
 	}
 
+	/**
+	 * Pick a move up, and drop a target it cannot use.
+	 *
+	 * `selectedId` outlives the move that set it: the demonstrator writes it on
+	 * its own turn, and a card played by drag leaves its drop behind. Arming
+	 * therefore inherited somebody else's aim, and the plate opened with a
+	 * refusal about a building this player never chose. It read as the move being
+	 * unplayable rather than as a stale selection, which is exactly the wrong
+	 * lesson — the Threat Hunter's Attribution is the only move in the game
+	 * with `on: [red]`, so hers refused every single time.
+	 *
+	 * Signatures only, in practice. A card is armed by picking it up and targeted
+	 * by dropping it, so its aim and its arm are the same gesture; a signature is
+	 * armed by a button and aimed afterwards, which is the whole window this bug
+	 * lived in.
+	 *
+	 * Only a HARD block clears it. Sealed and soft are real choices with real
+	 * warnings — you are allowed to run at a wall, and the wall working is the
+	 * defender's whole payoff.
+	 */
+	arm(key: string) {
+		this.armedKey = key;
+		this.inspectKey = key;
+		const move = this.moveFor(this.seat.key, key);
+		const aimed = this.target;
+		if (move && aimed && this.blockedReason(move, aimed)?.kind === 'hard') this.selectedId = null;
+	}
+
 	/** This seat's own move, or null for a character without one. */
 	readonly power = $derived<Power | null>(powerOf(this.seat.key) ?? null);
 	/** What is left of it. Shown at zero rather than hidden — see `charges`. */

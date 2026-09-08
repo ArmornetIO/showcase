@@ -211,8 +211,12 @@
 			</span>
 		{/if}
 
-		<span class="flex-1"></span>
-		<span class="font-mono text-[0.62rem] tabular-nums text-[var(--fg-dim)]">
+		<!-- Its own row, not the tail of the sentence above it. A `flex-1` spacer
+		     pushed it to the right edge of a rail whose width is a clamp, so on a
+		     narrower window the deadline — the number blue is playing toward — was
+		     the one thing that ran off the panel. `w-full` in a wrapping row costs
+		     a line and can never be cut. -->
+		<span class="w-full font-mono text-[0.62rem] tabular-nums text-[var(--fg-muted)]">
 			{left} rounds to horizon
 		</span>
 	{/if}

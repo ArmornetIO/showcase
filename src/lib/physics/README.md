@@ -111,7 +111,7 @@ R = max over pairs of (rᵢ + rⱼ + margin) / |uᵢ − uⱼ|
 
 A globe is deliberately **not** collision-free once projected — bodies bunch at the limb and hide each other at the back. That's what a globe looks like. Resolving those overlaps in 2D would flatten it into a map. `project` returns `depth` and `scale` so the renderer can say so instead.
 
-Rendering it (see `mesh-studio/GlobeFrame.svelte` and the `mesh-globe` mockup):
+Rendering it (see `mesh-studio/globe/GlobeShell.svelte` and the `mesh-globe` mockup):
 
 - **Sort by depth.** MeshStudio paints in array order and its `{#each}` is keyed, so sorting the array reorders the DOM. That's the entire hidden-surface pass — no z-buffer.
 - **Perspective, not orthographic.** The near/far size difference is most of what reads as round; flat scaling looks like a disc of dots.
@@ -167,7 +167,7 @@ Each of these made the terrain invisible on its own, and none of them looks wron
 
 Cutting the ground to the caps is not enough on its own: with the terrain on the territories and the globe's wireframe left on the true sphere, there are **two surfaces** — a wireframe landscape hovering with the sphere's own lines showing through from underneath. Nothing looks joined because nothing is; the nodes stand on one and the globe is the other.
 
-A masked field makes the fix free. It is zero everywhere there is no land, so handing the same field to `GlobeFrame` leaves the grid on the sphere outside the regions and lifts it only inside them. One continuous surface, and the shore is where it meets itself.
+A masked field makes the fix free. It is zero everywhere there is no land, so handing the same field to `GlobeShell` leaves the grid on the sphere outside the regions and lifts it only inside them. One continuous surface, and the shore is where it meets itself.
 
 ## Standing on the surface
 

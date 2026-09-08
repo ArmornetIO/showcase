@@ -35,10 +35,10 @@
 	//    crescent hugging the horizon. Wall opacity therefore falls off with how
 	//    face-on the cap is, and a territory fades out before it can mislead.
 	//
-	// Strokes are non-scaling, so a boundary holds one weight against GlobeFrame's
+	// Strokes are non-scaling, so a boundary holds one weight against GlobeShell's
 	// meridians at any zoom rather than thickening into a band.
 	//
-	// Drawn AFTER GlobeFrame and BEFORE MeshStudio, so nodes always paint on top.
+	// Drawn AFTER GlobeShell and BEFORE MeshStudio, so nodes always paint on top.
 	import { getContext } from 'svelte';
 	import { CANVAS_CTX, type CanvasContextValue } from '../../primitives/canvas/canvas-camera.js';
 	import { alignZ, spin, project, type Cap, type Vec3 } from '../../physics/sphere.js';

@@ -16,7 +16,9 @@
 		{#if nits.inspecting}
 			Click any element to annotate it.
 		{:else}
-			Press ⌖ to start inspecting elements.
+			<!-- The inspector arms from the cluster, not from in here — pointing at
+			     a control this panel does not contain is how the old drawer read. -->
+			Arm the inspector to start a batch.
 		{/if}
 	</p>
 {:else}

@@ -12,12 +12,12 @@
 	// prevented. Pointer capture on the card is the tidier-looking version and it
 	// loses the drag the moment the browser decides the gesture was a text
 	// selection — which, over a card made of text, it will.
-	import { cssZoom, type IconName } from 'showcase';
+	import { cssZoom } from 'showcase';
 	import { fxFor } from './internal/fx.js';
 	import { structureById } from './internal/rules.js';
 	import type { BreachMatch } from './internal/match.svelte.js';
 	import { DRAG_GHOST_ID, nodeUnder } from './aim.js';
-	import CardFace from './CardFace.svelte';
+	import CardFace from './cards/CardFace.svelte';
 
 	interface Props {
 		match: BreachMatch;
@@ -149,15 +149,14 @@
 				if (e.key === 'Enter' || e.key === ' ') match.inspectKey = ability.key;
 			}}
 		>
+			<!-- `owner` is the seat: a hand is dealt from that character's own deck,
+			     so the figure standing in the art is the player holding the card. -->
 			<CardFace
 				{ability}
 				fx={fxFor(ability.key, match.seat.faction)}
-				seatColor={match.seat.color}
-				{affordable}
-				disabled={!playable}
-				armed={match.armedKey === ability.key}
+				owner={match.seat}
+				{playable}
 				raised={lifted}
-				icon={fxFor(ability.key, match.seat.faction).icon as IconName}
 				skillMod={match.seat.skills[ability.skill]}
 			/>
 		</div>
@@ -176,16 +175,17 @@
 			style:left="{ghostAt.x}px"
 			style:top="{ghostAt.y}px"
 		>
+			<!-- `played`, because this is the card mid-throw. The scene's play state
+			     is the half of the art that only exists once the card is used — a
+			     visor going hostile, a crack letting go — and the moment it is worth
+			     showing is the moment the player commits to the throw, not after the
+			     server has answered. -->
 			<CardFace
 				{ability}
 				fx={fxFor(ability.key, match.seat.faction)}
-				seatColor={match.seat.color}
-				affordable
-				disabled={false}
-				armed
+				owner={match.seat}
 				raised
-				ghost
-				icon={fxFor(ability.key, match.seat.faction).icon as IconName}
+				played
 				skillMod={match.seat.skills[ability.skill]}
 			/>
 		</div>

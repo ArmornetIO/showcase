@@ -9,7 +9,8 @@
 	import FrameDevControls from '$lib/frames/FrameDevControls.svelte';
 	import PanelShapeControls from '$lib/primitives/chrome/PanelShapeControls.svelte';
 	import GlobeDevControls from '$lib/mesh-studio/globe/GlobeDevControls.svelte';
-	import { createFlagStore, type FlagSnapshot } from '$lib/devcog/flags/engine.js';
+	import type { NitsController } from '$lib/devcog/qa/nits.svelte.js';
+	import { globeRegistry } from '$lib/physics/globeRegistry.svelte.js';
 	import ShowcaseToolbar from '$lib/dev/ShowcaseToolbar.svelte';
 	import { projectSections } from '$lib/dev/projects.js';
 	import ShowcaseSidebar from '$lib/dev/ShowcaseSidebar.svelte';
@@ -30,7 +31,6 @@
 		// mounted component. `theme.start()` hands back its own teardown.
 		const stopTheme = theme.start();
 		advancedSettings.hydrate();
-		refreshSnap();
 		return stopTheme;
 	});
 
@@ -68,49 +68,9 @@
 			page.url.pathname.endsWith('/mockups/logo-nanotech')
 	);
 
-	// Flags are shared with the marketing SPA via same-origin localStorage.
-	// This dogfoods the portable engine from `$lib/devcog` — the same one a
-	// bootstrapped app would consume via `showcase/devcog`.
-	const SERVE_MODE_KEY = 'armornet-serve-mode';
-
-	const FLAG_LABELS: Record<string, string> = {
-		product: 'Product, services & pricing',
-		marketing: 'Marketing pages',
-		docs: 'Documentation',
-		auth: 'Login & signup',
-		demo: 'Demo pages',
-		console: 'Console',
-		vendors: 'Vendors',
-		runner: 'Agent Runner',
-		structured_assessment: 'Structured Assessment'
-	};
-
-	const flags = createFlagStore({
-		overridesKey: 'armornet-feature-flags',
-		serveModeKey: SERVE_MODE_KEY,
-		runtimeGlobal: '__ARMORNET__',
-		defaultServeMode: 'marketing',
-		keys: Object.keys(FLAG_LABELS)
-	});
-
-	const devMode = 'showcase';
-	let devSnap = $state<FlagSnapshot[]>([]);
-
-	function refreshSnap() {
-		devSnap = flags.snapshot();
-	}
-
-	function handleToggle(key: string, enabled: boolean) {
-		flags.setOverride(key, enabled);
-		refreshSnap();
-	}
-
-	function handleModeChange(m: string) {
-		// From the showcase app, switching mode hops back to the marketing SPA.
-		if (m === 'showcase') return;
-		if (typeof localStorage !== 'undefined') localStorage.setItem(SERVE_MODE_KEY, m);
-		window.location.href = '/';
-	}
+	// The flags UI left the cog for the host's admin page (spec 018). The showcase
+	// app has no admin page and no flags of its own to serve, so it wires none —
+	// the engine is still exported for hosts that do.
 
 	function isActive(path: string): boolean {
 		const full = `${base}${path}`;
@@ -395,20 +355,34 @@
 
 <!-- DevCog is position:fixed bottom-right. A mockup whose own chrome lives in that
      corner — a full-width timeline, say — wants to suppress it while it is open. -->
+{#snippet pageGroup(nits: NitsController)}
+	<PanelShapeControls {nits} />
+	<FrameDevControls />
+{/snippet}
+
+{#snippet renderGroup()}
+	<GlobeDevControls only="render" />
+{/snippet}
+
+{#snippet globeGroup()}
+	<GlobeDevControls only="globe" />
+{/snippet}
+
 <DevCog
-	snap={devSnap}
-	mode={devMode}
-	modes={['marketing', 'app', 'showcase']}
-	flagLabel={(k) => FLAG_LABELS[k]}
-	onToggle={handleToggle}
-	onModeChange={handleModeChange}
->
-	{#snippet qaContent(nits)}
-		<PanelShapeControls {nits} />
-		<FrameDevControls />
-		<GlobeDevControls />
-	{/snippet}
-</DevCog>
+	groups={[
+		{ id: 'page', label: 'PAGE', glyph: '▤', order: 10, content: pageGroup },
+		{ id: 'render', label: 'RENDER', glyph: '◧', order: 20, content: renderGroup },
+		{
+			id: 'globe',
+			label: 'GLOBE',
+			glyph: '◍',
+			order: 30,
+			available: globeRegistry.globes.length > 0,
+			gate: 'Needs a registered globe on the page.',
+			content: globeGroup
+		}
+	]}
+/>
 
 <style>
 	/* ── Global: selected mockup link ring ── */

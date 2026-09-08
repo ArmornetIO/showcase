@@ -28,7 +28,7 @@ export interface ModeMeta {
 	/** Option name in MODE_GLYPHS for this mode; '' when none is drawn yet. */
 	glyph: string;
 	/** Entitlement pool this mode draws from. 'other' is 0 on the free tier. */
-	bucket: 'github' | 'language' | 'proxy' | 'notify' | 'other';
+	bucket: 'github' | 'language' | 'proxy' | 'notify' | 'browser' | 'other';
 	/** Tool types this mode's agent requires but does not construct itself. */
 	tools: string[];
 	/** Operating systems this mode can run on. */
@@ -53,7 +53,7 @@ export const MODES: ModeMeta[] = [
 	{ key: 'language', label: 'Language', desc: 'LLM reasoning jury / blades', about: '', color: '#FBBF24', glyph: 'Verdict', bucket: 'language', tools: [], platforms: ['darwin', 'linux', 'windows'], runtimeEnvs: ['local', 'cloud'], registered: true },
 	{ key: 'harness', label: 'Harness', desc: 'conversational agent — text exchange over the mesh', about: '', color: '#F59E0B', glyph: 'Exchange line', bucket: 'other', tools: [], platforms: ['darwin', 'linux', 'windows'], runtimeEnvs: ['local', 'cloud'], registered: true },
 	{ key: 'momus', label: 'Momus', desc: 'watches your security program and tells you when something needs you', about: 'The agent that makes sure you find out. Everything else here produces findings, expiries and failures; Momus is what turns them into a message in the place you actually look — Slack, email, a ticket. It claims alert jobs the server queues and reports whether each one landed, so a notification that never arrived is itself visible rather than silent. Run one and your program can reach you; run none and it can only wait to be checked on.', color: '#E879F9', glyph: 'Dispatch', bucket: 'notify', tools: [], platforms: ['darwin', 'linux', 'windows'], runtimeEnvs: ['local', 'cloud'], registered: true },
-	{ key: 'browser', label: 'Browser', desc: 'WebAssembly agent hosted by a page', about: '', color: '#7DD3FC', glyph: '', bucket: 'other', tools: [], platforms: ['wasm'], runtimeEnvs: ['browser'], registered: true },
+	{ key: 'browser', label: 'Browser', desc: 'WebAssembly agent hosted by a page', about: '', color: '#7DD3FC', glyph: '', bucket: 'browser', tools: [], platforms: ['wasm'], runtimeEnvs: ['browser'], registered: true },
 	{ key: 'vscode_enforcement', label: 'Editor Policy', desc: 'VS Code / Cursor policy enforcement', about: '', color: '#818CF8', glyph: 'Editor policy', bucket: 'other', tools: ['vscodepolicy', 'vscodeinv'], platforms: ['darwin', 'linux', 'windows'], runtimeEnvs: ['local'], registered: true },
 	{ key: 'posture', label: 'Posture', desc: 'security-posture checks (cluster CIS benchmark, …)', about: '', color: '#38BDF8', glyph: 'Gauge', bucket: 'other', tools: [], platforms: ['linux'], runtimeEnvs: ['local'], registered: true },
 ];

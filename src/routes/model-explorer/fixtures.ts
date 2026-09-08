@@ -146,6 +146,80 @@ export const TABLES: ErdTable[] = [
 	}
 ];
 
+// ── A deliberately drifted variant, for the lint overlay ────────────────────
+// The schema above is clean, which is the right default for every other view
+// and useless for this one: a lint panel demoed against a spotless schema shows
+// an empty state and teaches nothing. This variant plants exactly one defect
+// per rule, so the page documents what each rule catches by catching it.
+//
+// The two are one toggle apart on the page, same as DRIFT/NO_DRIFT, so neither
+// the findings nor the "every rule holds" empty state can rot unseen.
+
+const SESSIONS: ErdTable = {
+	name: 'sessions',
+	group: 'identity',
+	columns: [
+		col('id', 'uuid', { pk: true }),
+		col('user_id', 'uuid', { fk: 'users.id' }),
+		col('created_at', 'timestamptz', { default: 'now()' }),
+		col('last_used_at', 'timestamptz', { nullable: true }),
+		// vocabulary: 7 of this schema's 8 timestamps end _at.
+		col('expiry', 'timestamptz')
+	],
+	primaryKey: ['id'],
+	indexes: [],
+	checks: [],
+	approxRows: 3_301
+};
+
+const DESIGN_SPECS: ErdTable = {
+	name: 'design_specs',
+	group: 'other', // grouping: nobody claimed it
+	columns: [col('id', 'uuid', { pk: true }), col('title', 'text')],
+	primaryKey: ['id'],
+	indexes: [],
+	checks: [],
+	approxRows: 62
+};
+
+export const LINT_GROUPS: Record<string, ErdGroup> = {
+	...GROUPS,
+	other: { label: 'Unclaimed', color: '#64748B' },
+	// grouping: a legend entry no table can reach.
+	vendor: { label: 'Vendors', color: '#4ADE80' }
+};
+
+export const LINT_TABLES: ErdTable[] = [
+	...TABLES.map((t) => {
+		if (t.name === 'relay_traffic') {
+			return {
+				...t,
+				columns: [
+					...t.columns,
+					// missing-fk: names organizations, uuid matches organizations.id, no constraint.
+					col('org_id', 'uuid'),
+					// case: the one spelling that must never enter.
+					col('bytesDropped', 'bigint', { default: '0' })
+				]
+			};
+		}
+		if (t.name === 'interceptions') {
+			return {
+				...t,
+				columns: [
+					...t.columns,
+					// name-drift: bound to users while a sessions table exists — the shape a
+					// rename leaves behind, which Postgres is perfectly happy with.
+					col('session_id', 'uuid', { fk: 'users.id', nullable: true })
+				]
+			};
+		}
+		return t;
+	}),
+	SESSIONS,
+	DESIGN_SPECS
+];
+
 export const FOREIGN_KEYS: ErdForeignKey[] = [
 	{
 		id: 'organization_users_org_id_fkey',
@@ -194,6 +268,29 @@ export const FOREIGN_KEYS: ErdForeignKey[] = [
 		toTable: 'agents',
 		toColumns: ['id'],
 		onDelete: 'CASCADE'
+	}
+];
+
+// The edges the drifted variant adds. The linter reads `column.fk`, but the
+// diagram draws from this list, so a planted reference needs both or it lints
+// as drift while rendering as an orphan.
+export const LINT_FOREIGN_KEYS: ErdForeignKey[] = [
+	...FOREIGN_KEYS,
+	{
+		id: 'sessions_user_id_fkey',
+		fromTable: 'sessions',
+		fromColumns: ['user_id'],
+		toTable: 'users',
+		toColumns: ['id'],
+		onDelete: 'CASCADE'
+	},
+	{
+		id: 'interceptions_session_id_fkey',
+		fromTable: 'interceptions',
+		fromColumns: ['session_id'],
+		toTable: 'users',
+		toColumns: ['id'],
+		onDelete: 'SET NULL'
 	}
 ];
 

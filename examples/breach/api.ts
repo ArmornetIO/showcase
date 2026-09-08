@@ -154,7 +154,7 @@ const LEGAL_REQUIRED = 'legal_acceptance_required';
 /** Where a player clears the gate. `/breach/start` is app-ui's stepper and owns
  *  the legal step; the onboarding wizard is the wrong destination for somebody
  *  who arrived to play. */
-const LEGAL_PATH = '/breach/start';
+const LEGAL_PATH = '/play/start';
 
 /** Turn a failed response into something worth showing a person.
  *

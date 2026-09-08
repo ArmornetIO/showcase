@@ -158,6 +158,14 @@ src/routes/mockups/*
 # gets none of them generated and renders unstyled. Any mockup carrying Tailwind
 # classes has to be visible to git for the same reason.
 !src/routes/mockups/glass-card/
+# The card work, un-ignored for the same reason: the faces are Tailwind all the
+# way down, and half the type scale silently rendered at 16px because the only
+# arbitrary values that survived were the ones some tracked file happened to use
+# too. `breach-cards` prints `breach-locker`'s skin next to its own face, so
+# leaving either one ignored breaks the comparison the page exists to make.
+!src/routes/mockups/breach-cards/
+!src/routes/mockups/breach-locker/
+!src/routes/mockups/breach-outfitter/
 !src/routes/mockups/glass-exposure/
 # Same reason: these are built almost entirely from utility classes.
 # `npm run check` enforces this rule — see scripts/check-sources.mjs.
@@ -185,6 +193,12 @@ src/routes/mockups/*
 # is built against, not a scratch sketch — and because the pipeline animation in
 # it is a component other pages are likely to want.
 !src/routes/mockups/marketing-landing/
+
+# The dev console redesign (spec 018). Committed for the same reason as
+# `agent-select`: it is not a sketch that stayed on one machine, it is the design
+# `devcog/console/` was ported from and `specs/018-devcog-console/measure.mjs`
+# still measures against. A gate nobody else can open is not one.
+!src/routes/mockups/qa-console/
 
 # Marker for `make showcase-install`; its whole job is to carry the mtime of the
 # last npm ci. Committing it (which we did) makes that mtime the CHECKOUT time in

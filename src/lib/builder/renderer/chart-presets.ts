@@ -1,5 +1,5 @@
-import type { ChartConfig } from '$lib/chart/chart.types.js';
-import type { DonutSlice } from '$lib/chart/DonutChart.svelte';
+import type { ChartConfig } from '../../chart/chart.types.js';
+import type { DonutSlice } from '../../chart/DonutChart.svelte';
 
 /**
  * Preview datasets for the chart components.

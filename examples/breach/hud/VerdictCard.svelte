@@ -162,46 +162,33 @@
 					{@render die(faces[0], v.stage === 'rolling')}
 					{@render die(faces[1], v.stage === 'rolling')}
 
-					{#if v.roll && v.stage !== 'rolling'}
-						<!-- The arithmetic, spelled out. A total with no working shown is
-						     a number you have to trust; the modifier is the half the
-						     player actually influenced. -->
-						<div class="flex flex-col gap-1 pl-1">
-							<div class="flex items-baseline gap-1.5 font-mono tabular-nums">
-								<span class="text-[0.62rem] text-[var(--fg-dim)]">
-									{faces[0]} + {faces[1]}
-									{#if v.roll.total - faces[0] - faces[1] !== 0}
-										<span style:color={v.hue}>
-											{v.roll.total - faces[0] - faces[1] > 0 ? '+' : ''}{v.roll.total -
-												faces[0] -
-												faces[1]}
-										</span>
-									{/if}
-									=
-								</span>
-								<b class="text-[1.15rem] font-black leading-none" style:color={tone}>
-									{v.roll.total}
-								</b>
-							</div>
-							<span
-								class="font-mono text-[0.55rem] tracking-[0.1em] uppercase tabular-nums text-[var(--fg-dim)]"
-							>
-								margin {v.roll.margin >= 0 ? '+' : ''}{v.roll.margin}
-							</span>
-						</div>
-					{/if}
+					<!-- ── No arithmetic here ────────────────────────────────────────
+					     This spelled the sum out — `4 + 4 +3 = 11`, with `margin +3`
+					     beneath it. Both dice are drawn immediately to the left, so the
+					     addends were on screen twice, and `margin` is a term you have to
+					     be taught before it means anything.
+
+					     What a player wants off a result is the verdict and the number
+					     that produced it. Those are one thing, so they are now one
+					     badge, below. -->
 				</div>
 			{/if}
 
-			<!-- The word for it, and only once the dice have stopped. -->
+			<!-- The word for it and the total it came to, together, once the dice
+			     have stopped. -->
 			{#if v.roll && v.stage !== 'rolling'}
 				<div
-					class="rounded-md px-3 py-1 font-mono text-[0.8rem] font-black tracking-[0.22em] uppercase"
+					class="flex items-center gap-2 rounded-md px-3 py-1"
 					style:color="var(--bg-elev, #0b0f16)"
 					style:background={tone}
 					style:box-shadow="0 0 26px color-mix(in srgb, {tone} 45%, transparent)"
 				>
-					{OUTCOME_LABEL[v.roll.outcome]}
+					<span class="font-mono text-[0.8rem] font-black tracking-[0.22em] uppercase">
+						{OUTCOME_LABEL[v.roll.outcome]}
+					</span>
+					<b class="font-mono text-[1.05rem] leading-none font-black tabular-nums">
+						{v.roll.total}
+					</b>
 				</div>
 			{:else if v.stage === 'rolling'}
 				<div

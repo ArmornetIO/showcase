@@ -1,16 +1,16 @@
 <script lang="ts">
 	// Read-only display surfaces that aren't a metric, a dataset or a code block:
 	// loading states, feeds, rows, cards and the chat transcript.
-	import PanelLoading from '$lib/display/feedback/PanelLoading.svelte';
-	import Ticker from '$lib/display/metric/Ticker.svelte';
-	import LogRow from '$lib/display/code/LogRow.svelte';
-	import PeerCard from '$lib/display/entity/PeerCard.svelte';
-	import ChatMessage from '$lib/display/chat/ChatMessage.svelte';
-	import ChatThread from '$lib/display/chat/ChatThread.svelte';
-	import type { ChatEntry } from '$lib/display/chat/ChatThread.svelte';
-	import Backdrop from '$lib/backdrop/Backdrop.svelte';
-	import { DEFAULT_BLEND, type BlendMode } from '$lib/backdrop/backdrops.js';
-	import type { StripSpec } from '$lib/backdrop/strips.js';
+	import PanelLoading from '../../display/feedback/PanelLoading.svelte';
+	import Ticker from '../../display/metric/Ticker.svelte';
+	import LogRow from '../../display/code/LogRow.svelte';
+	import PeerCard from '../../display/entity/PeerCard.svelte';
+	import ChatMessage from '../../display/chat/ChatMessage.svelte';
+	import ChatThread from '../../display/chat/ChatThread.svelte';
+	import type { ChatEntry } from '../../display/chat/ChatThread.svelte';
+	import Backdrop from '../../backdrop/Backdrop.svelte';
+	import { DEFAULT_BLEND, type BlendMode } from '../../backdrop/backdrops.js';
+	import type { StripSpec } from '../../backdrop/strips.js';
 	import { accessors, lines, parseJson } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

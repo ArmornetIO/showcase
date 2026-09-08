@@ -81,6 +81,7 @@
 				class="cluster"
 				class:cluster--selected={selected}
 				class:cluster--locked={c.locked}
+				class:cluster--private={builder.shared}
 				style:left="{c.x}px"
 				style:top="{c.y}px"
 				style:width="{c.w}px"
@@ -161,6 +162,12 @@
 	}
 	.cluster--locked {
 		border-style: dashed;
+	}
+	/* Everybody sees the components; only the person who arranged them sees the
+	   arrangement. Dotted rather than solid so the boundary reads as one this
+	   browser drew for itself. */
+	.cluster--private {
+		border-style: dotted;
 	}
 
 	/* The content box the padding guides snap to. */

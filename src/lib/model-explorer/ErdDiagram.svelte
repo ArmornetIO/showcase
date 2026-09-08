@@ -12,17 +12,23 @@
 	import ErdTableList from './ErdTableList.svelte';
 	import ErdToolbar from './ErdToolbar.svelte';
 	import ErdInspector from './ErdInspector.svelte';
+	import ErdLintPanel from './ErdLintPanel.svelte';
 	import { autoLayout, type DetailLevel } from './erd-layout.js';
+	import { lintErd, LINT_RULES, type LintOptions } from './erd-lint.js';
 	import type { ErdTable, ErdForeignKey, ErdGroup } from './types.js';
 
 	let {
 		tables = [],
 		foreignKeys = [],
-		groups = {}
+		groups = {},
+		lintOptions
 	}: {
 		tables?: ErdTable[];
 		foreignKeys?: ErdForeignKey[];
 		groups?: Record<string, ErdGroup>;
+		/** Host jargon for the linter — abbreviations it treats as one word,
+		 *  role-qualified name stems. Defaults suit most schemas. */
+		lintOptions?: LintOptions;
 	} = $props();
 
 	// ── View state ─────────────────────────────────────────────────────────────
@@ -32,8 +38,32 @@
 	let selected = $state<string | null>(null);
 	let selectedEdge = $state<string | null>(null);
 	let focusMode = $state(true);
+	let lintMode = $state(false);
 	let camera = $state<CanvasCamera>();
 	let list = $state<ReturnType<typeof ErdTableList>>();
+
+	// ── Lint ───────────────────────────────────────────────────────────────────
+	// Pure over the data already in hand, so it costs one pass and needs no
+	// fetch — which is what lets a decoded capture be linted the same as a live
+	// schema. The count is always computed; only the overlay is toggled.
+	const lint = $derived(lintErd({ tables, foreignKeys, groups }, lintOptions));
+
+	// Keyed by `table` and `table.column`; first (highest-severity) finding wins,
+	// since findings arrive severity-sorted and a card can only carry one dot.
+	const lintMarks = $derived.by(() => {
+		const m = new Map<string, string>();
+		if (!lintMode) return m;
+		for (const f of lint.findings) {
+			if (!f.table) continue;
+			const color = LINT_RULES[f.rule].color;
+			if (!m.has(f.table)) m.set(f.table, color);
+			if (f.column) {
+				const key = `${f.table}.${f.column}`;
+				if (!m.has(key)) m.set(key, color);
+			}
+		}
+		return m;
+	});
 
 	// Re-seed the layout whenever the table set changes (first load, live refetch).
 	let seededFor = '';
@@ -82,6 +112,7 @@
 		else if (e.key === '3') level = 'collapsed';
 		else if (e.key === 'd') focusMode = !focusMode;
 		else if (e.key === 'a') rearrange();
+		else if (e.key === 'l') lintMode = !lintMode;
 	}
 </script>
 
@@ -90,7 +121,7 @@
 <div class="erd-view">
 	<ErdTableList bind:this={list} {tables} {groups} {selected} onjump={jumpTo} />
 
-	<div class="erd-stage" class:inspecting={!!selTable}>
+	<div class="erd-stage" class:inspecting={!!selTable} class:linting={lintMode}>
 		<Canvas fitOnLoad bind:camera minZoom={0.05}>
 			<ErdLayer
 				{tables}
@@ -102,6 +133,7 @@
 				bind:selectedEdge
 				{level}
 				{focusMode}
+				marks={lintMarks}
 			/>
 			<Minimap />
 			<CameraControls />
@@ -112,10 +144,19 @@
 			fkCount={foreignKeys.length}
 			bind:level
 			bind:focusMode
+			bind:lintMode
+			lintCount={lint.total}
 			onarrange={rearrange}
 		/>
 
-		{#if selTable && selGroup}
+		{#if lintMode}
+			<ErdLintPanel
+				report={lint}
+				{selected}
+				onjump={jumpTo}
+				onclose={() => (lintMode = false)}
+			/>
+		{:else if selTable && selGroup}
 			<ErdInspector
 				table={selTable}
 				group={selGroup}
@@ -137,15 +178,23 @@
 		display: flex;
 		height: 100%;
 		min-height: 0;
+		/* Without this the canvas is invisible in any shrink-to-fit parent — an
+		   inline-flex demo wrapper sizes to the table list, and the stage's
+		   `flex: 1` then resolves against zero free space. */
+		width: 100%;
 	}
 	.erd-stage {
 		position: relative;
 		flex: 1;
 		min-width: 0;
 	}
-	/* Slide the minimap clear of the inspector drawer. */
+	/* Slide the minimap clear of whichever drawer is open. The lint panel is the
+	   wider of the two, so the two offsets are not interchangeable. */
 	.erd-stage.inspecting :global(.cv-minimap) {
 		right: 346px;
+	}
+	.erd-stage.linting :global(.cv-minimap) {
+		right: 370px;
 	}
 	.erd-empty-state {
 		position: absolute;

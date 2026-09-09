@@ -1142,6 +1142,43 @@ export const CATALOGUE: CardDef[] = [
 	},
 ];
 
+/** One word per bot — see internal/breach/names.go for why it is one and
+ *  not the two a person gets. */
+export const BOT_WORDS: string[] = [
+	'Kestrel',
+	'Ferret',
+	'Lantern',
+	'Magpie',
+	'Anchor',
+	'Cipher',
+	'Mongoose',
+	'Beacon',
+	'Otter',
+	'Sparrow',
+	'Bishop',
+	'Compass',
+	'Heron',
+	'Jackal',
+	'Lighthouse',
+	'Marlin',
+	'Nomad',
+	'Oracle',
+	'Pelican',
+	'Quarry',
+	'Raven',
+	'Sentinel',
+	'Thistle',
+	'Undertow',
+	'Vulture',
+	'Warden',
+	'Cormorant',
+	'Basilisk',
+	'Drifter',
+	'Ember',
+	'Falcon',
+	'Gargoyle',
+];
+
 export const cardByKey = (key: string): CardDef | undefined =>
 	CATALOGUE.find((c) => c.ability.key === key);
 

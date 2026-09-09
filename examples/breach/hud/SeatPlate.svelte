@@ -537,7 +537,7 @@
 				<span class="text-[0.62rem] leading-snug">
 					{match.auto
 						? 'Your seat is playing itself. Press to take it back.'
-						: 'Hand your seat to the demonstrator and watch.'}
+						: 'Hand your seat to a bot and watch.'}
 				</span>
 			{/snippet}
 			<button

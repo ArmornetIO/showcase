@@ -81,7 +81,10 @@
 	/** The local table's rules, and the ones a server table is opened WITH. The
 	 *  footer edits these before there is a socket and sends intents after. */
 	let size = $state<MatchSize>('2v2');
-	let mode = $state<AssignmentMode>('lot');
+	// The table is opened WITH this, so the client's one mode is also the mode a
+	// hosted table runs — the server's own default is by-lot and nothing on this
+	// screen would ever change it now that the picker is gone.
+	let mode = $state<AssignmentMode>('draft');
 
 	/**
 	 * Whether the curtain is still up.
@@ -283,11 +286,11 @@
 		else lobby.setSize(s);
 	}
 
-	function pickMode(m: AssignmentMode) {
-		mode = m;
-		if (socket?.live) socket.setMode(m);
-		else lobby.setMode(m);
-	}
+	// No `pickMode`. The character screen offers one way to hand characters out —
+	// the draft — so the only thing that still sets a mode is `openTable` below,
+	// which sends `mode` once when the table is created. `socket.setMode` and
+	// `lobby.setMode` are untouched: the engine keeps all three, and a host with
+	// a console can still change one.
 
 	/**
 	 * How the curtain leaves.
@@ -372,7 +375,6 @@
 			onfill={fillWithAI}
 			onpickside={socket && !socket.live ? undefined : pickSide}
 			onsize={pickSize}
-			onmode={pickMode}
 		/>
 	</div>
 

@@ -54,11 +54,11 @@
 
 	let open = $state<string | null>(null);
 
-	/** The name you would use out loud. `player` for a human, the demonstrator for
-	 *  a seat the autoplayer is holding, and `waiting` for an empty chair — the
-	 *  same three cases the stack and the feed already write. */
+	/** The name you would use out loud. `player` for anybody who has one — bots
+	 *  included, since they are named at the table now — `bot` for an autoplayed
+	 *  chair the table never named, and `waiting` for an empty one. */
 	const nameOf = (seat: { relation: string; player: string | null; automatic: boolean }) =>
-		seat.relation === 'self' ? 'you' : (seat.player ?? (seat.automatic ? 'demonstrator' : 'waiting'));
+		seat.relation === 'self' ? 'you' : (seat.player ?? (seat.automatic ? 'bot' : 'waiting'));
 
 	/** Where they were last known to be, in the fewest words that are honest. */
 	function seenAt(quietFor: number | null, focus: string | null): string {

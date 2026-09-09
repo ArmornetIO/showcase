@@ -42,6 +42,7 @@ import {
 	type Structure,
 	type TerritoryKey
 } from './rules.js';
+import { randomBotName } from './names.js';
 import {
 	BEATS,
 	GARRISON_CAP,
@@ -1534,7 +1535,10 @@ export class BreachMatch {
 		this.players = {
 			...this.players,
 			[klassKey]: { name: you?.name ?? 'you', kind: 'human' },
-			[this.seatKey]: { name: `${this.seat.seat} · demonstrator`, kind: 'ai' }
+			// The chair you just left is a bot now, and it is named like every
+			// other one — a seat you walked away from should be indistinguishable
+			// from a seat nobody ever sat in.
+			[this.seatKey]: { name: randomBotName(), kind: 'ai' }
 		};
 		this.seatKey = klassKey;
 		// Everything below is aimed at a board from the other chair's point of

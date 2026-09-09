@@ -62,7 +62,9 @@
 	function personOf(key: string): string {
 		if (key === match.seat.key) return 'you';
 		const seated = match.players[key];
-		if (seated) return seated.kind === 'ai' ? 'demonstrator' : seated.name;
+		// A bot has a name now ("bot Ferret"), and the log is where you watch it
+		// play — printing its CATEGORY here made three opponents into one.
+		if (seated) return seated.name;
 		return klassByKey(key).name.replace(/^The /, '');
 	}
 </script>

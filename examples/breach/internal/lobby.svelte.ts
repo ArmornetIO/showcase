@@ -21,6 +21,7 @@ import {
 	type Klass,
 	type MatchSize
 } from './rules.js';
+import { botName } from './names.js';
 
 /** Who is sitting in a seat. `open` is a seat waiting for somebody. */
 export type Occupant =
@@ -99,7 +100,12 @@ export class BreachLobby {
 		}))
 	);
 	phase = $state<LobbyPhase>('waiting');
-	mode = $state<AssignmentMode>('lot');
+	/** Draft, and no screen offers anything else — see `AgentSelect`. The other
+	 *  two modes are still here because a HOST may set them (`setMode` routes to
+	 *  the server, which has always allowed all three); what changed is that the
+	 *  character screen stopped asking a question whose other answers skip the
+	 *  one interesting minute of the lobby. */
+	mode = $state<AssignmentMode>('draft');
 	/** How many chairs are in play. Held here as well as expressed in `seats`,
 	 *  because the MATCH needs the answer and it never sees a seat: `phase`
 	 *  indexes the chairs at this size, and a 1v1 played as a 2v2 deals its cards
@@ -116,7 +122,7 @@ export class BreachLobby {
 	readonly #stagger: number;
 
 	constructor(opts: LobbyOptions = {}) {
-		this.mode = opts.mode ?? 'lot';
+		this.mode = opts.mode ?? 'draft';
 		this.#stagger = opts.issueStagger ?? 260;
 		// `you` is now an opt-in for tests and for the old single-screen demo. The
 		// flow proper starts unseated and asks for a side.
@@ -258,7 +264,7 @@ export class BreachLobby {
 		};
 	}) {
 		const mine = view.your_seat ?? '';
-		this.seats = view.lobby.seats.map((s) => ({
+		this.seats = view.lobby.seats.map((s, i) => ({
 			id: s.id,
 			side: s.side as Faction,
 			klassKey: s.klass_key ?? null,
@@ -273,7 +279,7 @@ export class BreachLobby {
 							ready: !!s.occupant.ready
 						}
 					: s.occupant.kind === 'ai'
-						? { kind: 'ai' as const, name: s.occupant.name ?? `${s.id} · demonstrator` }
+						? { kind: 'ai' as const, name: s.occupant.name ?? botName(i) }
 						: { kind: 'open' as const }
 		}));
 		// The two vocabularies are not the same word for the same state: the
@@ -381,12 +387,16 @@ export class BreachLobby {
 	}
 
 	/** Fill every empty chair with the demonstrator. What a single player does
-	 *  instead of waiting for three strangers. */
+	 *  instead of waiting for three strangers.
+	 *
+	 *  Named by seat INDEX rather than at random: four chairs that rolled the
+	 *  same word would read as one player, and the index is the only thing here
+	 *  that can see the other three. */
 	fillWithAI() {
-		for (const seat of this.seats) {
-			if (seat.occupant.kind !== 'open') continue;
-			this.sit(seat.id, { kind: 'ai', name: `${seat.id} · demonstrator` });
-		}
+		this.seats.forEach((seat, i) => {
+			if (seat.occupant.kind !== 'open') return;
+			this.sit(seat.id, { kind: 'ai', name: botName(i) });
+		});
 	}
 
 	// ── Issuance ───────────────────────────────────────────────────────────────

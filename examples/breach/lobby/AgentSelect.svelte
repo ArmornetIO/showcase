@@ -21,12 +21,7 @@
 	// be able to disagree about who holds what.
 
 	import { Figure, StepSwitcher } from 'showcase';
-	import {
-		ASSIGNMENT_MODES,
-		rosterFor,
-		type AssignmentMode,
-		type BreachLobby
-	} from '../internal/lobby.svelte.js';
+	import { rosterFor, type BreachLobby } from '../internal/lobby.svelte.js';
 	import {
 		BENCH,
 		INITIATIVE,
@@ -61,7 +56,6 @@
 		oncopy?: () => void;
 		onfill?: () => void;
 		onsize?: (s: MatchSize) => void;
-		onmode?: (m: AssignmentMode) => void;
 		/** Move to a side. The rail's flags call this directly rather than
 		 *  reopening the sides panel — switching is one click, and a panel that
 		 *  opens only to be clicked once and dismissed is a dialog standing in
@@ -80,7 +74,6 @@
 		oncopy,
 		onfill,
 		onsize,
-		onmode,
 		onpickside
 	}: Props = $props();
 
@@ -145,18 +138,14 @@
 	 *  opened a 2v2 and had one person show up had to open a new table. */
 	const rulesOpen = $derived(isHost && lobby.phase === 'waiting');
 
-	// The two rule sets, in the shape the shared control takes. `blurb` becomes
-	// `description` and shows in the menu, so the gloss the deleted setup screen
-	// printed under each card is not lost by moving the choice into a footer.
+	// The one rule set left in the footer, in the shape the shared control takes.
+	// `blurb` becomes `description` and shows in the menu, so the gloss the
+	// deleted setup screen printed under each card is not lost by moving the
+	// choice here.
 	const SIZE_OPTIONS = MATCH_SIZES.map((s) => ({
 		value: s.id,
 		label: s.label,
 		description: s.blurb
-	}));
-	const MODE_OPTIONS = ASSIGNMENT_MODES.map((m) => ({
-		value: m.id,
-		label: m.label,
-		description: m.blurb
 	}));
 
 	function choose(k: Klass) {
@@ -361,7 +350,11 @@
 										? ` · ${seat.occupant.name}`
 										: ''}
 								{:else if seat.occupant.kind === 'ai'}
-									demonstrator
+									<!-- Its name, not its category. Four rows reading
+									     "demonstrator" is one opponent repeated; the whole
+									     point of naming them is that the table has four
+									     players in it. -->
+									{seat.occupant.name}
 								{:else if seat.occupant.kind === 'human'}
 									{seat.occupant.name}
 								{:else}
@@ -402,19 +395,19 @@
 						width="150px"
 					/>
 				</div>
-				<div class="lever">
-					<span class="lever-k">characters</span>
-					<StepSwitcher
-						label="How characters are handed out"
-						options={MODE_OPTIONS}
-						value={lobby.mode}
-						onpick={(v) => onmode?.(v as AssignmentMode)}
-						width="150px"
-					/>
-				</div>
+				<!-- ── No mode picker ────────────────────────────────────────────
+				     The engine still knows three ways to hand characters out and a
+				     host may still set them (`setMode` routes to the server, which
+				     allows all three). This SCREEN offers one, because the other two
+				     delete it: by-lot deals four characters in a ceremony nobody
+				     participates in, and free pick is a menu. The draft — turn order,
+				     on the clock, reading what the table has already taken — is the
+				     minute this screen exists for, and a control offering to skip it
+				     is a control most tables press once and never see the screen
+				     again. -->
 			{/if}
 			{#if isHost && !lobby.canChoose && onfill}
-				<button type="button" class="lv" onclick={onfill}>fill with demonstrators</button>
+				<button type="button" class="lv" onclick={onfill}>Play with bots</button>
 			{/if}
 			<!-- Host only. A player who followed a link is already at the table —
 			     handing them the link that got them here is an invitation to a
@@ -443,7 +436,7 @@
 				<b>You are not seated.</b> Pick <b>red</b> or <b>blue</b> to take a chair.
 			{:else if !lobby.canChoose}
 				Nobody picks until every seat is taken — {lobby.blockedBecause}. The host can fill the rest
-				with demonstrators.
+				with bots.
 			{:else if !yourTurn}
 				Waiting on seat <b>{onTheClock}</b> to choose.
 			{:else if mine}

@@ -96,6 +96,25 @@
 	 *  letting two people race for the same one. */
 	const taken = $derived(new Set(lobby.seats.map((s) => s.klassKey).filter(Boolean) as string[]));
 
+	/** Everybody holding a chair, by id, so the roster can tell an arrival who
+	 *  has sat down from one who has not. */
+	const seatedIDs = $derived(
+		new Set(lobby.seats.map((s) => (s.occupant.kind === 'human' ? s.occupant.id : '')).filter(Boolean))
+	);
+
+	/**
+	 * Present at the table, holding no chair.
+	 *
+	 * The roster rendered `lobby.seats` and nothing else, which made arriving and
+	 * SITTING DOWN look like the same act when they are two — a member is created
+	 * by the first intent, a seat only by `take_seat`. Two people stood in this
+	 * lobby reading four empty chairs and each concluded the other had never
+	 * arrived, when the server had both of them present the whole time.
+	 */
+	const standing = $derived(
+		(socket?.view?.members ?? []).filter((m) => m.present && !seatedIDs.has(m.user_id))
+	);
+
 	const mine = $derived(lobby.klassAt(lobby.youSeatId));
 	/** Whose turn it is, when the mode is a draft. `null` means anybody may go. */
 	const onTheClock = $derived(lobby.draftSeatId);
@@ -333,8 +352,14 @@
 								{/if}
 							</b>
 							<i>
+								<!-- The name as well as "you". The table names a player — it is how
+								     the other three refer to them — and this row was the one place
+								     it could have been read, so a player learned their own name
+								     only by a housemate reading it off THEIR screen. -->
 								{#if you}
-									you
+									you{seat.occupant.kind === 'human' && seat.occupant.name
+										? ` · ${seat.occupant.name}`
+										: ''}
 								{:else if seat.occupant.kind === 'ai'}
 									demonstrator
 								{:else if seat.occupant.kind === 'human'}
@@ -347,6 +372,17 @@
 						<span class="state" class:ok={!!k}>
 							{k ? 'locked' : onTheClock === seat.id ? 'picking' : ''}
 						</span>
+					</div>
+				{/each}
+				{#each standing as m (m.user_id)}
+					{@const isYou = m.user_id === socket?.view?.you_id}
+					<div class="row standing" class:you={isYou}>
+						<span class="chip"><span class="q">◦</span></span>
+						<span class="text">
+							<b>{m.name}</b>
+							<i>{isYou ? 'you · pick a side to sit down' : 'here · no chair yet'}</i>
+						</span>
+						<span class="state">standing</span>
 					</div>
 				{/each}
 			</div>
@@ -399,6 +435,12 @@
 		<div class="hint">
 			{#if error}
 				<span class="err">{error}</span>
+			{:else if !lobby.seated}
+				<!-- Ahead of the seats-still-open line, which describes the TABLE and
+				     reads as something to wait out. This is the reader's own missing
+				     act: arriving put them in the room, and nothing on screen said
+				     the chair was still a decision they had to make. -->
+				<b>You are not seated.</b> Pick <b>red</b> or <b>blue</b> to take a chair.
 			{:else if !lobby.canChoose}
 				Nobody picks until every seat is taken — {lobby.blockedBecause}. The host can fill the rest
 				with demonstrators.
@@ -804,6 +846,13 @@
 	.row.you {
 		border-color: color-mix(in srgb, var(--tone) 45%, transparent);
 		background: color-mix(in srgb, var(--tone) 10%, transparent);
+	}
+	/* Dashed, because a standing member is not a chair — the roster reads as a
+	   list of seats and these rows must not be mistaken for more of them. */
+	.row.standing {
+		background: none;
+		border-style: dashed;
+		border-color: rgb(255 255 255 / 0.14);
 	}
 	.row.foe {
 		opacity: 0.55;

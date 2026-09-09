@@ -181,6 +181,7 @@ src/routes/mockups/*
 # — it is almost entirely the positioning classes lifted out of `Breach.svelte`,
 # and gitignored they would never be generated.
 !src/routes/mockups/breach-hud/
+!src/routes/mockups/breach-verdict/
 # The vendor profile pair — `vendor-profile` reproduces the shipped page as the
 # BEFORE, `vendor-profile-v2` is the redesign read against it. Both are lifted
 # straight from app-ui and are utility classes end to end, so the Tailwind rule

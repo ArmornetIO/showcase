@@ -82,8 +82,11 @@ export function socketNotice(socket: TableSocket | null): SocketNotice | null {
 	// Only connection-level failures belong here. A refused move also lands in
 	// `lastError`, and letting that speak for the socket would put "not your
 	// turn" where "you are disconnected" should be.
+	// `refused` carries a reason the SERVER gave over HTTP, since the handshake
+	// could not — see TableSocket#diagnose. It belongs here for the same reason
+	// the other two do: it is a fact about the connection, not about a move.
 	const fault =
-		socket.lastError && ['unreachable', 'evicted'].includes(socket.lastError.code)
+		socket.lastError && ['unreachable', 'evicted', 'refused'].includes(socket.lastError.code)
 			? socket.lastError
 			: null;
 

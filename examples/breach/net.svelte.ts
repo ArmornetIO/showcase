@@ -20,7 +20,7 @@
 // transport in it, which is the property that lets the rules run in Node under a
 // test with no server anywhere.
 
-import { INVITE_PARAM } from './api.js';
+import { INVITE_PARAM, describeTable } from './api.js';
 import type { RemoteMatchView, RemoteResolution } from './internal/match.svelte.js';
 import { CAP_BREACH } from './wasm.js';
 // Aliased back to the short names this file has always used. The library
@@ -247,6 +247,8 @@ export interface TableOptions extends TableEvents {
 	 *  agent a session holds is a question worth being able to answer per
 	 *  session rather than per module. */
 	agent?: AgentSource;
+	/** How to find out WHY a connection was refused. See TableDiagnosis. */
+	diagnose?: TableDiagnosis;
 }
 
 /** Claims one capability on the page's connection.
@@ -260,6 +262,13 @@ export type AgentSource = (
 	onFrame: (type: string, payload: Uint8Array) => void,
 	onLost: (reason: string, cause: LostCause) => void
 ) => Promise<ArmornetAgent>;
+
+/** Asks the server, over HTTP, what is behind this link.
+ *
+ *  Its only job is to FAIL informatively: the reason lives in the rejection,
+ *  which `explain` in api.ts has already turned into a sentence for a person.
+ *  Shaped like `describeTable` so the default is that function itself. */
+export type TableDiagnosis = (id: string) => Promise<unknown>;
 
 export class TableSocket {
 	/** Everything the UI renders. Null until the first snapshot. */
@@ -365,12 +374,17 @@ export class TableSocket {
 	readonly #spectate: boolean;
 	/** See TableOptions.agent. */
 	readonly #source: AgentSource;
+	/** See TableOptions.diagnose. */
+	readonly #probe: TableDiagnosis;
+	/** Asked at most once per socket. See #diagnose. */
+	#diagnosed = false;
 
 	constructor(tableID: string, options: TableOptions = {}) {
 		this.tableID = tableID;
 		this.#events = options;
 		this.#spectate = options.spectate ?? false;
 		this.#source = options.agent ?? subscribe;
+		this.#probe = options.diagnose ?? describeTable;
 	}
 
 	// ── Reads ──────────────────────────────────────────────────────────────────
@@ -634,7 +648,14 @@ export class TableSocket {
 	 *  permanently, and the only cure was a player thinking to reload the page. */
 	#refused(detail: string): void {
 		this.#refusals++;
-		if (this.#refusals === REFUSALS_BEFORE_HINT) {
+		// The socket cannot say why, so ask the channel that can. Fired on the
+		// FIRST refusal rather than at the hint threshold, so the true answer is
+		// usually already on screen by the time the guess below would have been.
+		void this.#diagnose();
+		// The guess, and only where there is nothing better. A diagnosis that
+		// has landed is a FACT about this session and must not be overwritten by
+		// a sentence that offers the player four possibilities and picks none.
+		if (this.#refusals === REFUSALS_BEFORE_HINT && !this.lastError) {
 			this.lastError = {
 				code: 'unreachable',
 				message:
@@ -643,6 +664,50 @@ export class TableSocket {
 			this.#events.onError?.(this.lastError.code, this.lastError.message);
 		}
 		this.#retry(detail);
+	}
+
+	/**
+	 * Ask the server, over HTTP, why the socket would not open.
+	 *
+	 * The handshake cannot tell us. A browser is not shown the status code of a
+	 * failed WebSocket upgrade — by design, and `#refused` says so — which means
+	 * a 401 from an expired session, a 403 from the origin check, and a server
+	 * that is simply gone all arrive identically. The old banner covered that by
+	 * naming three possibilities at once, which reads as "something is wrong" and
+	 * tells a person nothing they can act on.
+	 *
+	 * HTTP has no such limit. `GET /api/breach/tables/:id` answers with a status
+	 * AND a body saying why, and `explain` in api.ts has already turned that into
+	 * a sentence — including redirecting a player who has not accepted the terms.
+	 * So the reason was always one request away; nothing was asking for it.
+	 *
+	 * This matters most for the person it is hardest to help: the game shell is
+	 * mounted `requires: [anyone]`, deliberately, because authority belongs on the
+	 * calls behind it and not on a static bundle. So an invitation opens the game
+	 * for somebody who cannot play it — a deployment restricting signups will
+	 * refuse them — and without this they watch a spinner promise a recovery that
+	 * is never coming.
+	 *
+	 * Asked ONCE per socket. It is a question about who this person is, not about
+	 * the weather on the connection, and the answer does not change between
+	 * backoff rungs. Retrying continues regardless: this replaces the sentence,
+	 * never the ladder, because giving up on a refusal is what once made a rolling
+	 * deploy permanent for every open tab.
+	 */
+	async #diagnose(): Promise<void> {
+		if (this.#diagnosed || this.#disposed) return;
+		this.#diagnosed = true;
+		try {
+			await this.#probe(this.tableID);
+			// HTTP is fine, so this is genuinely the transport and the ladder's
+			// own account of itself is the honest one. Say nothing.
+		} catch (err) {
+			this.lastError = {
+				code: 'refused',
+				message: err instanceof Error ? err.message : String(err)
+			};
+			this.#events.onError?.(this.lastError.code, this.lastError.message);
+		}
 	}
 
 	/** Ask again now instead of waiting out the backoff.

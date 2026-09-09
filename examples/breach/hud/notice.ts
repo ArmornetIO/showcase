@@ -27,11 +27,44 @@ export interface Notice {
 /** What the banner needs on top of a `Notice`: whether offering a button would
  *  do anything. Nothing is going to happen without one when an eviction never
  *  retries itself, a stalled socket is half a minute from its next attempt, or
- *  a connection nobody is answering will never notice on its own. */
+ *  a connection nobody is answering will never notice on its own — and nothing
+ *  is going to happen WITH one when the table being asked for does not exist. */
 export interface SocketNotice extends Notice {
 	kind: 'connection';
 	retryable: boolean;
 }
+
+/**
+ * A refusal about the TABLE rather than about a move.
+ *
+ * These arrive on a socket that is open and healthy: the server answered, and
+ * the answer was "not here". That is precisely what made them invisible — the
+ * connection is up, `status` is 'live', and the only thing missing is the view
+ * this banner reads, so the refusal fell through to "reconnecting" and promised
+ * a recovery that was never coming. A table is process memory, so a link that
+ * outlived the process is refused identically forever, and a player watching a
+ * reconnect spinner has no reason to ever stop watching it.
+ *
+ * Keyed by CODE and not by "no view has arrived yet", because a click queued
+ * during the opening dial is refused in that same window — and telling somebody
+ * their table is gone over a mistimed press sends them off to ask for a link
+ * they are already holding.
+ */
+const TABLE_FAULTS: Record<string, { text: string; detail: string; retryable: boolean }> = {
+	no_table: {
+		text: 'this table is gone',
+		// Not a malformed link: it was a good one, to something since reaped or
+		// lost with the process it lived in. Saying so is the difference between
+		// a player asking for a new link and a player reloading forever.
+		detail: 'a table lasts only while somebody is at it — ask for a fresh link',
+		retryable: false
+	},
+	table_full: {
+		text: 'this table is full',
+		detail: 'every seat is taken — one may open if somebody leaves',
+		retryable: true
+	}
+};
 
 /**
  * The socket, in a sentence — or null when there is nothing to say.
@@ -54,26 +87,35 @@ export function socketNotice(socket: TableSocket | null): SocketNotice | null {
 			? socket.lastError
 			: null;
 
+	// Outranks both. A dead table is not a transport problem and will not become
+	// one; it is the answer, and it is the only rung here that tells a player to
+	// do something other than wait.
+	const table = socket.lastError ? (TABLE_FAULTS[socket.lastError.code] ?? null) : null;
+
 	return {
 		kind: 'connection',
 		// Two different sentences. "Reconnecting" is a promise that this is about
 		// to resolve itself, and after enough failures that promise stops being
 		// honest: the socket parks on a long interval, and a player deserves to be
 		// told they are waiting on something rather than watching a spinner.
-		text: mute
-			? 'the table has not answered'
-			: fault
-				? fault.message
-				: socket.status === 'connecting'
-					? 'connecting to the table'
-					: 'reconnecting',
-		detail: mute
-			? 'your move may not have landed'
-			: fault
-				? undefined
-				: 'the board you are looking at may be out of date',
-		tone: fault ? '#FB7185' : '#FBBF24',
-		retryable: !!fault || mute
+		text: table
+			? table.text
+			: mute
+				? 'the table has not answered'
+				: fault
+					? fault.message
+					: socket.status === 'connecting'
+						? 'connecting to the table'
+						: 'reconnecting',
+		detail: table
+			? table.detail
+			: mute
+				? 'your move may not have landed'
+				: fault
+					? undefined
+					: 'the board you are looking at may be out of date',
+		tone: table || fault ? '#FB7185' : '#FBBF24',
+		retryable: table ? table.retryable : !!fault || mute
 	};
 }
 

@@ -1,7 +1,7 @@
 <script lang="ts">
-	// Dev-cog control for `Panel`'s `shape` — the header/outline composition.
+	// Dev-console control for `Panel`'s `shape` — the header/outline composition.
 	// Lives beside the primitive it drives, like `FrameDevControls` and
-	// `GlobeDevControls`, and drops into a host's `qaContent`.
+	// `GlobeDevControls`, and is contributed as part of a host's PAGE group.
 	//
 	// It borrows the cog's existing element inspector rather than arming its own:
 	// `nits.pickOnce` hands the next clicked element here instead of opening the
@@ -18,6 +18,8 @@
 	// Nothing is persisted. The classes are swapped on the live element and the
 	// next reload is back to what the source says.
 	import type { NitsController } from '../../devcog/index.js';
+	import ControlRow from '../../devcog/controls/ControlRow.svelte';
+	import InfoDot from '../../devcog/controls/InfoDot.svelte';
 	import {
 		PANEL_SHAPES,
 		applyPanelShape,
@@ -74,26 +76,28 @@
 
 	const meta = $derived(PANEL_SHAPES.find((s) => s.value === shape) ?? PANEL_SHAPES[0]);
 	const armed = $derived(nits.inspecting && nits.borrowed);
+
+	const SHAPE_DETAIL =
+		'A card shape is a decision that ships in the source, so this is a comparison instrument, not a preference: a shape that looks decisive alone is often noise in a column of six. Nothing is persisted — the classes are swapped on the live element and the next reload is back to what the source says.';
+	const ALL_DETAIL =
+		'Re-shape every panel on the page instead of the one picked — which is the comparison a specimen strip cannot give you.';
 </script>
 
 <section class="ps">
-	<div class="ps-head">
-		<span class="ps-label">// panel shape</span>
+	<ControlRow label="panel shape" detail={SHAPE_DETAIL}>
 		{#if target || all}
-			<div class="ps-acts">
-				<button class="ps-ghost" onclick={() => step(-1)} aria-label="Previous shape">‹</button>
-				<button class="ps-ghost" onclick={() => step(1)} aria-label="Next shape">›</button>
-				<button class="ps-ghost" onclick={revert}>revert</button>
-			</div>
+			<button class="ps-ghost" onclick={() => step(-1)} aria-label="Previous shape">‹</button>
+			<button class="ps-ghost" onclick={() => step(1)} aria-label="Next shape">›</button>
+			<button class="ps-ghost" onclick={revert}>revert</button>
 		{/if}
-	</div>
+	</ControlRow>
 
-	<button class="qa-fill-btn" class:armed onclick={pick}>
+	<button class="ps-pick" class:armed onclick={pick}>
 		{armed ? 'Click a card…' : target ? 'Pick another card' : 'Pick a card'}
 	</button>
 
 	{#if missed}
-		<p class="ps-msg">That is not inside a Panel — pick a card.</p>
+		<p class="ps-msg">Not inside a Panel — pick a card.</p>
 	{/if}
 
 	{#if target || all}
@@ -109,37 +113,24 @@
 				</button>
 			{/each}
 		</div>
+		<!-- The selected shape's own line: a readout that changes with the pick,
+		     not standing prose explaining the control. -->
 		<p class="ps-msg">{meta.description}</p>
 		<label class="ps-all">
 			<input type="checkbox" bind:checked={all} />
-			apply to every panel on the page
+			<span>all panels</span>
+			<InfoDot detail={ALL_DETAIL} />
 		</label>
 	{/if}
 </section>
 
 <style>
-	/* Matches the drawer's own section chrome. `QaSection` is deliberately not
-	   exported — a host tool wears the same padding and rule by hand. */
+	/* No section chrome of its own: the console's group body owns the padding,
+	   and a tool that adds a second frame starts a second design. */
 	.ps {
-		padding: 14px 16px;
-		border-bottom: 1px solid var(--border);
-	}
-	.ps-head {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 8px;
-	}
-	.ps-label {
-		font-family: var(--mono, monospace);
-		font-size: 0.6rem;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: var(--fg-dim);
-	}
-	.ps-acts {
-		display: flex;
-		gap: 4px;
+		flex-direction: column;
+		gap: 8px;
 	}
 	.ps-ghost {
 		padding: 2px 6px;
@@ -156,7 +147,30 @@
 		border-color: var(--accent);
 	}
 
-	.qa-fill-btn.armed {
+	/* Its own button, not the host's `.qa-fill-btn`: this component ships in
+	   showcase and cannot depend on a class an app happens to define globally. */
+	.ps-pick {
+		display: inline-flex;
+		align-items: center;
+		justify-content: flex-start;
+		width: 100%;
+		font-family: var(--mono, monospace);
+		font-size: 0.6rem;
+		padding: 4px 8px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		background: var(--surface-raised);
+		color: var(--fg-muted);
+		cursor: pointer;
+		transition:
+			color 0.15s,
+			border-color 0.15s;
+	}
+	.ps-pick:hover {
+		color: var(--fg);
+		border-color: var(--border-strong);
+	}
+	.ps-pick.armed {
 		color: var(--accent);
 		border-color: var(--accent);
 	}
@@ -165,7 +179,6 @@
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 4px;
-		margin-top: 8px;
 	}
 	.ps-chip {
 		padding: 4px 2px;
@@ -191,7 +204,7 @@
 	}
 
 	.ps-msg {
-		margin: 8px 0 0;
+		margin: 0;
 		font-size: 0.66rem;
 		line-height: 1.4;
 		color: var(--fg-dim);
@@ -200,7 +213,6 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		margin-top: 8px;
 		font-family: var(--mono, monospace);
 		font-size: 0.6rem;
 		color: var(--fg-dim);

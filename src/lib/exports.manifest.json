@@ -60,6 +60,10 @@
         },
         {
           "component": "ArmornetLogo",
+          "symbols": [
+            "LOGO_SHAPE",
+            "LOGO_GEOMETRY"
+          ],
           "note": [
             "THE logo. Anything that means \"this product\" — header, footer, hero,",
             "favicon — renders this and nothing else. It is ArmornetCrestMesh pinned",
@@ -469,7 +473,11 @@
           ]
         },
         {
-          "component": "GlobeFrame"
+          "component": "GlobeShell",
+          "note": [
+            "The sphere, on the GPU. There is no SVG twin — see the header of GlobeShell",
+            "for why the one that used to be here was removed rather than kept on standby."
+          ]
         },
         {
           "component": "TerritoryCaps",
@@ -492,6 +500,12 @@
         },
         {
           "component": "Backdrop",
+          "note": [
+            "`from` pins the ambiguity: `mesh-studio/gl/renderer.ts` declares a",
+            "`BlendMode` of its own — a WebGL blend function, nothing to do with",
+            "how a backdrop composites — and that one is not public."
+          ],
+          "from": "./backdrop/backdrops.js",
           "symbols": [
             "BACKDROPS"
           ],
@@ -1201,6 +1215,12 @@
           "types": [
             "StackedSegment"
           ]
+        },
+        {
+          "component": "Pips",
+          "types": [
+            "PipShape"
+          ]
         }
       ]
     },
@@ -1625,6 +1645,22 @@
           "component": "PerfPanel"
         },
         {
+          "note": [
+            "The HUD is deliberately NOT re-exported as a component — it is",
+            "imported on demand by the host that toggles it, so a page that never",
+            "opens it never downloads it. `hitchWatch` is the part worth having in",
+            "the barrel."
+          ],
+          "symbols": [
+            "hitchWatch",
+            "watchOnScreen"
+          ],
+          "types": [
+            "Hitch",
+            "HitchSnapshot"
+          ]
+        },
+        {
           "symbols": [
             "frameProbe"
           ],
@@ -1707,6 +1743,24 @@
             "Wire types, matching the Go `json:` tags in dbmgr exactly. They are shared",
             "rather than redeclared per consumer so a schema-manager front end — dbmgr's",
             "own embedded console today — parses the same shapes the server emits."
+          ]
+        },
+        {
+          "symbols": ["lintErd", "canon", "squash", "LINT_RULES"],
+          "types": [
+            "LintReport",
+            "LintFinding",
+            "LintRule",
+            "LintSeverity",
+            "LintOptions"
+          ],
+          "note": [
+            "The schema linter behind ErdDiagram's lint overlay — naming and reference",
+            "conventions inferred from the schema itself rather than a house style.",
+            "The function is exported as well as the overlay because it is pure over",
+            "ErdData and needs no browser: the same rules that paint the diagram can",
+            "run in a CI check or a CLI. ErdLintPanel stays unexported, same as",
+            "ErdInspector."
           ]
         }
       ]

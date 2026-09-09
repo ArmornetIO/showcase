@@ -1,15 +1,15 @@
 <script lang="ts">
 	// Number-to-shape components: one value (or a set of segments) rendered as a
 	// tile, bar, ring or step track.
-	import StatTile from '$lib/display/metric/StatTile.svelte';
-	import CountUp from '$lib/display/metric/CountUp.svelte';
-	import PostureVerdict from '$lib/display/metric/PostureVerdict.svelte';
-	import ProgressBar from '$lib/display/progress/ProgressBar.svelte';
-	import RadialProgress from '$lib/display/progress/RadialProgress.svelte';
-	import SteppedProgress from '$lib/display/progress/SteppedProgress.svelte';
-	import StackedBar from '$lib/display/progress/StackedBar.svelte';
-	import type { StackedSegment } from '$lib/display/progress/StackedBar.svelte';
-	import ConsensusBar from '$lib/display/progress/ConsensusBar.svelte';
+	import StatTile from '../../display/metric/StatTile.svelte';
+	import CountUp from '../../display/metric/CountUp.svelte';
+	import PostureVerdict from '../../display/metric/PostureVerdict.svelte';
+	import ProgressBar from '../../display/progress/ProgressBar.svelte';
+	import RadialProgress from '../../display/progress/RadialProgress.svelte';
+	import SteppedProgress from '../../display/progress/SteppedProgress.svelte';
+	import StackedBar from '../../display/progress/StackedBar.svelte';
+	import type { StackedSegment } from '../../display/progress/StackedBar.svelte';
+	import ConsensusBar from '../../display/progress/ConsensusBar.svelte';
 	import { accessors, parseJson } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

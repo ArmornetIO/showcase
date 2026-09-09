@@ -12,7 +12,7 @@
 	// something false about the game, so both come off `Move` and render down one
 	// path.
 	import { Icon, type IconName } from 'showcase';
-	import CardFace from '../CardFace.svelte';
+	import CardFace from '../cards/CardFace.svelte';
 	import { SKILL_GLYPH } from '../parts/skill-glyphs.js';
 	import { CATALOGUE } from '../internal/deck.js';
 	import { fxFor } from '../internal/fx.js';
@@ -117,12 +117,7 @@
 						<CardFace
 							ability={a}
 							{fx}
-							seatColor={group.klass.color}
-							affordable
-							disabled={false}
-							armed={false}
-							raised={false}
-							icon={fx.icon as IconName}
+							owner={group.klass}
 							skillMod={group.klass.skills[a.skill]}
 						/>
 					</div>

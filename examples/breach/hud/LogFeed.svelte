@@ -23,11 +23,12 @@
 		OUTCOME_COLOR,
 		OUTCOME_LABEL,
 		TERRITORIES,
-		abilityByKey,
 		klassByKey,
+		moveByKey,
 		structureById
 	} from '../internal/rules.js';
 	import { fxFor } from '../internal/fx.js';
+	import { portraitScale } from '../parts/portrait.js';
 	import type { BreachMatch } from '../internal/match.svelte.js';
 
 	interface Props {
@@ -55,27 +56,34 @@
 	 *
 	 * The hero name is the character they were issued this match and changes
 	 * between them; "priya" is who you are actually watching. A table that has
-	 * named nobody falls back to the character rather than to HeroStack's
+	 * named nobody falls back to the character rather than to the table strip's
 	 * "waiting" — this row is proof they did not wait.
 	 */
 	function personOf(key: string): string {
 		if (key === match.seat.key) return 'you';
 		const seated = match.players[key];
-		if (seated) return seated.kind === 'ai' ? 'demonstrator' : seated.name;
+		// A bot has a name now ("bot Ferret"), and the log is where you watch it
+		// play — printing its CATEGORY here made three opponents into one.
+		if (seated) return seated.name;
 		return klassByKey(key).name.replace(/^The /, '');
 	}
 </script>
 
 <div class="pointer-events-auto flex min-h-0 flex-col gap-1.5 {cls}">
-	<span class="pl-0.5 font-mono text-[0.5rem] uppercase tracking-[0.22em] text-[var(--fg-dim)]">
+	<span
+		class="pl-0.5 font-mono text-[0.56rem] font-black uppercase tracking-[0.22em] text-[var(--fg)]"
+	>
 		battle log
-		<span class="ml-1 text-[var(--fg-dim)] opacity-60">round {match.round}</span>
+		<span class="ml-1 text-[var(--fg-muted)]">round {match.round}</span>
 	</span>
 
 	<div class="flex min-h-0 flex-col overflow-y-auto overflow-x-clip pr-1">
 		{#each shown as r (r.id)}
 			{@const actor = r.actor ? klassByKey(r.actor) : null}
-			{@const card = r.card ? abilityByKey(r.card) : null}
+			<!-- `moveByKey`: a signature power arrives in `r.card` like any other
+			     key, and the CATALOGUE-only lookup returned null for it — the four
+			     loudest rows in the match lost their name and their icon. -->
+			{@const card = r.card ? moveByKey(r.card) : null}
 			{@const target = r.structure ? structureById(r.structure) : null}
 			{@const region = r.where ? TERRITORIES[r.where].name : null}
 			{@const fx = card && actor ? fxFor(card.key, actor.faction) : null}
@@ -117,14 +125,14 @@
 				<span class="absolute inset-y-0 left-0 w-[3px]" style:background={tone}></span>
 
 				<!-- ── Portrait ────────────────────────────────────────────────── -->
-				<div class="relative shrink-0 w-[50px] self-center">
+				<div class="relative shrink-0 w-[68px] self-center">
 					<span
-						class="absolute inset-0 blur-[10px] opacity-50"
+						class="absolute inset-x-[9px] inset-y-0 blur-[10px] opacity-50"
 						style:background={hue}
 						style:clip-path={HEX}
 					></span>
 					<div
-						class="relative grid place-items-center h-[56px] p-[1.5px]"
+						class="relative mx-auto grid h-[56px] w-[50px] place-items-center p-[1.5px]"
 						style:clip-path={HEX}
 						style:background="color-mix(in srgb, {hue} 70%, transparent)"
 					>
@@ -134,7 +142,16 @@
 							style:background="color-mix(in srgb, {hue} 16%, var(--bg-elev, #0b0f16))"
 						>
 							{#if actor}
-								<span class="absolute inset-x-0 top-0 aspect-square">
+								<!-- Same scale the table strip draws at, from the same place.
+								     A face in the log and the same face in the chip above it
+								     are the same person; if the two surfaces size them
+								     separately they stop looking like it. -->
+								{@const fill = portraitScale(actor)}
+								<span
+									class="absolute inset-x-0 top-0 aspect-square origin-top"
+									style:scale={fill}
+									style:translate="0 {((1 - fill) * 30).toFixed(1)}px"
+								>
 									<Figure klass={actor} crop="bust" />
 								</span>
 							{:else}
@@ -149,13 +166,24 @@
 					     landed on — the one number a feed row has that a seat card does
 					     not, and the one you use to age it. -->
 					<span
-						class="absolute -top-0.5 -left-1 grid place-items-center w-[19px] h-[19px] rounded-full border-2
+						class="absolute -top-0.5 left-[1px] grid place-items-center w-[19px] h-[19px] rounded-full border-2
 						       font-mono text-[0.56rem] font-black tabular-nums z-10"
 						style:color={hue}
 						style:border-color="color-mix(in srgb, {hue} 60%, transparent)"
 						style:background="color-mix(in srgb, {hue} 26%, var(--bg-elev, #0b0f16))"
-						title="round {r.round ?? match.round}">{r.round ?? match.round}</span
+					title="round {r.round ?? match.round}">{r.round ?? match.round}</span
 					>
+
+					<!-- The CHARACTER, under its portrait — the same caption the table and
+					     the buildings now carry. This row already headlines the PERSON,
+					     which was right; what was missing is which character they were
+					     issued, and a bare `R1` was carrying that on its own. -->
+					<span
+						class="mt-1 block text-center font-mono text-[0.6875rem] leading-[1.15] font-black tracking-[0.06em] text-[var(--fg)] uppercase"
+												title={actor?.name ?? 'unidentified'}
+					>
+						{actor ? actor.name.replace(/^The /, '') : '—'}
+					</span>
 				</div>
 
 				<!-- ── Plate ───────────────────────────────────────────────────────── -->
@@ -196,9 +224,14 @@
 					     also its "and what about them". Rows nobody played (a round
 					     opening, a region giving somebody up) have no card, and their own
 					     prose is the closest thing to one they have. -->
+					<!-- 0.52rem and black, not 0.44 and regular: this line is the row's
+					     verb — `struck the forge` — and it was the smallest, lightest
+					     type on a card whose whole job is to say what happened. Rows with
+					     no card wore `--fg-dim` on top of that, which is the palette's
+					     quietest grey for the ones that have nothing but these words. -->
 					<span
-						class="flex items-center gap-1 font-mono text-[0.44rem] tracking-[0.1em] uppercase truncate"
-						style:color={fx ? fx.hue : 'var(--fg-dim)'}
+						class="flex items-center gap-1 font-mono text-[0.52rem] font-black tracking-[0.08em] uppercase truncate"
+						style:color={fx ? fx.hue : 'var(--fg)'}
 					>
 						<Icon name={(fx ? fx.icon : r.icon) as IconName} size={9} />
 						<span class="truncate">{card ? card.name : `${r.title} ${r.subject}`}</span>
@@ -223,8 +256,8 @@
 								{/snippet}
 								<span
 									class="flex items-center gap-1 rounded px-1 py-px border min-w-0"
-									style:color="var(--fg-dim)"
-									style:border-color="var(--border)"
+									style:color="var(--fg)"
+									style:border-color="var(--border-strong, var(--border))"
 								>
 									{#if target}
 										<span class="shrink-0 -my-px">
@@ -233,7 +266,7 @@
 									{:else}
 										<Icon name="eye-off" size={9} />
 									{/if}
-									<span class="font-mono text-[0.44rem] uppercase tracking-[0.06em] truncate">
+									<span class="font-mono text-[0.5rem] font-black uppercase tracking-[0.06em] truncate">
 										{target ? target.name.replace(/^The /, '') : region}
 									</span>
 								</span>
@@ -259,14 +292,17 @@
 										</span>
 									</span>
 								{/snippet}
+								<!-- The number people actually glance at, and it was the
+								     smallest mark on the row: a 9px shield next to a 0.5rem
+								     numeral, both at 40% border on a 12% fill. -->
 								<span
-									class="flex items-center gap-1 rounded px-1 py-px border shrink-0"
+									class="flex items-center gap-1 rounded px-1.5 py-0.5 border shrink-0"
 									style:color={tone}
-									style:border-color="color-mix(in srgb, {tone} 40%, transparent)"
-									style:background="color-mix(in srgb, {tone} 12%, transparent)"
+									style:border-color="color-mix(in srgb, {tone} 60%, transparent)"
+									style:background="color-mix(in srgb, {tone} 18%, transparent)"
 								>
-									<Icon name="shield" size={9} />
-									<b class="font-mono text-[0.5rem] font-black tabular-nums leading-none">
+									<Icon name="shield" size={12} />
+									<b class="font-mono text-[0.66rem] font-black tabular-nums leading-none">
 										{delta > 0 ? '+' : ''}{delta}
 									</b>
 								</span>

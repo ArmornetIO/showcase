@@ -15,6 +15,11 @@
 // No module-level state. Several globes on one page each get their own context,
 // and nothing here is shared between them.
 
+// Density ceiling and MSAA are both runtime dials — see `render-tunables`, which
+// carries the measurements behind their defaults and is wired to the QA cog so
+// they can be turned against a live page instead of edited here and rebuilt.
+import { dprCeiling, wantAntialias } from './render-tunables.svelte.js';
+
 export interface GlContext {
 	gl: WebGL2RenderingContext;
 	canvas: HTMLCanvasElement;
@@ -25,6 +30,13 @@ export interface GlContext {
 	/** CSS pixel size — what a caller converts world coords against. */
 	readonly cssWidth: number;
 	readonly cssHeight: number;
+	/** The density actually used for the drawing buffer, AFTER `DPR_CEILING`.
+	 *
+	 *  Shaders that size a line width or a point against density must read this
+	 *  and not `devicePixelRatio`, or they draw for a buffer that was never
+	 *  allocated — strokes come out proportionally thin and the clamp is defeated
+	 *  one uniform at a time. */
+	readonly dpr: number;
 	/** True once the context is lost; every draw becomes a no-op. */
 	readonly lost: boolean;
 	dispose(): void;
@@ -43,10 +55,32 @@ export interface GlContextOpts {
 	 *  Per-context rather than global because each layer owns its own canvas and
 	 *  they genuinely disagree. */
 	premultipliedAlpha?: boolean;
+	/** Ask for the low-latency presentation path (`desynchronized`).
+	 *
+	 *  Off by default, and that default was earned: it exists to cut
+	 *  input-to-photon latency for a canvas someone is DRAWING on, and it buys a
+	 *  decorative sphere nothing. What it costs is a different presentation path
+	 *  per platform — on Windows the canvas gets its own DirectComposition
+	 *  surface instead of being composited with the page — which is a class of
+	 *  "blank on one OS only" bug that no amount of correct GL code can defend
+	 *  against. Nothing here waits on a frame to answer a click. */
+	lowLatency?: boolean;
 	/** Called after the driver hands the context back. EVERY GL object made
 	 *  before the loss is dead by then — programs, buffers, VAOs, textures — so
 	 *  this is a rebuild-from-scratch signal, not a resume. */
 	onRestore?: () => void;
+	/** Called when the element's CSS size changes, initial layout included.
+	 *
+	 *  The size is already updated by the time this runs. A layer that draws from
+	 *  a reactive effect needs it for two reasons: nothing else will ask for a
+	 *  frame when only the container changed, and the FIRST callback is what
+	 *  rescues a canvas whose first draw happened before layout gave it a size. */
+	onResize?: () => void;
+	/** Called the moment the driver takes the context away. The pair to
+	 *  `onRestore`, and the one a caller needs to stay honest about what is on
+	 *  screen: restoration is requested, never promised, so a layer that can
+	 *  degrade to a non-GL path wants to know it is currently showing nothing. */
+	onLost?: () => void;
 }
 
 /** Create a WebGL2 context on `canvas`, or null when WebGL2 is unavailable —
@@ -69,7 +103,7 @@ export function createGlContext(
 		premultipliedAlpha: opts.premultipliedAlpha ?? false,
 		// Lines and thin geometry are most of this scene; without MSAA the mesh
 		// links crawl. Cheap enough at these vertex counts to be worth it.
-		antialias: opts.antialias ?? true,
+		antialias: opts.antialias ?? wantAntialias(),
 		// DELIBERATE, and the one attribute worth arguing about. The scene is
 		// order-independent: additive and alpha passes layered over each other, and
 		// you are meant to SEE THROUGH the globe to the far side. A depth buffer
@@ -78,10 +112,10 @@ export function createGlContext(
 		// (see physics/sphere's `depth`), so the buffer is pure cost: memory,
 		// bandwidth, and a clear every frame.
 		depth: false,
-		// The globe is decoration, not an input surface — nothing waits on a frame
-		// to answer a click. Letting the driver skip the compositor handshake trims
-		// latency, and browsers that don't support it ignore the key.
-		desynchronized: true,
+		// Opt-in, not on: see `GlContextOpts.lowLatency`. A decorative layer gains
+		// nothing from skipping the compositor handshake and inherits a
+		// per-platform presentation path by doing it.
+		desynchronized: opts.lowLatency ?? false,
 		// Not set, and worth knowing why: `preserveDrawingBuffer` defaults to false,
 		// so the buffer is invalid after a composite. A caller wanting a screenshot
 		// must read pixels inside the frame that drew them.
@@ -98,6 +132,7 @@ export function createGlContext(
 		// difference between a hiccup and a permanent blank rectangle.
 		e.preventDefault();
 		lost = true;
+		opts.onLost?.();
 	};
 	const onRestored = () => {
 		lost = false;
@@ -115,6 +150,21 @@ export function createGlContext(
 	};
 	measure();
 
+	// The size is watched rather than polled, and that is a frame-time decision,
+	// not a tidiness one. `clientWidth` is a layout read: called from inside a
+	// frame that has already mutated the DOM — which is every frame of a spinning
+	// mesh — it forces the browser to flush layout synchronously before it can
+	// answer, once per GL layer per frame. Read from the observer instead, layout
+	// has just finished and the answer is free.
+	const ro =
+		typeof ResizeObserver === 'undefined'
+			? null
+			: new ResizeObserver(() => {
+					measure();
+					opts.onResize?.();
+				});
+	ro?.observe(canvas);
+
 	return {
 		gl,
 		canvas,
@@ -127,8 +177,13 @@ export function createGlContext(
 		get lost() {
 			return lost;
 		},
-		resize(dpr = globalThis.devicePixelRatio || 1) {
-			measure();
+		get dpr() {
+			return Math.min(globalThis.devicePixelRatio || 1, dprCeiling());
+		},
+		resize(dpr = Math.min(globalThis.devicePixelRatio || 1, dprCeiling())) {
+			// Only where nothing is watching — see the observer above. Everywhere
+			// else the size is already current and re-reading it costs a layout.
+			if (!ro) measure();
 			// Round, don't floor: a floor loses a whole device pixel on most
 			// fractional dpr values, which shows up as a one-pixel gap along an edge.
 			const w = Math.max(1, Math.round(cssWidth * dpr));
@@ -148,6 +203,7 @@ export function createGlContext(
 			return changed;
 		},
 		dispose() {
+			ro?.disconnect();
 			canvas.removeEventListener('webglcontextlost', onLost);
 			canvas.removeEventListener('webglcontextrestored', onRestored);
 			// Programs and buffers belong to whoever created them, but the drawing

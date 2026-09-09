@@ -29,7 +29,7 @@
 		type GarrisonUnit,
 		type StatusBar
 	} from './internal/fx.js';
-	import { cssZoom } from 'showcase';
+	import { cssZoom, watchOnScreen } from 'showcase';
 
 	interface Props {
 		active: ActiveFx | null;
@@ -77,6 +77,21 @@
 	}
 
 	let host = $state<HTMLDivElement | null>(null);
+	/**
+	 * Is the board on screen at all?
+	 *
+	 * Every loop below already refuses to run when it has nothing to animate, and
+	 * that was enough while the board was only ever the whole window. It is not
+	 * enough now that the marketing page embeds a live board in a panel: the
+	 * garrison bob has something to animate for as long as the board is posed, so
+	 * it ran forever, 6,500px below the fold, rebuilding its layout every frame
+	 * and keeping five WebGL layers redrawing with it. The cost landed on the
+	 * hero globe at the top of the page as a stutter.
+	 *
+	 * Starts true, so a board that cannot be observed still animates.
+	 */
+	let onScreen = $state(true);
+	$effect(() => (host ? watchOnScreen(host, (v) => (onScreen = v)) : undefined));
 	let from = $state<Anchor | null>(null);
 	let to = $state<Anchor | null>(null);
 	let elapsed = $state(0);
@@ -88,6 +103,32 @@
 	 *  bar drawn from one would float in the middle of the sphere over a building
 	 *  you cannot see. Reading the opacity the renderer already set is the cheapest
 	 *  honest answer to "is this facing me". */
+	/**
+	 * The host's box and zoom, measured once a FRAME rather than once an anchor.
+	 *
+	 * Three loops below ask for anchors, each for every item it draws, and every
+	 * one of those asks used to re-measure the host. A rect read inside a frame
+	 * that has already written to the DOM — every frame here, the globe is
+	 * turning — makes the browser flush layout before it can answer, so that was
+	 * a synchronous layout per bar per frame. It profiled as the hottest code on
+	 * the marketing page. The host cannot move between two anchors of one tick.
+	 *
+	 * `document.timeline.currentTime` is the key because it is constant for a
+	 * whole frame; a plain timestamp changes between two calls in the same tick
+	 * and would never hit.
+	 */
+	let originStamp = -1;
+	let origin: { h: DOMRect; z: number } | null = null;
+
+	function hostOrigin(el: HTMLElement): { h: DOMRect; z: number } {
+		const stamp = Number(document.timeline?.currentTime ?? -1);
+		if (!origin || stamp !== originStamp || stamp < 0) {
+			origin = { h: el.getBoundingClientRect(), z: cssZoom(el) };
+			originStamp = stamp;
+		}
+		return origin;
+	}
+
 	function anchorOf(id: string): Anchor | null {
 		if (!host) return null;
 		const el = host.parentElement?.querySelector(`[data-node="${CSS.escape(id)}"]`);
@@ -95,14 +136,13 @@
 		const o = Number((el as HTMLElement).style.opacity || '1');
 		if (o < 0.4) return null;
 		const r = (el as SVGGraphicsElement).getBoundingClientRect();
-		const h = host.getBoundingClientRect();
 		if (r.width === 0 && r.height === 0) return null;
 		// Rects are VISUAL px and this overlay draws in its host's LAYOUT px. The
 		// two agree in the game, where nothing zooms, and not on the front page,
 		// where the whole HUD is shrunk with `zoom` — which pulled every bar and
 		// ring toward the top-left by the zoom factor and shrank its radius to
 		// match. Divide once, here, rather than in each of the six draw sites.
-		const z = cssZoom(host);
+		const { h, z } = hostOrigin(host);
 		return {
 			x: (r.left + r.width / 2 - h.left) / z,
 			y: (r.top + r.height / 2 - h.top) / z,
@@ -117,7 +157,7 @@
 	// the building WAS is worse than no effect.
 	$effect(() => {
 		const a = active;
-		if (!a) {
+		if (!a || !onScreen) {
 			from = to = null;
 			elapsed = 0;
 			return;
@@ -138,7 +178,7 @@
 	// than none. One loop for the whole set.
 	let barAnchors = $state<Array<StatusBar & Anchor>>([]);
 	$effect(() => {
-		if (!bars.length) {
+		if (!bars.length || !onScreen) {
 			barAnchors = [];
 			return;
 		}
@@ -169,7 +209,7 @@
 	}
 	let posted = $state<Posted[]>([]);
 	$effect(() => {
-		if (!garrison.length) {
+		if (!garrison.length || !onScreen) {
 			posted = [];
 			return;
 		}
@@ -224,7 +264,7 @@
 	let aims = $state<Array<Anchor & { id: string }>>([]);
 	let pulse = $state(0);
 	$effect(() => {
-		if (!aimIds.length) {
+		if (!aimIds.length || !onScreen) {
 			aims = [];
 			return;
 		}
@@ -460,7 +500,7 @@
 	let pingAnchors = $state<Array<BoardPing & Anchor & { q: number }>>([]);
 	let cutLinks = $state<Array<{ k: string; x: number; y: number; a: number; r: number }>>([]);
 	$effect(() => {
-		if (!pings.length && !severed.length) {
+		if ((!pings.length && !severed.length) || !onScreen) {
 			pingAnchors = [];
 			cutLinks = [];
 			return;

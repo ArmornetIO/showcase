@@ -533,7 +533,9 @@
 					class:comp-item--locked={item.locked}
 					class:comp-item--connectable={connectMode}
 					class:comp-item--connect-source={connectFrom === item.id}
+					class:comp-item--held={builder.holderOf(item.id)}
 					data-item-id={item.id}
+					data-held-by={builder.holderOf(item.id) ?? undefined}
 					style:left="{item.x}px"
 					style:top="{item.y}px"
 					style:z-index={item.zIndex}
@@ -705,6 +707,27 @@
 	/* Connect mode: every item is a target, and the one already picked says so. */
 	.comp-item.comp-item--connectable      { cursor: crosshair; }
 	.comp-item.comp-item--connect-source   { outline: 1px dashed var(--accent, #5eead4); outline-offset: 4px; }
+
+	/* Somebody else is dragging this. `not-allowed` before the gesture starts is
+	   the honest signal: the item will not move, and finding that out by pulling
+	   at it is worse than being told. */
+	.comp-item.comp-item--held {
+		cursor: not-allowed;
+		outline: 1px dashed rgba(251, 191, 36, 0.8);
+		outline-offset: 4px;
+	}
+	.comp-item.comp-item--held::after {
+		content: attr(data-held-by);
+		position: absolute;
+		top: -16px;
+		left: 0;
+		font-family: var(--mono, monospace);
+		font-size: 9px;
+		letter-spacing: 0.1em;
+		color: rgb(251, 191, 36);
+		pointer-events: none;
+		white-space: nowrap;
+	}
 
 	.comp-item-content {
 		pointer-events: none;

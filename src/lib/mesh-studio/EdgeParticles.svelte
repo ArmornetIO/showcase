@@ -29,6 +29,7 @@
 		SPRITE_PAD
 	} from './gl/particle-shaders.js';
 	import { packParticles, type ParticleRun } from './gl/particle-instances.js';
+	import { watchOnScreen } from '../perf/on-screen.js';
 
 	let {
 		runs = [],
@@ -44,6 +45,9 @@
 	const transform = ctx.transform;
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
+	/** Starts true: a layer that guesses "hidden" and is wrong never draws. */
+	let onScreen = $state(true);
+	$effect(() => (canvas ? watchOnScreen(canvas, (v) => (onScreen = v)) : undefined));
 	let glc: GlContext | null = null;
 	let program: WebGLProgram | null = null;
 	let buffer: WebGLBuffer | null = null;
@@ -129,6 +133,12 @@
 		// numbers a frame later anyway.
 		const el = canvas;
 		if (!el || !glc || glc.lost || !program || !buffer) return;
+		// Unlike every other layer here, this one is a clock rather than a function
+		// of props: nothing upstream changes between frames, the particles move
+		// because `uTime` did. So it is the one layer that keeps drawing after the
+		// scene it belongs to has been scrolled off the page, and it has to be told
+		// to stop — rAF pauses for a hidden tab, not for a hidden element.
+		if (!onScreen) return;
 
 		let frame = 0;
 		const gl = glc.gl;
@@ -160,8 +170,9 @@
 			if (!origin) origin = ts;
 			clock = (ts - origin) / 1000;
 
-			const dpr = globalThis.devicePixelRatio || 1;
-			glc.resize(dpr);
+			// No argument: `resize` clamps density itself now. Passing the raw
+			// `devicePixelRatio` here is what defeated that clamp on a Retina display.
+			glc.resize();
 			gl.clearColor(0, 0, 0, 0);
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			// An empty scene still clears — otherwise the last frame's particles stay
@@ -182,7 +193,7 @@
 			gl.uniform3f(uCam, transform.tx, transform.ty, transform.tk);
 			gl.uniform2f(uSize, glc.cssWidth, glc.cssHeight);
 			gl.uniform1f(uTime, clock);
-			gl.uniform1f(uDpr, dpr);
+			gl.uniform1f(uDpr, glc.dpr);
 			gl.uniform1f(uPad, SPRITE_PAD);
 
 			gl.drawArrays(gl.POINTS, 0, count);

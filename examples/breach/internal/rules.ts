@@ -128,19 +128,27 @@ export const isSignature = (key: string): boolean =>
 	SIGNATURES.some((s) => s.power.key === key);
 
 /**
- * The display name of any playable card, wherever the generator put it.
+ * The move behind any playable key, wherever the generator put it.
  *
  * `abilityByKey` only searches `CATALOGUE`, so it structurally cannot find the
  * four klass SIGNATURE powers — Zero-Day Reserve among them, which is the
  * loudest card in the game. Anything starting from a card KEY rather than from
  * a seat wants both lists, and the failure is quiet in the worst way: the
- * lookup returns undefined and the caller renders a slug.
+ * lookup returns undefined and the caller falls back to whatever an absent move
+ * means to it — a rendered slug, or a cutaway that never opens.
+ *
+ * `Power extends Ability`, so a caller that only wants the move never has to
+ * know which pile answered.
  *
  * Here rather than in `rules.gen.ts` because that file is generated from the Go
  * rules and an accessor added to it does not survive the next regeneration.
  */
-export const cardNameFor = (key: string): string =>
-	abilityByKeyGen(key)?.name ?? ROSTER.find((k) => k.power?.key === key)?.power?.name ?? key;
+export const moveByKey = (key: string): Ability | undefined =>
+	abilityByKeyGen(key) ?? ROSTER.find((k) => k.power?.key === key)?.power;
+
+/** The display name of any playable card. Falls back to the key, which is a
+ *  slug on screen but never an empty label. */
+export const cardNameFor = (key: string): string => moveByKey(key)?.name ?? key;
 
 // ── Outcome ──────────────────────────────────────────────────────────────────
 // How well it went — the dice say degree, not just yes or no.

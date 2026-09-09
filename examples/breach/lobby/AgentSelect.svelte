@@ -20,9 +20,16 @@
 	// anything itself: a table with a server is one where two clients must not
 	// be able to disagree about who holds what.
 
-	import { Figure } from 'showcase';
+	import { Figure, StepSwitcher } from 'showcase';
 	import { rosterFor, type BreachLobby } from '../internal/lobby.svelte.js';
-	import { BENCH, INITIATIVE, type Faction, type Klass } from '../internal/rules.js';
+	import {
+		BENCH,
+		INITIATIVE,
+		MATCH_SIZES,
+		type Faction,
+		type Klass,
+		type MatchSize
+	} from '../internal/rules.js';
 	import type { TableSocket } from '../net.svelte.js';
 	import { ORDINAL, SIDES } from './sides.js';
 	// The existing four-number block, not a new one — it already renders in the
@@ -37,9 +44,42 @@
 		/** Take the character and go. Local tables only — a networked one starts
 		 *  when the server says so. */
 		onenter?: (klassKey: string) => void;
+		/** The host's levers. They used to float over this screen in a panel of
+		 *  their own, which put a second bar of controls above a screen that
+		 *  already ends in a bar of controls. They belong in the footer with
+		 *  everything else the table is waiting on. */
+		invite?: string | null;
+		copied?: boolean;
+		/** Null while a table is being opened. */
+		busy?: boolean;
+		error?: string | null;
+		oncopy?: () => void;
+		onfill?: () => void;
+		onsize?: (s: MatchSize) => void;
+		/** Move to a side. The rail's flags call this directly rather than
+		 *  reopening the sides panel — switching is one click, and a panel that
+		 *  opens only to be clicked once and dismissed is a dialog standing in
+		 *  for a button. */
+		onpickside?: (side: Faction) => void;
 	}
 
-	let { lobby, socket = null, onenter }: Props = $props();
+	let {
+		lobby,
+		socket = null,
+		onenter,
+		invite = null,
+		copied = false,
+		busy = false,
+		error = null,
+		oncopy,
+		onfill,
+		onsize,
+		onpickside
+	}: Props = $props();
+
+	/** Fixed order, so the two flags never swap places under the reader when the
+	 *  side they hold changes. */
+	const SIDE_ORDER = ['red', 'blue'] as const satisfies readonly Faction[];
 
 	let hover = $state<string | null>(null);
 
@@ -48,6 +88,25 @@
 	/** Characters already spoken for, so the rail can grey them rather than
 	 *  letting two people race for the same one. */
 	const taken = $derived(new Set(lobby.seats.map((s) => s.klassKey).filter(Boolean) as string[]));
+
+	/** Everybody holding a chair, by id, so the roster can tell an arrival who
+	 *  has sat down from one who has not. */
+	const seatedIDs = $derived(
+		new Set(lobby.seats.map((s) => (s.occupant.kind === 'human' ? s.occupant.id : '')).filter(Boolean))
+	);
+
+	/**
+	 * Present at the table, holding no chair.
+	 *
+	 * The roster rendered `lobby.seats` and nothing else, which made arriving and
+	 * SITTING DOWN look like the same act when they are two — a member is created
+	 * by the first intent, a seat only by `take_seat`. Two people stood in this
+	 * lobby reading four empty chairs and each concluded the other had never
+	 * arrived, when the server had both of them present the whole time.
+	 */
+	const standing = $derived(
+		(socket?.view?.members ?? []).filter((m) => m.present && !seatedIDs.has(m.user_id))
+	);
 
 	const mine = $derived(lobby.klassAt(lobby.youSeatId));
 	/** Whose turn it is, when the mode is a draft. `null` means anybody may go. */
@@ -62,6 +121,32 @@
 
 	/** Locked when a character is held and the table is past choosing. */
 	const locked = $derived(!!mine && lobby.phase === 'ready');
+
+	/** Whether THIS client may move the table's levers.
+	 *
+	 *  A local table has no server and therefore no host — the one person there
+	 *  is the host by default, which is why the socket's absence reads as true.
+	 *  The server enforces the same rule (`requireHost` in internal/breach), so
+	 *  this only decides whether the control is DRAWN; it is not the check. */
+	const isHost = $derived(!socket || socket.isHost);
+
+	/** The rules stay open until the match does.
+	 *
+	 *  `waiting` is the phase where the server still accepts `set_size` and
+	 *  `set_mode`. Settling them on the setup screen and freezing them there was
+	 *  never a rule — it was just where the only controls existed, so a host who
+	 *  opened a 2v2 and had one person show up had to open a new table. */
+	const rulesOpen = $derived(isHost && lobby.phase === 'waiting');
+
+	// The one rule set left in the footer, in the shape the shared control takes.
+	// `blurb` becomes `description` and shows in the menu, so the gloss the
+	// deleted setup screen printed under each card is not lost by moving the
+	// choice here.
+	const SIZE_OPTIONS = MATCH_SIZES.map((s) => ({
+		value: s.id,
+		label: s.label,
+		description: s.blurb
+	}));
 
 	function choose(k: Klass) {
 		if (!lobby.canChoose || !yourTurn || locked || taken.has(k.key)) return;
@@ -117,9 +202,38 @@
 
 	<div class="body">
 		<aside class="rail">
-			<div class="side-plate" style:--sc={SIDES[side].tone}>
-				<span class="sp-name">{SIDES[side].label}</span>
-				<span class="sp-call">{SIDES[side].call}</span>
+			<!-- Both flags, not just yours. The side was a screen you passed
+			     through, so once you were here the other one had stopped existing
+			     — and changing your mind meant going back to a place there was no
+			     way back to. Yours is lit and says its call; the other is the
+			     control that moves you, which is the whole of "switch sides"
+			     without a second screen to hold it. -->
+			<div class="flags">
+				{#each SIDE_ORDER as f (f)}
+					{@const yours = f === side && lobby.seated}
+					{@const n = lobby.countOn(f)}
+					{@const full = n.taken >= n.total && !yours}
+					<button
+						type="button"
+						class="flag"
+						class:on={yours}
+						style:--sc={SIDES[f].tone}
+						disabled={yours || full || !onpickside || locked}
+						title={full ? `${SIDES[f].label} is full` : SIDES[f].blurb}
+						onclick={() => onpickside?.(f)}
+					>
+						<span class="fl-name">{SIDES[f].label}</span>
+						<span class="fl-sub">
+							{#if yours}
+								{SIDES[f].call}
+							{:else if full}
+								side full
+							{:else}
+								{n.total - n.taken} open — switch
+							{/if}
+						</span>
+					</button>
+				{/each}
 			</div>
 
 			<div class="label">
@@ -227,10 +341,20 @@
 								{/if}
 							</b>
 							<i>
+								<!-- The name as well as "you". The table names a player — it is how
+								     the other three refer to them — and this row was the one place
+								     it could have been read, so a player learned their own name
+								     only by a housemate reading it off THEIR screen. -->
 								{#if you}
-									you
+									you{seat.occupant.kind === 'human' && seat.occupant.name
+										? ` · ${seat.occupant.name}`
+										: ''}
 								{:else if seat.occupant.kind === 'ai'}
-									demonstrator
+									<!-- Its name, not its category. Four rows reading
+									     "demonstrator" is one opponent repeated; the whole
+									     point of naming them is that the table has four
+									     players in it. -->
+									{seat.occupant.name}
 								{:else if seat.occupant.kind === 'human'}
 									{seat.occupant.name}
 								{:else}
@@ -243,15 +367,76 @@
 						</span>
 					</div>
 				{/each}
+				{#each standing as m (m.user_id)}
+					{@const isYou = m.user_id === socket?.view?.you_id}
+					<div class="row standing" class:you={isYou}>
+						<span class="chip"><span class="q">◦</span></span>
+						<span class="text">
+							<b>{m.name}</b>
+							<i>{isYou ? 'you · pick a side to sit down' : 'here · no chair yet'}</i>
+						</span>
+						<span class="state">standing</span>
+					</div>
+				{/each}
 			</div>
 		</aside>
 	</div>
 
 	<footer>
+		<div class="levers">
+			{#if rulesOpen}
+				<div class="lever">
+					<span class="lever-k">size</span>
+					<StepSwitcher
+						label="Match size"
+						options={SIZE_OPTIONS}
+						value={lobby.size}
+						onpick={(v) => onsize?.(v as MatchSize)}
+						width="150px"
+					/>
+				</div>
+				<!-- ── No mode picker ────────────────────────────────────────────
+				     The engine still knows three ways to hand characters out and a
+				     host may still set them (`setMode` routes to the server, which
+				     allows all three). This SCREEN offers one, because the other two
+				     delete it: by-lot deals four characters in a ceremony nobody
+				     participates in, and free pick is a menu. The draft — turn order,
+				     on the clock, reading what the table has already taken — is the
+				     minute this screen exists for, and a control offering to skip it
+				     is a control most tables press once and never see the screen
+				     again. -->
+			{/if}
+			{#if isHost && !lobby.canChoose && onfill}
+				<button type="button" class="lv" onclick={onfill}>Play with bots</button>
+			{/if}
+			<!-- Host only. A player who followed a link is already at the table —
+			     handing them the link that got them here is an invitation to a
+			     room they are standing in. Before there is a table this is what
+			     creates one, so it reads as the act rather than as a clipboard. -->
+			{#if isHost && oncopy}
+				<button type="button" class="lv ghost" disabled={busy} onclick={oncopy}>
+					{#if busy}
+						opening…
+					{:else if !invite}
+						invite someone
+					{:else}
+						{copied ? 'link copied' : 'copy invite'}
+					{/if}
+				</button>
+			{/if}
+		</div>
 		<div class="hint">
-			{#if !lobby.canChoose}
+			{#if error}
+				<span class="err">{error}</span>
+			{:else if !lobby.seated}
+				<!-- Ahead of the seats-still-open line, which describes the TABLE and
+				     reads as something to wait out. This is the reader's own missing
+				     act: arriving put them in the room, and nothing on screen said
+				     the chair was still a decision they had to make. -->
+				<b>You are not seated.</b> Pick <b>red</b> or <b>blue</b> to take a chair.
+			{:else if !lobby.canChoose}
 				Nobody picks until every seat is taken — {lobby.blockedBecause}. The host can fill the rest
-				with demonstrators.
+				with bots.
 			{:else if !yourTurn}
 				Waiting on seat <b>{onTheClock}</b> to choose.
 			{:else if mine}
@@ -370,14 +555,47 @@
 		background: linear-gradient(270deg, rgb(0 0 0 / 0.4), transparent);
 	}
 
-	.side-plate {
-		position: relative;
-		padding: 0.7rem 0.8rem 0.7rem 1rem;
-		border-radius: 9px;
-		border: 1px solid color-mix(in srgb, var(--sc) 55%, transparent);
-		background: linear-gradient(100deg, color-mix(in srgb, var(--sc) 20%, transparent), transparent 72%);
+	/* Two flags, side by side. The one you hold keeps the full plate treatment
+	   the single one had; the other is dimmed to a control, so the pair reads as
+	   "you are here, that is over there" rather than as two equal choices you
+	   have somehow both got. */
+	.flags {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.4rem;
 	}
-	.sp-name {
+	.flag {
+		position: relative;
+		display: block;
+		width: 100%;
+		text-align: left;
+		padding: 0.7rem 0.7rem 0.7rem 0.85rem;
+		border-radius: 9px;
+		border: 1px solid rgb(255 255 255 / 0.08);
+		background: rgb(255 255 255 / 0.02);
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+	.flag:hover:not(:disabled) {
+		border-color: color-mix(in srgb, var(--sc) 55%, transparent);
+		background: color-mix(in srgb, var(--sc) 10%, transparent);
+	}
+	/* Yours. Disabled because there is nowhere to go, so it must not look like a
+	   dead control — it is a plate that happens to be a button. */
+	.flag.on {
+		cursor: default;
+		border-color: color-mix(in srgb, var(--sc) 55%, transparent);
+		background: linear-gradient(
+			100deg,
+			color-mix(in srgb, var(--sc) 20%, transparent),
+			transparent 72%
+		);
+	}
+	.flag:disabled:not(.on) {
+		opacity: 0.4;
+		cursor: default;
+	}
+	.fl-name {
 		display: block;
 		font-size: 0.95rem;
 		font-weight: 800;
@@ -385,7 +603,7 @@
 		text-transform: uppercase;
 		color: var(--sc);
 	}
-	.sp-call {
+	.fl-sub {
 		display: block;
 		font-size: 0.66rem;
 		color: #94a3b8;
@@ -622,6 +840,13 @@
 		border-color: color-mix(in srgb, var(--tone) 45%, transparent);
 		background: color-mix(in srgb, var(--tone) 10%, transparent);
 	}
+	/* Dashed, because a standing member is not a chair — the roster reads as a
+	   list of seats and these rows must not be mistaken for more of them. */
+	.row.standing {
+		background: none;
+		border-style: dashed;
+		border-color: rgb(255 255 255 / 0.14);
+	}
 	.row.foe {
 		opacity: 0.55;
 	}
@@ -677,6 +902,62 @@
 	}
 	.hint {
 		font-size: 0.75rem;
+		color: #94a3b8;
+		/* Takes the slack so the levers stay left and the button stays right —
+		   without it the three children space out and the hint drifts around as
+		   its own text changes length. */
+		flex: 1;
+	}
+
+	/* ── The host's levers ────────────────────────────────────────────────────
+	   In the footer, not floating over the roster. A panel pinned above this bar
+	   put two rows of controls on a screen whose whole job is "look at the
+	   characters", and the floating one covered the seat strip at short
+	   viewport heights. */
+	.levers {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+	}
+	.lever {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.lever-k {
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 0.55rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #64748b;
+	}
+	.lv {
+		padding: 0.34rem 0.7rem;
+		border-radius: 6px;
+		border: 1px solid rgb(255 255 255 / 0.12);
+		background: rgb(255 255 255 / 0.05);
+		color: #cbd5e1;
+		font-size: 0.62rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+	.lv:hover {
+		border-color: rgb(255 255 255 / 0.28);
+		color: #f8fafc;
+	}
+	.err {
+		color: #fb7185;
+	}
+	.lv:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+	.lv.ghost {
+		background: transparent;
+		border-color: rgb(255 255 255 / 0.08);
 		color: #94a3b8;
 	}
 	.go {

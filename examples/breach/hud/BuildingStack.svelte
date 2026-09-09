@@ -14,6 +14,16 @@
 	// already stands on the globe, so the thing in the hexagon here is the thing
 	// you are looking at out there — not an icon chosen to represent it.
 	//
+	// A row IS the building, so clicking one selects it — the globe is bound to
+	// `selectedId` with `focusOnSelect`, and turns to face whatever the row
+	// names. Written as a selection rather than a `camera.flyTo` on purpose:
+	// flying alone would move the view without moving the AIM, so the target
+	// sheet and the aim overlay would still be pointing at whatever was picked
+	// before, and clicking a building would mean two different things depending
+	// on which copy of it you clicked. This is the same write the canvas makes,
+	// which is why arming a card and clicking a row commits the move exactly as
+	// dragging onto the board does (see `Breach.svelte`, "aiming IS committing").
+	//
 	// Two behaviours a game does that a dashboard does not:
 	//   UNDER ATTACK   the row pulses in the attacker's hue for the whole beat,
 	//                  so you are looking at the right line when it changes.
@@ -102,14 +112,15 @@
 				<span class="text-[0.62rem] leading-snug">{body}</span>
 			</span>
 		{/snippet}
+
+	<!-- A rule, not a bordered box — matches the seats' skill tags. -->
 		<span
-			class="flex items-center gap-1 rounded border px-1 py-px"
+			class="flex items-center gap-1 border-b-2 pr-2 pb-0.5"
 			style:color={lit ? hue : 'var(--fg-dim)'}
-			style:border-color={lit ? `color-mix(in srgb, ${hue} 40%, transparent)` : 'var(--border)'}
-			style:background={lit ? `color-mix(in srgb, ${hue} 12%, transparent)` : 'transparent'}
+			style:border-color={lit ? hue : 'color-mix(in srgb, var(--fg) 14%, transparent)'}
 		>
-			<Icon name={icon as never} size={9} />
-			<b class="font-mono text-[0.5rem] font-black tabular-nums leading-none">{value}</b>
+			<Icon name={icon as never} size={13} />
+			<b class="font-mono text-[0.72rem] leading-none font-black tabular-nums">{value}</b>
 		</span>
 	</Tooltip>
 {/snippet}
@@ -119,9 +130,11 @@
      frames doing one frame's job, and it costs the stack the thing that makes it
      read as a deck — the outermost card having nothing behind it. -->
 <div class="pointer-events-auto flex flex-col gap-1.5">
-	<span class="pl-0.5 font-mono text-[0.5rem] uppercase tracking-[0.22em] text-[var(--fg-dim)]">
+	<span
+		class="pl-0.5 font-mono text-[0.56rem] font-black uppercase tracking-[0.22em] text-[var(--fg)]"
+	>
 		the buildings
-		<span class="ml-1 text-[var(--fg-dim)] opacity-60">
+		<span class="ml-1 text-[var(--fg-muted)]">
 			{match.chainHeld.length} / {CHAIN.length} held
 		</span>
 	</span>
@@ -139,13 +152,17 @@
 			{@const lev = match.leverageFor(s)}
 			{@const heat = match.heat[s.territory] ?? 0}
 			{@const tone = bar.held ? RED : bar.sealed ? SEAL : lev > 0 ? 'var(--accent)' : BLUE}
-			{@const up = !!attack || lifted === s.id}
-			<div
-				role="group"
+			{@const picked = match.selectedId === s.id}
+			{@const up = !!attack || lifted === s.id || picked}
+			<button
+				type="button"
+				onclick={() => (match.selectedId = s.id)}
 				onmouseenter={() => (lifted = s.id)}
 				onmouseleave={() => (lifted = null)}
-				class="bs-row relative -mt-2 flex items-stretch gap-2 overflow-hidden rounded-[10px]
-				       border py-1.5 pl-2 pr-1.5 transition-[left] duration-150 first:mt-0"
+				aria-pressed={picked}
+				class="bs-row relative -mt-2 flex w-full cursor-pointer items-stretch gap-2 overflow-hidden
+				       rounded-[10px] border py-1.5 pl-2 pr-1.5 text-left transition-[left]
+				       duration-150 first:mt-0"
 				class:left-1={up}
 				class:bs-striking={!!attack}
 				style:z-index={up ? 5 : 1}
@@ -158,9 +175,11 @@
 				style:background="radial-gradient(120% 120% at 14% 30%,
 					color-mix(in srgb, {tone} 22%, var(--bg-elev, #0b0f16)) 0%,
 					var(--bg-elev, #0b0f16) 64%)"
-				style:box-shadow={up
-					? `0 0 0 1px color-mix(in srgb, ${tone} 35%, transparent), 0 14px 30px rgba(0,0,0,0.55)`
-					: '0 6px 16px rgba(0,0,0,0.45)'}
+				style:box-shadow={picked
+					? `0 0 0 2px ${tone}, 0 14px 30px rgba(0,0,0,0.55)`
+					: up
+						? `0 0 0 1px color-mix(in srgb, ${tone} 35%, transparent), 0 14px 30px rgba(0,0,0,0.55)`
+						: '0 6px 16px rgba(0,0,0,0.45)'}
 			>
 				<!-- Whose ground this is, as one bar down the edge. The seats' card
 				     carries the same stripe for the same job. -->
@@ -172,15 +191,17 @@
 
 				<!-- ── The building ──────────────────────────────────────────────
 				     `piece` is the same solid the globe stands out there. -->
-				<div class="relative w-[50px] shrink-0 self-center">
+				<!-- Wider than the crest so an 11px caption is not clipped by the row's
+				     `overflow-hidden`. Same well as the seat cards. -->
+				<div class="relative w-[68px] shrink-0 self-center">
 					<span
-						class="absolute inset-0 blur-[10px]"
+						class="absolute inset-x-[9px] inset-y-0 blur-[10px]"
 						style:background={tone}
 						style:clip-path={HEX}
 						style:opacity={bar.held ? 0.5 : 0.28}
 					></span>
 					<div
-						class="relative grid h-[56px] place-items-center p-[1.5px]"
+						class="relative mx-auto grid h-[56px] w-[50px] place-items-center p-[1.5px]"
 						style:clip-path={HEX}
 						style:background="color-mix(in srgb, {tone} 70%, transparent)"
 					>
@@ -192,6 +213,19 @@
 							<PieceCrest piece={s.piece} color={tone} offline={!bar.held && lev === 0} />
 						</div>
 					</div>
+
+					<!-- The building's NAME, under its own crest — the same move the seat
+					     cards make with the character. It headed the plate to the right,
+					     which is the line better spent on what the building IS: `The
+					     Forge` tells you nothing on its own, `Build Runner (CI)` tells you
+					     why red wants it. Captioned by its portrait, the name is still
+					     right next to the picture it belongs to. -->
+					<span
+						class="mt-1 block text-center font-mono text-[0.6875rem] leading-[1.15] font-black tracking-[0.06em] text-[var(--fg)] uppercase"
+												title={s.name}
+					>
+						{s.name.replace(/^The /, '')}
+					</span>
 
 					<!-- The step gem, where the seats wear their action points. Where
 					     it sits on the path is the one fact that never changes. -->
@@ -237,12 +271,16 @@
 				<!-- ── The plate ─────────────────────────────────────────────────── -->
 				<div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
 					<div class="flex min-w-0 items-baseline gap-1.5">
+						<!-- WHAT IT IS, as the headline. The name moved under the crest and
+						     this line earns the size instead: `Build Runner (CI)` is the
+						     reason red wants the thing, `The Forge` is only what it is
+						     called. -->
 						<span
-							class="truncate font-mono text-[0.58rem] font-black leading-none"
-							style:color={tone}
-							title={s.name}
+							class="truncate font-mono text-[0.62rem] leading-none font-black uppercase"
+							style:color="var(--fg)"
+							title="{s.role} · {TERRITORIES[s.territory].name}"
 						>
-							{s.name}
+							{s.role}
 						</span>
 						<span class="flex-1"></span>
 
@@ -299,16 +337,17 @@
 						{/if}
 					</div>
 
-					<!-- What it IS, under its name — the seats put the person here. -->
+					<!-- The region only. `role` was here too and is the headline now —
+					     printing it in both places was the same words at two sizes. -->
 					<span
-						class="truncate font-mono text-[0.44rem] uppercase tracking-[0.1em]"
+						class="truncate font-mono text-[0.5rem] tracking-[0.1em] uppercase"
 						style:color={bar.regionColor}
 						title={TERRITORIES[s.territory].name}
 					>
-						{s.role} · {bar.region}
+						{bar.region}
 					</span>
 
-					<div class="flex items-center gap-1">
+					<div class="flex flex-wrap items-center gap-1.5">
 						<!-- Hardening: what an attack has to beat. The one number every
 						     card on the board is measured against. -->
 						{@render pip(
@@ -355,7 +394,7 @@
 						)}
 					</div>
 				</div>
-			</div>
+			</button>
 		{/each}
 	</div>
 </div>

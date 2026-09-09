@@ -41,10 +41,16 @@ function liveSource() {
 		off: () => Promise.resolve(),
 		close: () => Promise.resolve()
 	} as ArmornetAgent;
-	/** What the server would have sent back. */
+	/** What the server would have sent back.
+	 *
+	 *  The type string has to be the one the SERVER sends. This helper said
+	 *  `snapshot` while `breachproto.TypeSeatView` was `seat_view`, so the whole
+	 *  suite exercised a frame type that does not exist and passed — which is how
+	 *  a protocol mismatch that broke every table survived a file of tests about
+	 *  frames. A fake is only evidence while it lies the same way the wire does. */
 	const answer = (view: Partial<TableView>) =>
 		deliver?.(
-			'snapshot',
+			'seat_view',
 			new TextEncoder().encode(JSON.stringify({ view: { epoch: 'e1', version: 1, ...view } }))
 		);
 	// The same signature `subscribe` has, so the socket hands its frame handler

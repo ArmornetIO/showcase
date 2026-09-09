@@ -98,7 +98,7 @@
 		<header class="flex flex-col items-start gap-3">
 			<h1 class="m-0 text-3xl font-black tracking-tight">BREACH — rules &amp; deck</h1>
 			<p class="m-0 max-w-[68ch] text-[0.95rem] leading-relaxed text-[var(--fg-dim)]">
-				A 2v2 card skirmish about a software supply-chain attack. One side is trying to get a
+				A 2v2 card game played on the Armornet globe. One side is trying to get a
 				payload through five buildings; the other side is trying to run out the clock
 				while finding out what is already inside. Everything below is what the engine actually
 				does — where a card’s printed sentence promises more than the code delivers, it says so.
@@ -176,7 +176,7 @@
 				After the last chair acts, the round ends and <b>upkeep</b> runs: AP refills to 3, heat
 				decays by 4 everywhere, temporary effects lapse, damaged buildings repair 1, red’s
 				implants burrow deeper, and any region that has gone loud gives up what is hiding in it.
-				A turn clock (30 seconds by default) ends your turn for you if you sit on it.
+				A turn clock (15 seconds by default) ends your turn for you if you sit on it.
 			</p>
 			<p class="m-0 text-[0.88rem] leading-relaxed text-[var(--fg-dim)]">
 				A <b>1v1</b> table is the same order with the back two chairs left in the box: the

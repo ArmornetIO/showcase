@@ -141,7 +141,7 @@
 						<button
 							type="button"
 							onclick={() => ontakeover?.(seat.key)}
-							title="Take {seat.name} — you leave your own chair to the demonstrator"
+							title="Take {seat.name} — you leave your own chair to a bot"
 							class="font-mono text-[0.46rem] font-bold tracking-[0.14em] uppercase px-1 py-px rounded
 							       border transition-colors hover:brightness-125
 							       focus-visible:outline focus-visible:outline-1"

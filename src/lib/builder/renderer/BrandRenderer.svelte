@@ -1,11 +1,11 @@
 <script lang="ts">
 	// Marks and emblems. Pure SVG/CSS — no data, just geometry props.
-	import HexShield from '$lib/display/feedback/HexShield.svelte';
-	import ArmornetLogo from '$lib/icons/ArmornetLogo.svelte';
-	import ArmornetCrest from '$lib/icons/ArmornetCrest.svelte';
-	import ArmornetCrestHub from '$lib/icons/ArmornetCrestHub.svelte';
-	import ArmornetCrestChrome from '$lib/icons/ArmornetCrestChrome.svelte';
-	import ArmornetCrestMesh, { type CrestMeshShape } from '$lib/icons/ArmornetCrestMesh.svelte';
+	import HexShield from '../../display/feedback/HexShield.svelte';
+	import ArmornetLogo from '../../icons/ArmornetLogo.svelte';
+	import ArmornetCrest from '../../icons/ArmornetCrest.svelte';
+	import ArmornetCrestHub from '../../icons/ArmornetCrestHub.svelte';
+	import ArmornetCrestChrome from '../../icons/ArmornetCrestChrome.svelte';
+	import ArmornetCrestMesh, { type CrestMeshShape } from '../../icons/ArmornetCrestMesh.svelte';
 	import { accessors } from './accessors.js';
 	import type { RendererProps } from './types.js';
 

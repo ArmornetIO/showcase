@@ -23,6 +23,7 @@ import {
 	canTarget,
 	computeOdds,
 	klassByKey,
+	moveByKey,
 	outcomeFor,
 	powerOf,
 	roll2d6,
@@ -41,6 +42,7 @@ import {
 	type Structure,
 	type TerritoryKey
 } from './rules.js';
+import { randomBotName } from './names.js';
 import {
 	BEATS,
 	GARRISON_CAP,
@@ -222,6 +224,12 @@ export interface MatchOptions {
 
 const TURN_TICK = 200;
 
+/** The turn clock's length when a host does not set one.
+ *
+ *  Short on purpose: a hand with no legal play left has nothing to do but wait
+ *  the clock out, and the wait is the whole cost of that dead turn. */
+const DEFAULT_TURN_MS = 15_000;
+
 /** How long a networked click holds the controls while it waits for the board
  *  it asked for. Comfortably longer than a round trip, and short enough that a
  *  server which never answers hands the player their controls back rather than
@@ -297,7 +305,7 @@ export interface RemoteMatchView {
 	/** This seat's own move, priced by the server. Absent for a character without
 	 *  one. Only the charge count is read: the move itself is generated data both
 	 *  sides already hold, and a second copy is a second thing to disagree. */
-	power?: { key: string; charges: number };
+	power?: { key: string; charges: number; readyIn?: number };
 	/** The cards this seat is holding, by the server's reckoning. Absent for a
 	 *  bystander, who holds none.
 	 *
@@ -418,6 +426,30 @@ export class BreachMatch {
 	 *  table, where the phase index is the only answer there is. */
 	activeKey = $state<string | null>(null);
 	yourTurn = $state<boolean | null>(null);
+
+	/**
+	 * Where this match's decisions actually get made.
+	 *
+	 * Null for a local game: the engine below is the authority and mutates
+	 * itself. Set for a networked one — and for an offline table hosted by the
+	 * rules module, which is the same port with a different other end. The three
+	 * methods that CHANGE the board become requests, and the answer arrives as a
+	 * snapshot through `applyRemote`.
+	 *
+	 * Deliberately not "send an action and also apply it locally". An optimistic
+	 * update is a second implementation of a rule, and the copy that disagrees is
+	 * always the one on the screen.
+	 *
+	 * Declared up here with the rest of the flow, and not down by the methods it
+	 * drives, because `isMyTurn` is a `$derived` that reads it — a class field
+	 * may not read one declared below it.
+	 *
+	 * `$state.raw`: whether there is an authority to wait for decides whether a
+	 * null `yourTurn` means "not yet" or "derive it", so the assignment has to be
+	 * reactive. Raw and not deep — the port is a bag of methods, replaced
+	 * wholesale and never mutated, and proxying it would only wrap the calls.
+	 */
+	remote = $state.raw<RemotePort | null>(null);
 	/** Whose HUD is on screen — the fog is computed from here. */
 	seatKey = $state('maintainer');
 	winner = $state<Faction | null>(null);
@@ -512,12 +544,12 @@ export class BreachMatch {
 	#verdictSeq = 0;
 	/** A cutaway is on screen, so the host's chrome should get out of the way. */
 	povLive = $state(false);
-	turnLeft = $state(30_000);
+	turnLeft = $state(DEFAULT_TURN_MS);
 
 	// Initialised here as well as in the constructor: `presence` is a $derived
 	// field that reads it, and a class field may not read one that is only
 	// assigned later in the constructor.
-	readonly turnMs: number = 30_000;
+	readonly turnMs: number = DEFAULT_TURN_MS;
 	/**
 	 * Whether this table lets a player change chairs.
 	 *
@@ -540,7 +572,7 @@ export class BreachMatch {
 		this.#cinema = opts.cinema ?? NO_CINEMA;
 		this.#pace = opts.pace ?? wait;
 		this.#dice = opts.dice;
-		this.turnMs = opts.turnMs ?? 30_000;
+		this.turnMs = opts.turnMs ?? DEFAULT_TURN_MS;
 		this.takeover = opts.takeover ?? false;
 		this.turnLeft = this.turnMs;
 	}
@@ -561,7 +593,34 @@ export class BreachMatch {
 	readonly activeKlass = $derived<Klass>(
 		ROSTER.find((r) => r.key === (this.activeKey ?? this.seatOrder[this.phase])) ?? ROSTER[0]
 	);
-	readonly isMyTurn = $derived(this.yourTurn ?? this.activeKlass.key === this.seat.key);
+	/**
+	 * Whether the chair you are watching from is the one on the clock.
+	 *
+	 * Three gates, and the opening needed all three. `yourTurn ?? <derive it
+	 * locally>` looked like a safe fallback and was not: it answered a question
+	 * it did not yet have the data for, and answered it YES.
+	 *
+	 *   stage      Before `play` there is no turn to own. `seatKey` defaults to
+	 *              the Maintainer, so an unseated match matched `seatOrder[0]`
+	 *              and claimed the opening turn for whoever was watching —
+	 *              through the whole wasm fetch, before `takeSeat` had run.
+	 *   remote     With an authority to ask, its answer is the only one. Null
+	 *              means "has not spoken yet", and the honest reading of that is
+	 *              NOT your turn. Only a table with no port at all derives it.
+	 *   activeKey  Otherwise the phase index, which is the answer rather than a
+	 *              guess once the engine owns it.
+	 *
+	 * The takeover plate fires on the transition into this, so a false positive
+	 * is not a flicker — it is the full 900ms ceremony announcing a turn you do
+	 * not have.
+	 */
+	readonly isMyTurn = $derived(
+		this.stage !== 'play'
+			? false
+			: this.remote
+				? this.yourTurn === true
+				: this.activeKlass.key === this.seat.key
+	);
 
 	/** What THIS seat is allowed to know. Red sees its side's work; blue sees
 	 *  only what it has turned over. The game lives in the gap between the two. */
@@ -704,10 +763,42 @@ export class BreachMatch {
 		return this.inHand(seatKey, key);
 	}
 
+	/**
+	 * Pick a move up, and drop a target it cannot use.
+	 *
+	 * `selectedId` outlives the move that set it: the demonstrator writes it on
+	 * its own turn, and a card played by drag leaves its drop behind. Arming
+	 * therefore inherited somebody else's aim, and the plate opened with a
+	 * refusal about a building this player never chose. It read as the move being
+	 * unplayable rather than as a stale selection, which is exactly the wrong
+	 * lesson — the Threat Hunter's Attribution is the only move in the game
+	 * with `on: [red]`, so hers refused every single time.
+	 *
+	 * Signatures only, in practice. A card is armed by picking it up and targeted
+	 * by dropping it, so its aim and its arm are the same gesture; a signature is
+	 * armed by a button and aimed afterwards, which is the whole window this bug
+	 * lived in.
+	 *
+	 * Only a HARD block clears it. Sealed and soft are real choices with real
+	 * warnings — you are allowed to run at a wall, and the wall working is the
+	 * defender's whole payoff.
+	 */
+	arm(key: string) {
+		this.armedKey = key;
+		this.inspectKey = key;
+		const move = this.moveFor(this.seat.key, key);
+		const aimed = this.target;
+		if (move && aimed && this.blockedReason(move, aimed)?.kind === 'hard') this.selectedId = null;
+	}
+
 	/** This seat's own move, or null for a character without one. */
 	readonly power = $derived<Power | null>(powerOf(this.seat.key) ?? null);
 	/** What is left of it. Shown at zero rather than hidden — see `charges`. */
 	readonly powerCharges = $derived(this.power ? this.chargesOf(this.power.key) : 0);
+	/** Rounds until a spent charge returns, and only ever set while it is spent.
+	 *  Zero at a power with no cooldown, which is a signature that really is gone
+	 *  for the match — the button says "spent" rather than counting down. */
+	powerReadyIn = $state(0);
 
 	readonly armed = $derived<Ability | null>(this.moveFor(this.seat.key, this.armedKey) ?? null);
 	readonly target = $derived(this.selectedId ? structureById(this.selectedId) : undefined);
@@ -817,20 +908,6 @@ export class BreachMatch {
 		return STRUCTURES.find((s) => s.territory === t && s.id !== id)?.id ?? id ?? null;
 	});
 
-	/**
-	 * Where this match's decisions actually get made.
-	 *
-	 * Null for a local game: the engine below is the authority and mutates
-	 * itself. Set for a networked one, and the three methods that CHANGE the
-	 * board become requests instead — the server rules, and the answer arrives
-	 * as a snapshot through `applyRemote`.
-	 *
-	 * Deliberately not "send an action and also apply it locally". An optimistic
-	 * update is a second implementation of a rule, and the copy that disagrees is
-	 * always the one on the screen.
-	 */
-	remote: RemotePort | null = null;
-
 	#pendingTimer: ReturnType<typeof setTimeout> | null = null;
 
 	/** Verdicts waiting for the one on screen to finish, and the last one played.
@@ -929,6 +1006,11 @@ export class BreachMatch {
 		if (m.power) {
 			const prev = untrack(() => this.charges);
 			this.charges = { ...prev, [m.power.key]: m.power.charges };
+			// Only ever the seat's OWN power, so this never has to be merged the
+			// way charges are: the server sends no other chair's countdown, and
+			// showing a stale one for a seat you have swapped away from would read
+			// as your signature being on somebody else's clock.
+			this.powerReadyIn = m.power.readyIn ?? 0;
 		}
 		// A seat's own cards, from the only deck that counts. Merged rather than
 		// replaced for the same reason as `charges`: a seat is sent nobody's hand
@@ -1298,7 +1380,12 @@ export class BreachMatch {
 	 */
 	async takeSeat(key: string) {
 		this.seatKey = key;
-		this.phase = Math.max(0, this.seatOrder.indexOf(key));
+		// `phase` is deliberately NOT moved to this chair. It is whose TURN it is,
+		// and sitting down does not make it yours — but it used to be written from
+		// the seat index here, so `activeKlass` resolved to you the instant you
+		// took a chair and every seat was told the opening turn was theirs. On an
+		// offline table the engine corrected it a frame later; on a networked one
+		// the first snapshot did. Either way the takeover plate had already fired.
 		this.armedKey = null;
 		this.inspectKey = null;
 		this.dealtCount = 0;
@@ -1448,7 +1535,10 @@ export class BreachMatch {
 		this.players = {
 			...this.players,
 			[klassKey]: { name: you?.name ?? 'you', kind: 'human' },
-			[this.seatKey]: { name: `${this.seat.seat} · demonstrator`, kind: 'ai' }
+			// The chair you just left is a bot now, and it is named like every
+			// other one — a seat you walked away from should be indistinguishable
+			// from a seat nobody ever sat in.
+			[this.seatKey]: { name: randomBotName(), kind: 'ai' }
 		};
 		this.seatKey = klassKey;
 		// Everything below is aimed at a board from the other chair's point of
@@ -1460,13 +1550,25 @@ export class BreachMatch {
 		return true;
 	}
 
-	/** Back to round one with an empty board. Everything a match accumulates
-	 *  lives in these values, which is the argument for keeping them together. */
+	/** Ask for another match. On a hosted table this is a REQUEST and nothing
+	 *  more: the board is emptied by the answer, through `reset`. */
 	newMatch() {
 		if (this.remote) {
 			this.remote.newMatch();
 			return;
 		}
+		this.reset();
+	}
+
+	/** Back to round one with an empty board. Everything a match accumulates
+	 *  lives in these values, which is the argument for keeping them together.
+	 *
+	 *  Separate from `newMatch` because on a networked table the click and the
+	 *  reset happen on different screens: one player presses the button, and all
+	 *  four have to leave the finished match. Only the snapshot reaches all four,
+	 *  so the reset hangs off that — see Breach.svelte. Calling `newMatch` from
+	 *  there would send the intent a second time on every frame. */
+	reset() {
 		this.busy = false;
 		this.activeFx = null;
 		// A scene left running would hold the camera seized into the next match.
@@ -1773,7 +1875,12 @@ export class BreachMatch {
 	 *  which is a server this client is too old to draw. */
 	#beatFor(res: RemoteResolution): Beat | null {
 		const actor = res.actor_key ? klassByKey(res.actor_key) : null;
-		const ability = (res.card_key ? abilityByKey(res.card_key) : undefined) ?? null;
+		// `moveByKey`, not `abilityByKey`: the server sends a signature power in the
+		// same `card_key` field as a hand card, and the generated lookup only knows
+		// the CATALOGUE. Resolving to null here costs the beat its `fx` and — since
+		// `pov` requires an ability — the cutaway, so the loudest card in the game
+		// played as a silent one on every server-ruled table.
+		const ability = (res.card_key ? moveByKey(res.card_key) : undefined) ?? null;
 		// A fogged action names no building, so the ripple hangs on an arbitrary one
 		// in the right region and `foggedAnchorId` moves it off that one again.
 		const target =

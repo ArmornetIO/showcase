@@ -1,0 +1,1798 @@
+{
+  "components": [
+    {
+      "id": "ActionBar",
+      "props": {
+        "actions": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "ActionsMenu",
+      "props": {
+        "placement": {
+          "kind": "enum",
+          "options": [
+            "bottom-end",
+            "bottom-start"
+          ]
+        },
+        "disabled": {
+          "kind": "boolean"
+        },
+        "autoDismiss": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "AlertBlade",
+      "props": {}
+    },
+    {
+      "id": "ArmornetCrest",
+      "props": {
+        "size": {
+          "kind": "number",
+          "min": 16,
+          "max": 320
+        },
+        "color": {
+          "kind": "text"
+        },
+        "glow": {
+          "kind": "boolean"
+        },
+        "mesh": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "ArmornetCrestChrome",
+      "props": {
+        "size": {
+          "kind": "number",
+          "min": 48,
+          "max": 320
+        },
+        "glow": {
+          "kind": "boolean"
+        },
+        "bloom": {
+          "kind": "number",
+          "min": 0,
+          "max": 1
+        },
+        "traces": {
+          "kind": "boolean"
+        },
+        "rim": {
+          "kind": "boolean"
+        },
+        "emboss": {
+          "kind": "boolean"
+        },
+        "tethers": {
+          "kind": "boolean"
+        },
+        "breakout": {
+          "kind": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    {
+      "id": "ArmornetCrestHub",
+      "props": {
+        "size": {
+          "kind": "number",
+          "min": 16,
+          "max": 320
+        },
+        "look": {
+          "kind": "enum",
+          "options": [
+            "hollow",
+            "weight",
+            "plated"
+          ]
+        },
+        "spokes": {
+          "kind": "enum",
+          "options": [
+            "full",
+            "stem",
+            "bar"
+          ]
+        },
+        "tethers": {
+          "kind": "boolean"
+        },
+        "glow": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "ArmornetCrestMesh",
+      "props": {
+        "size": {
+          "kind": "number",
+          "min": 16,
+          "max": 320
+        },
+        "color": {
+          "kind": "text"
+        },
+        "shape": {
+          "kind": "enum",
+          "options": [
+            "crest",
+            "crestwide",
+            "crestsharp",
+            "crestnotch",
+            "crestkey",
+            "merlon",
+            "bastille",
+            "crestear",
+            "crestspur",
+            "heater",
+            "keel",
+            "flared",
+            "peaked",
+            "notched",
+            "bouche",
+            "keyed",
+            "notchspur",
+            "clipped",
+            "keyclip",
+            "notchclip",
+            "bevel",
+            "octant",
+            "slab",
+            "eared",
+            "crowned",
+            "blade",
+            "wedge",
+            "spiked",
+            "spurred"
+          ]
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "outline",
+            "filled"
+          ]
+        },
+        "innerWall": {
+          "kind": "boolean"
+        },
+        "glow": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "ArmornetLogo",
+      "props": {
+        "size": {
+          "kind": "number",
+          "min": 16,
+          "max": 320
+        },
+        "color": {
+          "kind": "text"
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "outline",
+            "filled"
+          ]
+        },
+        "innerWall": {
+          "kind": "boolean"
+        },
+        "glow": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "Avatar",
+      "props": {
+        "initials": {
+          "kind": "text"
+        },
+        "size": {
+          "kind": "number",
+          "min": 24,
+          "max": 120
+        }
+      }
+    },
+    {
+      "id": "Breadcrumbs",
+      "props": {
+        "items": {
+          "kind": "textarea"
+        },
+        "separator": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "BulkActionBar",
+      "props": {}
+    },
+    {
+      "id": "Button",
+      "props": {
+        "__children": {
+          "kind": "text"
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "primary",
+            "ghost",
+            "danger",
+            "solid",
+            "solid-ghost"
+          ]
+        },
+        "size": {
+          "kind": "enum",
+          "options": [
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "disabled": {
+          "kind": "boolean"
+        },
+        "loading": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "CanvasEdge",
+      "props": {
+        "style": {
+          "kind": "enum",
+          "options": [
+            "energy",
+            "pulse",
+            "dashed",
+            "degraded",
+            "blocked",
+            "latent",
+            "scanning",
+            "encrypted"
+          ]
+        },
+        "dataType": {
+          "kind": "enum",
+          "options": [
+            "query",
+            "config",
+            "feed",
+            "verdict",
+            "lifecycle",
+            "intercept"
+          ]
+        },
+        "showGrid": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "Card",
+      "props": {
+        "type": {
+          "kind": "enum",
+          "options": [
+            "composite",
+            "article",
+            "data-input",
+            "profile",
+            "stat",
+            "doc",
+            "summary",
+            "hud",
+            "pricing"
+          ]
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "accent",
+            "cyan",
+            "emerald",
+            "blue"
+          ]
+        },
+        "title": {
+          "kind": "text"
+        },
+        "eyebrow": {
+          "kind": "text"
+        },
+        "description": {
+          "kind": "textarea"
+        },
+        "excerpt": {
+          "kind": "textarea"
+        },
+        "category": {
+          "kind": "text"
+        },
+        "readTime": {
+          "kind": "text"
+        },
+        "label": {
+          "kind": "text"
+        },
+        "value": {
+          "kind": "text"
+        },
+        "statVariant": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "accent",
+            "warn",
+            "error",
+            "dim"
+          ]
+        },
+        "size": {
+          "kind": "enum",
+          "options": [
+            "sm",
+            "md",
+            "md-long",
+            "lg",
+            "xl"
+          ]
+        },
+        "initials": {
+          "kind": "text"
+        },
+        "name": {
+          "kind": "text"
+        },
+        "role": {
+          "kind": "text"
+        },
+        "tag": {
+          "kind": "text"
+        },
+        "meta": {
+          "kind": "text"
+        },
+        "docStatus": {
+          "kind": "enum",
+          "options": [
+            "draft",
+            "active",
+            "approved"
+          ]
+        },
+        "body": {
+          "kind": "textarea"
+        },
+        "num": {
+          "kind": "text"
+        },
+        "windowLabel": {
+          "kind": "text"
+        },
+        "ctaLabel": {
+          "kind": "text"
+        },
+        "ctaHref": {
+          "kind": "text"
+        },
+        "featured": {
+          "kind": "boolean"
+        },
+        "tier": {
+          "kind": "text"
+        },
+        "price": {
+          "kind": "text"
+        },
+        "priceUnit": {
+          "kind": "text"
+        },
+        "priceSub": {
+          "kind": "text"
+        },
+        "badge": {
+          "kind": "text"
+        },
+        "pending": {
+          "kind": "boolean"
+        },
+        "profileLayout": {
+          "kind": "enum",
+          "options": [
+            "horizontal",
+            "vertical"
+          ]
+        }
+      }
+    },
+    {
+      "id": "Chart",
+      "props": {
+        "type": {
+          "kind": "enum",
+          "options": [
+            "line",
+            "grouped-bar",
+            "stacked-bar",
+            "scatter",
+            "pie",
+            "radar",
+            "heatmap",
+            "candlestick",
+            "gauge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ChatMessage",
+      "props": {
+        "role": {
+          "kind": "enum",
+          "options": [
+            "user",
+            "assistant",
+            "system"
+          ]
+        },
+        "content": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "ChatThread",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        },
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "Checkbox",
+      "props": {
+        "__children": {
+          "kind": "text"
+        },
+        "checked": {
+          "kind": "boolean"
+        },
+        "indeterminate": {
+          "kind": "boolean"
+        },
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "CheckboxList",
+      "props": {
+        "options": {
+          "kind": "textarea"
+        },
+        "selected": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "Chip",
+      "props": {
+        "__children": {
+          "kind": "text"
+        },
+        "look": {
+          "kind": "enum",
+          "options": [
+            "ghost",
+            "filled"
+          ]
+        },
+        "color": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "accent",
+            "success",
+            "warn",
+            "error",
+            "cyan",
+            "blue",
+            "critical",
+            "get",
+            "post",
+            "delete",
+            "patch"
+          ]
+        },
+        "pulse": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "ChipInput",
+      "props": {
+        "value": {
+          "kind": "textarea"
+        },
+        "placeholder": {
+          "kind": "text"
+        },
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "ClosingCTA",
+      "props": {
+        "headline": {
+          "kind": "text"
+        },
+        "kicker": {
+          "kind": "text"
+        },
+        "lede": {
+          "kind": "textarea"
+        },
+        "primaryLabel": {
+          "kind": "text"
+        },
+        "primaryHref": {
+          "kind": "text"
+        },
+        "secondaryLabel": {
+          "kind": "text"
+        },
+        "secondaryHref": {
+          "kind": "text"
+        },
+        "overlay": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "CodeBlock",
+      "props": {
+        "title": {
+          "kind": "text"
+        },
+        "code": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "CollapsibleStack",
+      "props": {
+        "stackRows": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "CommandPalette",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "ConfigBlock",
+      "props": {
+        "yaml": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "ConsensusBar",
+      "props": {
+        "pct": {
+          "kind": "number",
+          "min": 0,
+          "max": 100
+        },
+        "label": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "CountUp",
+      "props": {
+        "value": {
+          "kind": "number",
+          "min": 0,
+          "max": 1000000
+        },
+        "duration": {
+          "kind": "number",
+          "min": 0,
+          "max": 5000
+        },
+        "decimals": {
+          "kind": "number",
+          "min": 0,
+          "max": 4
+        },
+        "separator": {
+          "kind": "boolean"
+        },
+        "prefix": {
+          "kind": "text"
+        },
+        "suffix": {
+          "kind": "text"
+        },
+        "mono": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "DangerBanner",
+      "props": {
+        "title": {
+          "kind": "text"
+        },
+        "message": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "DataTable",
+      "props": {
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "kv",
+            "table"
+          ]
+        },
+        "rows": {
+          "kind": "textarea"
+        },
+        "columns": {
+          "kind": "textarea"
+        },
+        "tableRows": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "DonutChart",
+      "props": {
+        "title": {
+          "kind": "text"
+        },
+        "centerLabel": {
+          "kind": "text"
+        },
+        "countLabel": {
+          "kind": "text"
+        },
+        "caption": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "EcoTabBar",
+      "props": {
+        "tabs": {
+          "kind": "textarea"
+        },
+        "active": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "Ellipse",
+      "props": {
+        "fill": {
+          "kind": "enum"
+        }
+      }
+    },
+    {
+      "id": "EmptyState",
+      "props": {
+        "message": {
+          "kind": "text"
+        },
+        "sub": {
+          "kind": "text"
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "inline",
+            "card"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EntityOverviewTab",
+      "props": {}
+    },
+    {
+      "id": "EventLogTab",
+      "props": {}
+    },
+    {
+      "id": "ExportMenu",
+      "props": {
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "FaqAccordion",
+      "props": {
+        "items": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "FileTree",
+      "props": {}
+    },
+    {
+      "id": "FileUpload",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        },
+        "accept": {
+          "kind": "text"
+        },
+        "filename": {
+          "kind": "text"
+        },
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "FilterToolbar",
+      "props": {}
+    },
+    {
+      "id": "HexShield",
+      "props": {
+        "layers": {
+          "kind": "number",
+          "min": 1,
+          "max": 20
+        },
+        "plates": {
+          "kind": "number",
+          "min": 1,
+          "max": 100
+        },
+        "active": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "HorizonBackdrop",
+      "props": {
+        "preset": {
+          "kind": "enum"
+        },
+        "blend": {
+          "kind": "enum"
+        },
+        "rainbow": {
+          "kind": "boolean"
+        },
+        "rainbowSpeed": {
+          "kind": "number",
+          "min": 2,
+          "max": 60
+        },
+        "strength": {
+          "kind": "number",
+          "min": 0,
+          "max": 1
+        },
+        "cell": {
+          "kind": "number",
+          "min": 12,
+          "max": 96
+        },
+        "strips": {
+          "kind": "textarea"
+        },
+        "layers": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "HudCorners",
+      "props": {
+        "color": {
+          "kind": "text"
+        },
+        "size": {
+          "kind": "number",
+          "min": 4,
+          "max": 24
+        },
+        "offset": {
+          "kind": "number",
+          "min": 2,
+          "max": 20
+        }
+      }
+    },
+    {
+      "id": "Icon",
+      "props": {
+        "name": {
+          "kind": "enum",
+          "options": [
+            "shield-check",
+            "shield-alert",
+            "alert-triangle",
+            "alert-circle",
+            "check-circle-2",
+            "x-circle",
+            "clipboard-list",
+            "clipboard-check",
+            "file-text",
+            "message-square",
+            "bar-chart-2",
+            "table-2",
+            "layout-grid",
+            "layout-dashboard",
+            "layout-template",
+            "panel-right",
+            "git-branch",
+            "git-merge",
+            "git-fork",
+            "share-2",
+            "settings-2",
+            "refresh-cw",
+            "flask-conical",
+            "credit-card"
+          ]
+        },
+        "size": {
+          "kind": "number",
+          "min": 10,
+          "max": 64
+        }
+      }
+    },
+    {
+      "id": "IconButton",
+      "props": {
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "danger"
+          ]
+        },
+        "disabled": {
+          "kind": "boolean"
+        },
+        "label": {
+          "kind": "text"
+        },
+        "icon": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "IconToolbar",
+      "props": {
+        "orientation": {
+          "kind": "enum",
+          "options": [
+            "vertical",
+            "horizontal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "Image",
+      "props": {
+        "src": {
+          "kind": "textarea"
+        },
+        "alt": {
+          "kind": "text"
+        },
+        "fit": {
+          "kind": "enum",
+          "options": [
+            "contain",
+            "cover",
+            "fill"
+          ]
+        },
+        "radius": {
+          "kind": "number",
+          "min": 0,
+          "max": 64
+        },
+        "opacity": {
+          "kind": "number",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    {
+      "id": "IncidentDrawer",
+      "props": {}
+    },
+    {
+      "id": "Input",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "LayoutHeader",
+      "props": {
+        "eyebrow": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "Line",
+      "props": {
+        "orientation": {
+          "kind": "enum",
+          "options": [
+            "horizontal",
+            "vertical",
+            "diagonal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "LogRow",
+      "props": {
+        "ts": {
+          "kind": "text"
+        },
+        "level": {
+          "kind": "enum",
+          "options": [
+            "info",
+            "warn",
+            "err",
+            "ok"
+          ]
+        },
+        "message": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "MeshLayoutPicker",
+      "props": {
+        "value": {
+          "kind": "enum",
+          "options": [
+            "grouped",
+            "packed",
+            "radial",
+            "fan",
+            "globe"
+          ]
+        },
+        "label": {
+          "kind": "text"
+        },
+        "columns": {
+          "kind": "number",
+          "min": 1,
+          "max": 5
+        }
+      }
+    },
+    {
+      "id": "Modal",
+      "props": {}
+    },
+    {
+      "id": "NavDrawer",
+      "props": {}
+    },
+    {
+      "id": "NodeDrawer",
+      "props": {}
+    },
+    {
+      "id": "OverviewDrawer",
+      "props": {}
+    },
+    {
+      "id": "PageHero",
+      "props": {
+        "headline": {
+          "kind": "text"
+        },
+        "kicker": {
+          "kind": "text"
+        },
+        "lede": {
+          "kind": "textarea"
+        },
+        "overlay": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "Panel",
+      "props": {
+        "__header": {
+          "kind": "text"
+        },
+        "__children": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "PanelLoading",
+      "props": {}
+    },
+    {
+      "id": "PasswordInput",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        },
+        "size": {
+          "kind": "enum",
+          "options": [
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "status": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "error",
+            "success",
+            "warn"
+          ]
+        },
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "PeerCard",
+      "props": {
+        "name": {
+          "kind": "text"
+        },
+        "id": {
+          "kind": "text"
+        },
+        "latency": {
+          "kind": "text"
+        },
+        "color": {
+          "kind": "enum",
+          "options": [
+            "#5FEAD5",
+            "#4ADE80",
+            "#38BDF8",
+            "#C4A8FF",
+            "#FB7185",
+            "#FDBA74",
+            "#FCD34D",
+            "#94A3B8"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PieceCrest",
+      "props": {
+        "piece": {
+          "kind": "enum"
+        },
+        "size": {
+          "kind": "number",
+          "min": 16,
+          "max": 240
+        },
+        "color": {
+          "kind": "text"
+        },
+        "offline": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "PostureVerdict",
+      "props": {
+        "value": {
+          "kind": "number",
+          "min": 0,
+          "max": 100
+        },
+        "unit": {
+          "kind": "text"
+        },
+        "prefix": {
+          "kind": "text"
+        },
+        "suffix": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "ProgressBar",
+      "props": {
+        "type": {
+          "kind": "enum",
+          "options": [
+            "linear",
+            "radial",
+            "stepped",
+            "stacked"
+          ]
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "accent",
+            "success",
+            "warn",
+            "error"
+          ]
+        },
+        "value": {
+          "kind": "number",
+          "min": 0,
+          "max": 100
+        },
+        "max": {
+          "kind": "number",
+          "min": 1,
+          "max": 1000
+        },
+        "label": {
+          "kind": "text"
+        },
+        "size": {
+          "kind": "enum",
+          "options": [
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "showPercent": {
+          "kind": "boolean"
+        },
+        "indeterminate": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "RadialProgress",
+      "props": {
+        "value": {
+          "kind": "number",
+          "min": 0,
+          "max": 100
+        },
+        "size": {
+          "kind": "number",
+          "min": 40,
+          "max": 200
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "accent",
+            "success",
+            "warn",
+            "error"
+          ]
+        },
+        "label": {
+          "kind": "text"
+        },
+        "showPercent": {
+          "kind": "boolean"
+        },
+        "indeterminate": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "RadioList",
+      "props": {
+        "options": {
+          "kind": "textarea"
+        },
+        "value": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "Rectangle",
+      "props": {
+        "fill": {
+          "kind": "enum"
+        },
+        "radius": {
+          "kind": "number",
+          "min": 0,
+          "max": 64
+        }
+      }
+    },
+    {
+      "id": "SearchInput",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "command-trigger"
+          ]
+        }
+      }
+    },
+    {
+      "id": "SectionBar",
+      "props": {
+        "label": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "SegmentGroup",
+      "props": {
+        "options": {
+          "kind": "textarea"
+        },
+        "value": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "Select",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        },
+        "options": {
+          "kind": "textarea"
+        },
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "SelectionModal",
+      "props": {}
+    },
+    {
+      "id": "SettingRow",
+      "props": {
+        "title": {
+          "kind": "text"
+        },
+        "description": {
+          "kind": "text"
+        },
+        "checked": {
+          "kind": "boolean"
+        },
+        "disabled": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "SheetDrawer",
+      "props": {}
+    },
+    {
+      "id": "SidebarNav",
+      "props": {
+        "sections": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "Sparkline",
+      "props": {
+        "data": {
+          "kind": "text"
+        },
+        "color": {
+          "kind": "text"
+        },
+        "width": {
+          "kind": "number",
+          "min": 40,
+          "max": 600
+        },
+        "height": {
+          "kind": "number",
+          "min": 20,
+          "max": 200
+        }
+      }
+    },
+    {
+      "id": "StackedBar",
+      "props": {
+        "label": {
+          "kind": "text"
+        },
+        "size": {
+          "kind": "enum",
+          "options": [
+            "sm",
+            "md",
+            "lg"
+          ]
+        },
+        "showLegend": {
+          "kind": "boolean"
+        },
+        "segments": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "StatStrip",
+      "props": {
+        "items": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "StatTile",
+      "props": {
+        "label": {
+          "kind": "text"
+        },
+        "value": {
+          "kind": "text"
+        },
+        "sub": {
+          "kind": "text"
+        },
+        "subVariant": {
+          "kind": "enum",
+          "options": [
+            "up",
+            "down",
+            "neutral"
+          ]
+        },
+        "mono": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "StatusBadge",
+      "props": {
+        "status": {
+          "kind": "enum",
+          "options": [
+            "healthy",
+            "degraded",
+            "offline"
+          ]
+        },
+        "bordered": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "StatusDot",
+      "props": {
+        "status": {
+          "kind": "enum",
+          "options": [
+            "healthy",
+            "degraded",
+            "offline"
+          ]
+        },
+        "glow": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "SteppedProgress",
+      "props": {
+        "steps": {
+          "kind": "text"
+        },
+        "current": {
+          "kind": "number",
+          "min": 0,
+          "max": 20
+        },
+        "stepStyle": {
+          "kind": "enum",
+          "options": [
+            "blocks",
+            "ticks",
+            "dots"
+          ]
+        },
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "accent",
+            "success",
+            "warn",
+            "error"
+          ]
+        },
+        "label": {
+          "kind": "text"
+        },
+        "showCount": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "StepSwitcher",
+      "props": {
+        "options": {
+          "kind": "textarea"
+        },
+        "value": {
+          "kind": "text"
+        },
+        "label": {
+          "kind": "text"
+        },
+        "wrap": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "StoryboardArrow",
+      "props": {
+        "label": {
+          "kind": "text"
+        },
+        "tall": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "StoryboardBranch",
+      "props": {
+        "connector": {
+          "kind": "text"
+        },
+        "label": {
+          "kind": "text"
+        },
+        "__children": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "StoryboardCanvas",
+      "props": {
+        "title": {
+          "kind": "text"
+        },
+        "__children": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "StoryboardFrame",
+      "props": {
+        "step": {
+          "kind": "number",
+          "min": 1,
+          "max": 9
+        },
+        "route": {
+          "kind": "text"
+        },
+        "badge": {
+          "kind": "text"
+        },
+        "badgeVariant": {
+          "kind": "enum",
+          "options": [
+            "default",
+            "red"
+          ]
+        },
+        "dashed": {
+          "kind": "boolean"
+        },
+        "__children": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "SwimLane",
+      "props": {
+        "pill": {
+          "kind": "text"
+        },
+        "label": {
+          "kind": "text"
+        },
+        "sub": {
+          "kind": "text"
+        },
+        "__children": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "TablePager",
+      "props": {}
+    },
+    {
+      "id": "Tabs",
+      "props": {
+        "tabs": {
+          "kind": "textarea"
+        },
+        "active": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "TerminalBlock",
+      "props": {
+        "title": {
+          "kind": "text"
+        },
+        "content": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "Text",
+      "props": {
+        "content": {
+          "kind": "textarea"
+        },
+        "size": {
+          "kind": "enum",
+          "options": [
+            "xs",
+            "sm",
+            "md",
+            "lg",
+            "xl",
+            "2xl"
+          ]
+        },
+        "weight": {
+          "kind": "enum",
+          "options": [
+            "normal",
+            "medium",
+            "bold"
+          ]
+        },
+        "color": {
+          "kind": "enum",
+          "options": [
+            "fg",
+            "fg-muted",
+            "fg-dim",
+            "accent",
+            "warn",
+            "error",
+            "success"
+          ]
+        },
+        "align": {
+          "kind": "enum",
+          "options": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "mono": {
+          "kind": "boolean"
+        },
+        "uppercase": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "Textarea",
+      "props": {
+        "placeholder": {
+          "kind": "text"
+        },
+        "rows": {
+          "kind": "number",
+          "min": 1,
+          "max": 20
+        }
+      }
+    },
+    {
+      "id": "Ticker",
+      "props": {
+        "items": {
+          "kind": "textarea"
+        },
+        "speed": {
+          "kind": "number",
+          "min": 5,
+          "max": 120
+        },
+        "separator": {
+          "kind": "text"
+        },
+        "bordered": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
+      "id": "Timeline",
+      "props": {
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "rail",
+            "feed"
+          ]
+        },
+        "events": {
+          "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "Toggle",
+      "props": {
+        "checked": {
+          "kind": "boolean"
+        },
+        "disabled": {
+          "kind": "boolean"
+        },
+        "label": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "UserBlock",
+      "props": {
+        "initials": {
+          "kind": "text"
+        },
+        "name": {
+          "kind": "text"
+        },
+        "email": {
+          "kind": "text"
+        },
+        "role": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "id": "VerdictLogTab",
+      "props": {}
+    },
+    {
+      "id": "ViewToggle",
+      "props": {
+        "options": {
+          "kind": "text"
+        },
+        "value": {
+          "kind": "text"
+        }
+      }
+    }
+  ]
+}

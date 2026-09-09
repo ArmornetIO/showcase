@@ -11,12 +11,16 @@
 		fkCount,
 		level = $bindable('all'),
 		focusMode = $bindable(true),
+		lintMode = $bindable(false),
+		lintCount = 0,
 		onarrange
 	}: {
 		tableCount: number;
 		fkCount: number;
 		level?: DetailLevel;
 		focusMode?: boolean;
+		lintMode?: boolean;
+		lintCount?: number;
 		onarrange: () => void;
 	} = $props();
 
@@ -42,6 +46,15 @@
 	</button>
 	<button class="erd-tgl" title="Auto-arrange (a)" onclick={onarrange}>
 		<Icon name="layout-grid" size={13} /> arrange
+	</button>
+	<button
+		class="erd-tgl"
+		class:on={lintMode}
+		title="Lint — naming and reference conventions this schema votes for (l)"
+		onclick={() => (lintMode = !lintMode)}
+	>
+		<Icon name="clipboard-list" size={13} /> lint
+		{#if lintCount > 0}<span class="erd-badge">{lintCount}</span>{/if}
 	</button>
 </div>
 
@@ -93,5 +106,16 @@
 		color: var(--accent);
 		border-color: var(--accent);
 		background: var(--accent-faint);
+	}
+	.erd-badge {
+		padding: 0 5px;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--fg) 14%, transparent);
+		font-size: 0.62rem;
+		line-height: 1.5;
+	}
+	.erd-tgl.on .erd-badge {
+		background: var(--accent);
+		color: var(--bg);
 	}
 </style>

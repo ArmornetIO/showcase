@@ -10,7 +10,7 @@
 	// Here the geometry is uploaded ONCE (127KB for all 17 buildings) and the only
 	// thing that moves per frame is 27 floats per node.
 	//
-	// It stays a SIBLING layer inside the shared <Canvas>, exactly like GlobeFrame
+	// It stays a SIBLING layer inside the shared <Canvas>, exactly like GlobeShell
 	// and TerritoryCaps: it READS `ctx.transform` and never writes it. The moment a
 	// GL layer owns a camera of its own is the moment it drifts a pixel away from
 	// the SVG drawn on top of it, and that is the failure mode this whole port has
@@ -18,7 +18,13 @@
 	import { getContext } from 'svelte';
 	import { CANVAS_CTX, type CanvasContextValue } from '../../primitives/canvas/canvas-camera.js';
 	import type { StudioNode } from '../studio.types.js';
-	import { createGlContext, createProgram, createBuffer, type GlContext } from '../gl/context.js';
+	import {
+		createGlContext,
+		createProgram,
+		createBuffer,
+		createVao,
+		type GlContext
+	} from '../gl/context.js';
 	import { PIECE_VERT, PIECE_FRAG, PIECE_PASSES, PIECE_ATTRIBS } from '../gl/piece-shaders.js';
 	import { PIECE_MESHES, PIECE_VERT_FLOATS, PIECE_EDGE_FLOATS } from '../pieces/piece-mesh.js';
 	import { packInstances, INSTANCE_FLOATS, type InstanceStyle } from '../gl/piece-instances.js';
@@ -49,6 +55,27 @@
 	 *  between them costs a `bindBuffer` and a few pointer calls. */
 	let triBuf: WebGLBuffer | null = null;
 	let edgeBuf: WebGLBuffer | null = null;
+	/** One VAO per static buffer. They exist to hold the attribute POINTERS, not
+	 *  to batch: the two buffers share a layout, so this is the same three
+	 *  pointers recorded twice against different bindings, and a pass becomes one
+	 *  `bindVertexArray` instead of three `getAttribLocation` + three
+	 *  `enableVertexAttribArray` + three `vertexAttribPointer`. */
+	let triVao: WebGLVertexArrayObject | null = null;
+	let edgeVao: WebGLVertexArrayObject | null = null;
+	/**
+	 * Every location the frame needs, resolved once at link.
+	 *
+	 * `getAttribLocation` reads like a lookup in a table this file owns. It is
+	 * not: it is a string hash across the driver boundary, and any `get*` can
+	 * make the driver flush work it had batched. Measured on the marketing page's
+	 * mesh cluster, this component was issuing **1,773 of them per frame** —
+	 * thirteen per node, per pass — out of 5,641 GL calls total. The locations
+	 * are fixed for the life of a linked program, so all of it was rediscovery.
+	 */
+	let instLocs: { loc: number; size: 1 | 2 | 3 | 4 }[] = [];
+	let uCam: WebGLUniformLocation | null = null;
+	let uSize: WebGLUniformLocation | null = null;
+	let uPass: WebGLUniformLocation | null = null;
 	/** Where each piece's run starts, in vertices, within each buffer. */
 	const triSpans = new Map<string, { first: number; count: number }>();
 	const edgeSpans = new Map<string, { first: number; count: number }>();
@@ -73,6 +100,22 @@
 		// the spans are what let a single buffer serve 17 different shapes.
 		triBuf = pack(gl, (m) => m.verts, PIECE_VERT_FLOATS, triSpans);
 		edgeBuf = pack(gl, (m) => m.edges, PIECE_EDGE_FLOATS, edgeSpans);
+
+		// Static attributes only. The per-instance ones are set as CONSTANT values
+		// below, and a generic vertex attribute's value is CONTEXT state rather
+		// than VAO state — which is what lets one `vertexAttrib3f` outlive a
+		// `bindVertexArray` and why they must not be enabled as arrays here.
+		const staticAttribs = PIECE_ATTRIBS.filter((a) => !a.divisor);
+		triVao = createVao(gl, program, [{ buffer: triBuf, attribs: staticAttribs }]);
+		edgeVao = createVao(gl, program, [{ buffer: edgeBuf, attribs: staticAttribs }]);
+
+		instLocs = PIECE_ATTRIBS.filter((a) => a.divisor).map((a) => ({
+			loc: gl.getAttribLocation(program!, a.name),
+			size: a.size
+		}));
+		uCam = gl.getUniformLocation(program, 'uCam');
+		uSize = gl.getUniformLocation(program, 'uSize');
+		uPass = gl.getUniformLocation(program, 'uPass');
 		return true;
 	}
 
@@ -115,6 +158,10 @@
 			program = null;
 			triBuf = null;
 			edgeBuf = null;
+			triVao = null;
+			edgeVao = null;
+			instLocs = [];
+			uCam = uSize = uPass = null;
 			triSpans.clear();
 			edgeSpans.clear();
 		};
@@ -127,7 +174,7 @@
 		const cam = { tx: transform.tx, ty: transform.ty, tk: transform.tk };
 		const ns = nodes;
 		const sel = selectedId;
-		if (!glc || glc.lost || !program || !triBuf || !edgeBuf) return;
+		if (!glc || glc.lost || !program || !triVao || !edgeVao) return;
 
 		const gl = glc.gl;
 		glc.resize();
@@ -155,17 +202,15 @@
 		gl.disable(gl.DEPTH_TEST);
 		gl.enable(gl.BLEND);
 
-		gl.uniform3f(gl.getUniformLocation(program, 'uCam'), cam.tx, cam.ty, cam.tk);
-		gl.uniform2f(gl.getUniformLocation(program, 'uSize'), glc.cssWidth, glc.cssHeight);
-		const uPass = gl.getUniformLocation(program, 'uPass');
+		gl.uniform3f(uCam, cam.tx, cam.ty, cam.tk);
+		gl.uniform2f(uSize, glc.cssWidth, glc.cssHeight);
 
 		for (const pass of PIECE_PASSES) {
 			// The edge pass is the only one drawn from the wireframe buffer. It is
 			// also the one that matters most on this material: the faces are a
 			// translucent wash, and the outline is what actually carries the shape.
 			const wire = pass.name === 'edge';
-			gl.bindBuffer(gl.ARRAY_BUFFER, wire ? edgeBuf : triBuf);
-			bindStatic(gl, program);
+			gl.bindVertexArray(wire ? edgeVao : triVao);
 			setBlend(gl, pass.blend);
 			gl.uniform1i(uPass, pass.id);
 			const spans = wire ? edgeSpans : triSpans;
@@ -174,31 +219,14 @@
 				const n = packed.order[i];
 				const span = spans.get(n.piece);
 				if (!span) continue;
-				bindInstance(gl, program, packed.data, i * INSTANCE_FLOATS);
+				bindInstance(gl, packed.data, i * INSTANCE_FLOATS);
 				gl.drawArrays(mode, span.first, span.count);
 			}
 		}
+		// Nothing left bound: a VAO is global state, and the next layer on this
+		// context would otherwise be editing this one's.
+		gl.bindVertexArray(null);
 	});
-
-	/** Point the STATIC attributes at whatever is currently bound to ARRAY_BUFFER.
-	 *
-	 *  Called per pass rather than once, because an attribute pointer captures the
-	 *  buffer bound at the moment it is set — switching buffers without re-pointing
-	 *  silently keeps reading the old one, which draws the right shape from the
-	 *  wrong geometry and looks like a maths bug. */
-	function bindStatic(gl: WebGL2RenderingContext, prog: WebGLProgram): void {
-		const stride = PIECE_VERT_FLOATS * 4;
-		let offset = 0;
-		for (const a of PIECE_ATTRIBS) {
-			if (a.divisor) continue;
-			const loc = gl.getAttribLocation(prog, a.name);
-			if (loc >= 0) {
-				gl.enableVertexAttribArray(loc);
-				gl.vertexAttribPointer(loc, a.size, gl.FLOAT, false, stride, offset);
-			}
-			offset += a.size * 4;
-		}
-	}
 
 	/** Feed one node's 27 floats as CONSTANT vertex attributes.
 	 *
@@ -211,26 +239,27 @@
 	 *  A constant attribute (array disabled, value set directly) reads identically
 	 *  in the shader, so the `in` declarations the shader module publishes stay
 	 *  exactly as specified. If the mesh ever grows to many nodes sharing a piece,
-	 *  this is the one function that changes. */
-	function bindInstance(
-		gl: WebGL2RenderingContext,
-		prog: WebGLProgram,
-		data: Float32Array,
-		base: number
-	): void {
+	 *  this is the one function that changes.
+	 *
+	 *  There is no `disableVertexAttribArray` here any more. These arrays were
+	 *  never enabled — `createVao` is handed the static attributes only — so
+	 *  disabling them thirteen times per node per pass was 1,742 calls a frame to
+	 *  restate the default.
+	 *
+	 *  The offset advances whether or not the location resolved: an attribute the
+	 *  linker dropped still occupies its floats in the packed record, and skipping
+	 *  its stride would shift every attribute after it. */
+	function bindInstance(gl: WebGL2RenderingContext, data: Float32Array, base: number): void {
 		let o = base;
-		for (const a of PIECE_ATTRIBS) {
-			if (!a.divisor) continue;
-			const loc = gl.getAttribLocation(prog, a.name);
+		for (const { loc, size } of instLocs) {
 			if (loc >= 0) {
-				gl.disableVertexAttribArray(loc);
-				if (a.size === 2) gl.vertexAttrib2f(loc, data[o], data[o + 1]);
-				else if (a.size === 3) gl.vertexAttrib3f(loc, data[o], data[o + 1], data[o + 2]);
-				else if (a.size === 4)
+				if (size === 2) gl.vertexAttrib2f(loc, data[o], data[o + 1]);
+				else if (size === 3) gl.vertexAttrib3f(loc, data[o], data[o + 1], data[o + 2]);
+				else if (size === 4)
 					gl.vertexAttrib4f(loc, data[o], data[o + 1], data[o + 2], data[o + 3]);
 				else gl.vertexAttrib1f(loc, data[o]);
 			}
-			o += a.size;
+			o += size;
 		}
 	}
 

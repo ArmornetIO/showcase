@@ -2050,7 +2050,10 @@ export const REGISTRY: ComponentMeta[] = [
 				kind: 'enum',
 				label: 'Placement',
 				default: 'bottom-end',
-				options: ['bottom-end', 'bottom-start']
+				// A preference, not an instruction — the side flips when the
+				// preferred one has no room. Listed so the builder can express the
+				// preference, not because picking one pins it.
+				options: ['bottom-end', 'bottom-start', 'top-end', 'top-start']
 			},
 			disabled: { kind: 'boolean', label: 'Disabled', default: false },
 			autoDismiss: { kind: 'boolean', label: 'Auto-dismiss when idle', default: false }

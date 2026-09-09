@@ -18,7 +18,7 @@
   import MeshStudio from "../MeshStudio.svelte";
   import type { StudioNode, StudioEdge } from "../studio.types.js";
   import type { ShapeConcept } from "../node-shapes.js";
-  import GlobeFrame from "../globe/GlobeFrame.svelte";
+  import GlobeShell from "../globe/GlobeShell.svelte";
   import Icon from "../../icons/Icon.svelte";
   import MeshLayoutPicker from "../layout/MeshLayoutPicker.svelte";
   import { solveMeshLayout, type MeshLayoutId } from "../layout/mesh-layout.js";
@@ -55,6 +55,7 @@
   } from "../../physics/orbit.js";
   import { registerGlobe } from "../../physics/globeRegistry.svelte.js";
   import { frameProbe } from "../../perf/frame-probe.js";
+  import { watchOnScreen } from "../../perf/on-screen.js";
   import { DEFAULT_TUNING, type MeshTuning } from "../layout/mesh-tuning.js";
   import { meshInk } from "../../theme/palette.svelte.js";
   import { untrack } from "svelte";
@@ -657,8 +658,8 @@
         // The silhouette does not depend on which contents face you. `limb` is
         // its closed form: under perspective you see slightly less than a
         // hemisphere, but it projects WIDER than the sphere's own radius, by
-        // R·k/√(k²−1) for a camera k radii out. Same expression GlobeFrame draws
-        // its edge with, so the fit and the drawn edge cannot disagree.
+        // R·k/√(k²−1) for a camera k radii out. Same expression `shellLimb` draws
+        // the edge with, so the fit and the drawn edge cannot disagree.
         const hub = hubNode();
         if (isGlobe && camera && globeRadius > 0) {
           const k = Math.max(1.2, meshViewDistance);
@@ -1196,6 +1197,12 @@
     );
   });
 
+  /** The scene's box, for the visibility gate below. */
+  let root = $state<HTMLElement | null>(null);
+  /** Starts true: a scene that guesses "hidden" and is wrong never draws. */
+  let onScreen = $state(true);
+  $effect(() => (root ? watchOnScreen(root, (v) => (onScreen = v)) : undefined));
+
   // Advance yaw one step per frame while auto-rotate is on — paused during a drag
   // so the operator's spin isn't fought. Reads autoRotate + layout reactively; the
   // per-frame reads inside the loop are untracked, so writing meshYaw doesn't
@@ -1206,8 +1213,14 @@
   // again has not shown it to you — and the drawer alongside is describing a node
   // that is by then somewhere else. Selection means "hold still and look at
   // this"; the rotation resumes when the selection is cleared.
+  //
+  // And not while the canvas is off screen. Auto-rotate is the only unbounded
+  // loop in this component, so it is also the thing that keeps every GL layer
+  // below redrawing: the layers are pure functions of `meshYaw`, and holding it
+  // still is what lets them stop. A marketing page embedding this scene had it
+  // spinning ~6,500px below the fold for the life of the tab.
   $effect(() => {
-    if (!autoRotate || layout !== "globe") return;
+    if (!autoRotate || layout !== "globe" || !onScreen) return;
     let raf = 0;
     const tick = () => {
       // A region held in focus holds the globe still for the same reason a
@@ -1541,6 +1554,7 @@
      is grabbable (including over a node), so the gesture needs the full area. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+  bind:this={root}
   class="absolute inset-0"
   class:cursor-grab={isGlobe && !globeDrag}
   class:cursor-grabbing={!!globeDrag}
@@ -1555,7 +1569,7 @@
 			     only worth drawing if it is the sphere the nodes are actually on. Left
 			     upright, or left at a fixed dolly while the intro flies the camera in,
 			     it drifts off them and reads as a bug. -->
-      <GlobeFrame
+      <GlobeShell
         cx={hubNode()?.x ?? CX}
         cy={hubNode()?.y ?? CY}
         radius={globeRadius}

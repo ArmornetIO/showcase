@@ -28,13 +28,20 @@
 	// here, where it would read as an instruction.
 	import { CHAIN } from '../internal/rules.js';
 	import type { BreachMatch } from '../internal/match.svelte.js';
+	import { outcomeOf } from './outcome.js';
 
 	interface Props {
 		match: BreachMatch;
+		/** Reopen the end screen. The rail reports the result; it does not own it. */
+		onresult?: () => void;
 		class?: string;
 	}
 
-	let { match, class: cls = '' }: Props = $props();
+	let { match, onresult = () => {}, class: cls = '' }: Props = $props();
+
+	// The end of the match, as one record every surface quotes — see `outcome.ts`
+	// for the verdict/event split this rail is the reason for.
+	const over = $derived(outcomeOf(match));
 
 	const red = $derived(match.seat.faction === 'red');
 
@@ -57,7 +64,6 @@
 	// serve both seats: a nearly-complete chain is the loudest thing on the board
 	// whichever side of it you are on.
 	const tone = $derived(held >= 4 ? '#FB7185' : held >= 2 ? '#FBBF24' : '#34D399');
-	const winTone = $derived(match.winner === 'red' ? '#FB7185' : '#34D399');
 
 	// ── When a link goes ─────────────────────────────────────────────────────
 	// A building changing hands is the biggest single event in a match, and it
@@ -130,22 +136,24 @@
 	class="flex flex-wrap items-center gap-x-3 gap-y-1 {cls}"
 	class:objective-advanced={!!announce}
 >
-	{#if match.winner}
-		{@render chip('match over', winTone)}
-		<span class="font-mono text-[0.78rem]">
-			{match.winner === 'red'
-				? 'Payload delivered — the chain was completed before the horizon.'
-				: 'The estate held — the horizon passed with the chain unfinished.'}
-		</span>
+	{#if over}
+		<!-- The standing record, once the end screen has been dismissed — the same
+		     words it used, from the same record, because the two are on screen
+		     together for as long as the player leaves the screen up. -->
+		{@render chip('match over', over.winTone)}
+		<span class="font-mono text-[0.78rem]">{over.event}</span>
 		<span class="flex-1"></span>
+		<!-- Reopens the screen rather than starting a match. Ending one is not the
+		     same click as leaving it, and this rail is 268px of a column a player
+		     reads — the decision belongs where the summary is. -->
 		<button
 			type="button"
-			onclick={() => match.newMatch()}
+			onclick={onresult}
 			class="rounded border px-2 py-0.5 font-mono text-[0.56rem] font-bold uppercase tracking-[0.14em]"
-			style:color={winTone}
-			style:border-color="color-mix(in srgb, {winTone} 45%, transparent)"
+			style:color={over.winTone}
+			style:border-color="color-mix(in srgb, {over.winTone} 45%, transparent)"
 		>
-			new match
+			result
 		</button>
 	{:else if announce}
 		<!-- The announcement takes the whole line for three and a half seconds, and
@@ -211,8 +219,12 @@
 			</span>
 		{/if}
 
-		<span class="flex-1"></span>
-		<span class="font-mono text-[0.62rem] tabular-nums text-[var(--fg-dim)]">
+		<!-- Its own row, not the tail of the sentence above it. A `flex-1` spacer
+		     pushed it to the right edge of a rail whose width is a clamp, so on a
+		     narrower window the deadline — the number blue is playing toward — was
+		     the one thing that ran off the panel. `w-full` in a wrapping row costs
+		     a line and can never be cut. -->
+		<span class="w-full font-mono text-[0.62rem] tabular-nums text-[var(--fg-muted)]">
 			{left} rounds to horizon
 		</span>
 	{/if}

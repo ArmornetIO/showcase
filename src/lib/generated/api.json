@@ -188,6 +188,27 @@
         "default": "0.035"
       },
       {
+        "name": "swirl",
+        "type": "number",
+        "optional": true,
+        "description": "Spatial frequency of the field. LOWER IS BIGGER: the swirls grow and a\nparticle stays inside one for longer, which is what reads as a current\nrather than as jitter. Past ~0.003 the cells are smaller than a trail is\nlong and the ink turns to fuzz.",
+        "default": "0.0011"
+      },
+      {
+        "name": "churn",
+        "type": "number",
+        "optional": true,
+        "description": "How fast the field itself rewrites. The current changes direction over\n minutes at this rate; it is what stops the image settling.",
+        "default": "0.00012"
+      },
+      {
+        "name": "turn",
+        "type": "number",
+        "optional": true,
+        "description": "Angular range, in multiples of π. This is the chaos knob. At 2 the field\nis one broad drift with everything travelling roughly together; raising\nit makes the same smooth noise fold back through itself, so neighbouring\nparticles diverge and the flow builds eddies — turbulent without ever\nbeing jagged, because the underlying noise is unchanged.",
+        "default": "6"
+      },
+      {
         "name": "maxDpr",
         "type": "number",
         "optional": true,
@@ -1143,6 +1164,12 @@
         "default": "'hero'"
       },
       {
+        "name": "focus",
+        "type": "Anchor",
+        "optional": true,
+        "description": "Frame one part of the body instead, using the rect the renderer\nprojected for it.\nWhat a thumbnail of a chest emblem needs. `bust` and `chip` are both\nhead crops, so a list of emblems rendered at `chip` is a list of\nidentical heads — the item is off the bottom of every cell. Overrides\n`crop` when set."
+      },
+      {
         "name": "shadow",
         "type": "boolean",
         "optional": true,
@@ -1150,10 +1177,53 @@
         "default": "false"
       },
       {
+        "name": "zoom",
+        "type": "number",
+        "optional": true,
+        "description": "Pull back. `1` frames the head; `2` frames twice as much of the world\naround it, so the character is drawn half the size in the same box.\nThe knob that stops a container from deciding how big a character is.\nWithout it the only way to draw a smaller figure was a smaller box —\nwhich is a different picture, not a smaller one — and every surface\nthat wanted a smaller head instead grew a `scale()` transform, an\ninset, or a table of per-character fudges.",
+        "default": "1"
+      },
+      {
         "name": "art",
         "type": "ArtOpts",
         "optional": true,
         "description": "Camera and suit. Omitted everywhere but the studio — a roster wants\n one angle for all four, or the tiles stop being comparable."
+      }
+    ],
+    "interfaces": []
+  },
+  "Scene": {
+    "component": "Scene",
+    "props": [
+      {
+        "name": "scene",
+        "type": "SceneSpec",
+        "optional": false
+      },
+      {
+        "name": "fit",
+        "type": "'meet' | 'slice'",
+        "optional": true,
+        "description": "`meet` keeps the whole scene in frame; `slice` fills the box and lets\n the overflow fall off the edges — which is what card art does.",
+        "default": "'meet'"
+      },
+      {
+        "name": "zoom",
+        "type": "number",
+        "optional": true,
+        "description": "Pull back. Above 1 the scene sits smaller in the same box, with more\n air around it.",
+        "default": "1"
+      },
+      {
+        "name": "offset",
+        "type": "{ x?: number; y?: number }",
+        "optional": true,
+        "description": "Nudge the framing, in fractions of the scene's own size. Positive `y`\n moves the picture UP in the window, which is how you put the horizon\n where you want it rather than in the middle."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": true
       }
     ],
     "interfaces": []
@@ -1803,60 +1873,31 @@
     "component": "DevCog",
     "props": [
       {
-        "name": "snap",
-        "type": "FlagSnapshot[]",
-        "optional": false
-      },
-      {
-        "name": "mode",
-        "type": "string",
-        "optional": false
-      },
-      {
-        "name": "modes",
-        "type": "readonly string[]",
+        "name": "groups",
+        "type": "ToolGroup[]",
         "optional": true,
-        "default": "['default']"
-      },
-      {
-        "name": "flagLabel",
-        "type": "(key: string) => string | undefined",
-        "optional": true
+        "description": "Host tool groups, merged with the built-ins and ordered by `order`.",
+        "default": "[]"
       },
       {
         "name": "flagsHref",
         "type": "string",
         "optional": true,
+        "description": "Where flags and serve mode live now.",
         "default": "'/admin/flags'"
-      },
-      {
-        "name": "onToggle",
-        "type": "(key: string, enabled: boolean) => void",
-        "optional": false
-      },
-      {
-        "name": "onModeChange",
-        "type": "(mode: string) => void",
-        "optional": false
-      },
-      {
-        "name": "showPerf",
-        "type": "boolean",
-        "optional": true,
-        "default": "false"
-      },
-      {
-        "name": "qaContent",
-        "type": "Snippet<[NitsController]>",
-        "optional": true,
-        "description": "Host tools for the QA drawer. Receives the nits controller so a tool can\nborrow the one element inspector (`nits.pickOnce`) instead of shipping a\nsecond armed-click mode that fights it for the same clicks."
       },
       {
         "name": "nitConfig",
         "type": "NitConfig",
         "optional": true,
-        "description": "Storage key + AI-prompt branding for the nits tool.",
+        "description": "Storage keys + AI-prompt branding.",
         "default": "DEFAULT_NIT_CONFIG"
+      },
+      {
+        "name": "consoleConfig",
+        "type": "ConsoleConfig",
+        "optional": true,
+        "default": "DEFAULT_CONSOLE_CONFIG"
       }
     ],
     "interfaces": []
@@ -1865,27 +1906,27 @@
     "component": "DevCogCluster",
     "props": [
       {
-        "name": "qaActive",
+        "name": "inspecting",
         "type": "boolean",
         "optional": false
       },
       {
-        "name": "qaCount",
+        "name": "captureCount",
         "type": "number",
         "optional": false
       },
       {
-        "name": "flagsOpen",
+        "name": "consoleOpen",
         "type": "boolean",
         "optional": false
       },
       {
-        "name": "onToggleQa",
+        "name": "onToggleInspect",
         "type": "() => void",
         "optional": false
       },
       {
-        "name": "onToggleFlags",
+        "name": "onToggleConsole",
         "type": "() => void",
         "optional": false
       }
@@ -1915,70 +1956,41 @@
     ],
     "interfaces": []
   },
-  "FlagRow": {
-    "component": "FlagRow",
+  "CaptureGroup": {
+    "component": "CaptureGroup",
     "props": [
       {
-        "name": "flag",
-        "type": "FlagSnapshot",
-        "optional": false
-      },
-      {
-        "name": "label",
-        "type": "string",
-        "optional": true,
-        "description": "Friendly name; falls back to the raw key."
-      },
-      {
-        "name": "onToggle",
-        "type": "(key: string, enabled: boolean) => void",
+        "name": "nits",
+        "type": "NitsController",
         "optional": false
       }
     ],
     "interfaces": []
   },
-  "FlagsPanel": {
-    "component": "FlagsPanel",
+  "Console": {
+    "component": "Console",
     "props": [
       {
-        "name": "snap",
-        "type": "FlagSnapshot[]",
+        "name": "groups",
+        "type": "ToolGroup[]",
         "optional": false
       },
       {
-        "name": "mode",
-        "type": "string",
+        "name": "state",
+        "type": "ConsoleState",
         "optional": false
       },
       {
-        "name": "modes",
-        "type": "readonly string[]",
+        "name": "nits",
+        "type": "NitsController",
         "optional": false
-      },
-      {
-        "name": "flagLabel",
-        "type": "(key: string) => string | undefined",
-        "optional": true
       },
       {
         "name": "flagsHref",
         "type": "string",
-        "optional": false
-      },
-      {
-        "name": "showPerf",
-        "type": "boolean",
-        "optional": false
-      },
-      {
-        "name": "onToggle",
-        "type": "(key: string, enabled: boolean) => void",
-        "optional": false
-      },
-      {
-        "name": "onModeChange",
-        "type": "(mode: string) => void",
-        "optional": false
+        "optional": true,
+        "description": "Where flags and serve mode live now. One link, not a sentence.",
+        "default": "'/admin/flags'"
       },
       {
         "name": "onClose",
@@ -1988,22 +2000,178 @@
     ],
     "interfaces": []
   },
-  "ModeSwitcher": {
-    "component": "ModeSwitcher",
+  "GroupRail": {
+    "component": "GroupRail",
     "props": [
       {
-        "name": "mode",
+        "name": "groups",
+        "type": "ToolGroup[]",
+        "optional": false
+      },
+      {
+        "name": "active",
         "type": "string",
         "optional": false
       },
       {
-        "name": "modes",
-        "type": "readonly string[]",
+        "name": "onselect",
+        "type": "(id: string) => void",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "ControlRow": {
+    "component": "ControlRow",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
         "optional": false
       },
       {
-        "name": "onChange",
-        "type": "(mode: string) => void",
+        "name": "display",
+        "type": "string",
+        "optional": true,
+        "description": "Current value, shown without interaction."
+      },
+      {
+        "name": "applies",
+        "type": "AppliesWhen",
+        "optional": true,
+        "default": "'live'"
+      },
+      {
+        "name": "detail",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "qualifier",
+        "type": "string",
+        "optional": true,
+        "description": "At most one short line. Anything longer belongs in `detail`."
+      },
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": true,
+        "description": "The control. Omit for a label-only heading above a bank."
+      }
+    ],
+    "interfaces": []
+  },
+  "Fader": {
+    "component": "Fader",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "value",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "min",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "max",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "step",
+        "type": "number",
+        "optional": true,
+        "default": "1"
+      },
+      {
+        "name": "format",
+        "type": "(v: number) => string",
+        "optional": true,
+        "default": "(v: number) => String(v)"
+      },
+      {
+        "name": "reference",
+        "type": "number",
+        "optional": true,
+        "description": "Default or measured sweet spot, drawn on the track. Omit it where the\n \"default\" is just an end of the range — a mark there is noise."
+      },
+      {
+        "name": "applies",
+        "type": "AppliesWhen",
+        "optional": true,
+        "default": "'live'"
+      },
+      {
+        "name": "detail",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "oninput",
+        "type": "(v: number) => void",
+        "optional": false
+      },
+      {
+        "name": "onchange",
+        "type": "(v: number) => void",
+        "optional": true,
+        "description": "Fires on release, not per pixel. Supply it when acting on the value is\nexpensive — a fixture rebuild, a refetch — and let `oninput` move only\nthe readout; otherwise a drag runs the expensive thing sixty times."
+      }
+    ],
+    "interfaces": []
+  },
+  "FaderBank": {
+    "component": "FaderBank",
+    "props": [
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false,
+        "description": "2..n <Fader>. One fader in a bank should just be a fader."
+      }
+    ],
+    "interfaces": []
+  },
+  "InfoDot": {
+    "component": "InfoDot",
+    "props": [
+      {
+        "name": "detail",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "placement",
+        "type": "TooltipPlacement",
+        "optional": true,
+        "default": "'left'"
+      }
+    ],
+    "interfaces": []
+  },
+  "Seg": {
+    "component": "Seg",
+    "props": [
+      {
+        "name": "options",
+        "type": "SegOption[]",
+        "optional": false
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "onchange",
+        "type": "(v: string) => void",
         "optional": false
       }
     ],
@@ -2136,57 +2304,6 @@
       {
         "name": "nits",
         "type": "NitsController",
-        "optional": false
-      }
-    ],
-    "interfaces": []
-  },
-  "QaDrawer": {
-    "component": "QaDrawer",
-    "props": [
-      {
-        "name": "nits",
-        "type": "NitsController",
-        "optional": false
-      },
-      {
-        "name": "content",
-        "type": "Snippet<[NitsController]>",
-        "optional": true,
-        "description": "Host-supplied page actions, rendered above the nit batch."
-      },
-      {
-        "name": "onClose",
-        "type": "() => void",
-        "optional": false
-      }
-    ],
-    "interfaces": []
-  },
-  "QaSection": {
-    "component": "QaSection",
-    "props": [
-      {
-        "name": "label",
-        "type": "string",
-        "optional": false
-      },
-      {
-        "name": "grow",
-        "type": "boolean",
-        "optional": true,
-        "description": "Fills the remaining drawer height and drops its trailing rule.",
-        "default": "false"
-      },
-      {
-        "name": "actions",
-        "type": "Snippet",
-        "optional": true,
-        "description": "Buttons rendered inline with the label."
-      },
-      {
-        "name": "children",
-        "type": "Snippet",
         "optional": false
       }
     ],
@@ -5743,8 +5860,43 @@
     ],
     "interfaces": []
   },
-  "GlobeFrame": {
-    "component": "GlobeFrame",
+  "GlobeDevControls": {
+    "component": "GlobeDevControls",
+    "props": [
+      {
+        "name": "only",
+        "type": "'render' | 'globe'",
+        "optional": true,
+        "description": "Which half to render. Omitted renders both, which is what a host with a\nsingle flat panel still wants."
+      }
+    ],
+    "interfaces": []
+  },
+  "GlobePieces": {
+    "component": "GlobePieces",
+    "props": [
+      {
+        "name": "nodes",
+        "type": "StudioNode[]",
+        "optional": true,
+        "default": "[]"
+      },
+      {
+        "name": "selectedId",
+        "type": "string | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "styleOf",
+        "type": "(n: StudioNode) => InstanceStyle",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "GlobeShell": {
+    "component": "GlobeShell",
     "props": [
       {
         "name": "cx",
@@ -5786,34 +5938,33 @@
         "name": "meridians",
         "type": "number",
         "optional": true,
-        "description": "Lines of longitude — full great circles through both poles.",
         "default": "12"
       },
       {
         "name": "parallels",
         "type": "number",
         "optional": true,
-        "description": "Lines of latitude between the poles. Poles themselves are a point, not a\n circle, so they are never drawn.",
         "default": "5"
       },
       {
         "name": "color",
         "type": "string",
         "optional": true,
+        "description": "Any CSS colour, `var(--accent)` included — resolved against the live\n canvas, so a theme swap repaints without the caller converting anything.",
         "default": "'var(--accent)'"
       },
       {
         "name": "surface",
         "type": "number",
         "optional": true,
-        "description": "How solid the globe's interior is, 0..1.\n What actually sells it as a body is that the canvas GRID stops at its\n edge — an object you can't see the floor through. So the interior is\n filled with the page background rather than tinted with the accent: a\n tint recolours the grid, it doesn't hide it.\n Not 1: the far side still has to show through, or spinning the globe\n stops being a way to find anything and the depth cues have nothing to\n act on.",
+        "description": "How solid the globe's interior is, 0..1. Not 1: the far side still has to\n show through, or spinning the globe stops being a way to find anything.",
         "default": "0.72"
       },
       {
         "name": "terrain",
         "type": "Terrain",
         "optional": true,
-        "description": "The ground, MASKED to the territories.\n The grid has to ride the same terrain the land does, or there are two\n surfaces: a wireframe sphere, and a wireframe landscape hovering over it\n with the sphere's own lines showing through from underneath. Nothing then\n looks joined, because nothing IS — the nodes stand on one and the globe\n is the other.\n A masked field makes this safe as well as right: it is exactly zero\n outside every region, so the grid stays on the sphere everywhere there is\n no land and rises only where there is. One surface, continuous, and the\n shore is where it meets itself."
+        "description": "The ground, masked to the territories — the grid rides the same terrain\n the land does, or there are two surfaces instead of one."
       },
       {
         "name": "relief",
@@ -5821,29 +5972,20 @@
         "optional": true,
         "description": "Height of the highest ground, in globe radii.",
         "default": "0"
-      }
-    ],
-    "interfaces": []
-  },
-  "GlobePieces": {
-    "component": "GlobePieces",
-    "props": [
-      {
-        "name": "nodes",
-        "type": "StudioNode[]",
-        "optional": true,
-        "default": "[]"
       },
       {
-        "name": "selectedId",
-        "type": "string | null",
+        "name": "variant",
+        "type": "keyof typeof SHELL_VARIANTS",
         "optional": true,
-        "default": "null"
+        "description": "Which globe this is. `studio` is the console's; `scenery` is the\n marketing hero's — see `SHELL_VARIANTS` for what differs and why.",
+        "default": "'studio'"
       },
       {
-        "name": "styleOf",
-        "type": "(n: StudioNode) => InstanceStyle",
-        "optional": false
+        "name": "gl",
+        "type": "boolean",
+        "optional": true,
+        "description": "Escape hatch and A/B lever — false draws the same sphere with `shell-2d`\n instead of the GPU. The same scene, the same props, either rasteriser,\n which is what makes a \"does the GL path look right\" question answerable\n without a broken driver to hand.",
+        "default": "true"
       }
     ],
     "interfaces": []
@@ -6349,6 +6491,12 @@
         "type": "Record<string, ErdGroup>",
         "optional": true,
         "default": "{}"
+      },
+      {
+        "name": "lintOptions",
+        "type": "LintOptions",
+        "optional": true,
+        "description": "Host jargon for the linter — abbreviations it treats as one word,\n role-qualified name stems. Defaults suit most schemas."
       }
     ],
     "interfaces": []
@@ -6455,6 +6603,13 @@
         "type": "boolean",
         "optional": true,
         "default": "true"
+      },
+      {
+        "name": "marks",
+        "type": "Map<string, string>",
+        "optional": true,
+        "description": "Annotation colors keyed by `table` or `table.column`. Deliberately a\n bare color map, not a lint type: this layer draws marks, it does not\n know what a finding is, so any future annotator can reuse it.",
+        "default": "new Map()"
       }
     ],
     "interfaces": []
@@ -6467,6 +6622,33 @@
         "type": "LedgerEntry[]",
         "optional": true,
         "default": "[]"
+      }
+    ],
+    "interfaces": []
+  },
+  "ErdLintPanel": {
+    "component": "ErdLintPanel",
+    "props": [
+      {
+        "name": "report",
+        "type": "LintReport",
+        "optional": false
+      },
+      {
+        "name": "selected",
+        "type": "string | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "onjump",
+        "type": "(table: string) => void",
+        "optional": false
+      },
+      {
+        "name": "onclose",
+        "type": "() => void",
+        "optional": false
       }
     ],
     "interfaces": []
@@ -6533,6 +6715,18 @@
         "type": "boolean",
         "optional": true,
         "default": "$bindable(true)"
+      },
+      {
+        "name": "lintMode",
+        "type": "boolean",
+        "optional": true,
+        "default": "$bindable(false)"
+      },
+      {
+        "name": "lintCount",
+        "type": "number",
+        "optional": true,
+        "default": "0"
       },
       {
         "name": "onarrange",
@@ -6684,6 +6878,17 @@
       {
         "name": "onchange",
         "type": "(id: string) => void",
+        "optional": true
+      }
+    ],
+    "interfaces": []
+  },
+  "PerfHud": {
+    "component": "PerfHud",
+    "props": [
+      {
+        "name": "onClose",
+        "type": "() => void",
         "optional": true
       }
     ],

@@ -10,6 +10,11 @@
 	import CanvasContextMenu from '$lib/builder/CanvasContextMenu.svelte';
 	import AlertBladeHost from '$lib/display/drawer/AlertBladeHost.svelte';
 	import ChatThread from '$lib/display/chat/ChatThread.svelte';
+	import type {
+		CanvasSessionPort,
+		SessionParticipant,
+		SessionState
+	} from '$lib/builder/session.js';
 	import type { ChatEntry } from '$lib/display/chat/ChatThread.svelte';
 	import type { CanvasItem, Group } from '$lib/builder/store.svelte.js';
 	import type { CanvasCamera, TourController, TourStep } from '$lib/primitives/canvas/canvas-camera.js';
@@ -535,6 +540,73 @@
 		layerDropTarget = null;
 	}
 
+	// ── Session ──────────────────────────────────────────────────────────────────
+	// Injected by the host application. Null is the ordinary solo case — the
+	// component library opened on its own — and everything below works without it.
+	let { session = null }: { session?: CanvasSessionPort | null } = $props();
+
+	/** A message addressed to the agent. A mention rather than parsed intent: what
+	 *  the agent acts on must be something the sender chose, not something a
+	 *  regex decided they meant. */
+	const ADDRESS_RE = /(^|\s)@(agent|design)\b/i;
+
+	let participants = $state<SessionParticipant[]>([]);
+	let agentBusy = $state(false);
+	let queueDepth = $state(0);
+	let agentMuted = $state(false);
+	let youId = $state('');
+	/** Set when the session ended for good. Editing continues — the canvas is
+	 *  still theirs — but they are told it reaches nobody. */
+	let sessionLost = $state<string | null>(null);
+
+	$effect(() => {
+		if (!session) return;
+		// The store stops being the record and becomes a projection of the
+		// session. Done here rather than at import time so the component library
+		// on its own never acquires a session it did not ask for.
+		builder.attachSession(session);
+		session.onChange((s) => {
+			// Before anything else: what somebody else did to the canvas is the
+			// reason this frame arrived, and the roster is the smaller half of it.
+			builder.adopt(s);
+			if (s.lost) {
+				sessionLost = s.lost;
+				// Back to being their own canvas rather than a projection of a
+				// session that has stopped answering.
+				builder.attachSession(null);
+			}
+			participants = s.participants;
+			agentBusy = s.agentBusy;
+			queueDepth = s.queueDepth;
+			agentMuted = s.agentMuted;
+			youId = s.youId;
+			// The room's conversation replaces the local list entirely: with a
+			// session attached the server is the record of what was said, and
+			// merging would show this browser's view of a shared history.
+			chatMessages = s.chat.map((m) => ({
+				id: m.id,
+				role: m.authorId === s.youId ? 'user' : 'assistant',
+				author: authorLabel(m.authorId, s),
+				content: m.body,
+				timestamp: m.at
+			}));
+		});
+		void session.join();
+		return () => {
+			session?.leave();
+			// Back to solo. Leaving the session attached would let a detached page
+			// go on emitting into nothing while looking connected.
+			builder.attachSession(null);
+		};
+	});
+
+	function authorLabel(id: string, s: SessionState): string {
+		const p = s.participants.find((x) => x.id === id);
+		if (!p) return 'SOMEONE';
+		if (p.kind === 'agent') return 'DESIGN';
+		return id === s.youId ? 'YOU' : (p.name || 'GUEST').toUpperCase();
+	}
+
 	// ── AI panel state ───────────────────────────────────────────────────────────
 	let mockupSlug = $state('');
 	let variants = $state<{ slug: string; version: number; timestamp: number }[]>([]);
@@ -624,7 +696,24 @@
 		return sections.join('\n\n');
 	}
 
+	/**
+	 * Send a message to the room.
+	 *
+	 * With a session attached this goes to every participant and, when addressed,
+	 * to the agent — which answers on the same channel, so nothing below appends
+	 * a reply locally. Replies arrive through `onChange` like anybody else's.
+	 *
+	 * With no session — the component library on its own, no host behind it — the
+	 * old clipboard route is still the honest answer, so it is still offered.
+	 */
 	function sendChat(text: string) {
+		const addressed = ADDRESS_RE.test(text);
+
+		if (session) {
+			session.say(text, addressed);
+			return;
+		}
+
 		chatMessages = [
 			...chatMessages,
 			{ id: uid(), role: 'user', author: 'YOU', content: text, timestamp: Date.now() }
@@ -636,7 +725,7 @@
 				id: uid(),
 				role: 'assistant',
 				author: 'CLAUDE',
-				content: `Got it. Hit "Copy brief" below and paste into your Claude Code session — Claude will write the mockup to \`mockups/${slug}/+page.svelte\` and HMR will reload the preview.`,
+				content: `No design session is attached, so I cannot answer here. Hit "Copy brief" below and paste into your Claude Code session — Claude will write the mockup to \`mockups/${slug}/+page.svelte\` and HMR will reload the preview.`,
 				timestamp: Date.now()
 			}
 		];
@@ -858,6 +947,26 @@
 />
 
 <div class="builder-root">
+	{#if sessionLost}
+		<!-- Not dismissible. A canvas that looks shared and reaches nobody is the
+		     worst state this feature can leave somebody in, and the work is still
+		     on screen — so the notice stays until the page is reloaded. -->
+		<div class="lost-notice" role="alert">
+			This canvas is no longer shared — {sessionLost}. Your work is still here, but nobody else
+			is receiving it. Reload to rejoin.
+		</div>
+	{/if}
+	{#if builder.notice}
+		<!-- What the session does NOT carry, said once, at the moment somebody
+		     first uses it. Dismissible and never blocking: it explains the
+		     gesture that just happened rather than standing in its way. -->
+		<div class="local-notice" role="status">
+			<span>{builder.notice}</span>
+			<button class="local-notice__close" onclick={() => builder.dismissNotice()} title="Dismiss"
+				>×</button
+			>
+		</div>
+	{/if}
 	<!-- ── Header ───────────────────────────────────────────────────────────── -->
 	<header class="builder-header">
 		<a href="{base}" class="back-link">← SHOWCASE</a>
@@ -869,9 +978,16 @@
 					>{builder.items.length} component{builder.items.length !== 1 ? 's' : ''}</span
 				>
 			{/if}
+			{#if builder.shared}
+				<!-- Stated once, permanently, so the boundary is legible without
+				     waiting for somebody to trip over it. -->
+				<span class="shared-badge" title="Components, frames and groups are shared. Everything else is yours alone."
+					>SHARED</span
+				>
+			{/if}
 			<button
 				class="toolbar-btn toolbar-btn--icon"
-				disabled={!builder.canUndo}
+				disabled={!builder.shared && !builder.canUndo}
 				onclick={() => builder.undo()}
 				title="Undo (⌘Z)">↶</button
 			>
@@ -915,10 +1031,13 @@
 			<button
 				class="toolbar-btn"
 				class:toolbar-btn--active={connectMode}
+				class:toolbar-btn--local={builder.shared}
 				onclick={() => (connectMode = !connectMode)}
 				title={connectMode
 					? 'Click two components to connect them — Esc to stop'
-					: 'Connect: click a source component, then a target'}>↗ CONNECT</button
+					: builder.shared
+						? 'Connect: click a source component, then a target. Connectors are yours alone.'
+						: 'Connect: click a source component, then a target'}>↗ CONNECT</button
 			>
 			<button
 				class="toolbar-btn"
@@ -1049,7 +1168,15 @@
 			     there are. It started in the header and did not fit: nine toolbar
 			     buttons left room for two tabs, and a third one silently scrolled
 			     out of view. -->
-			<div class="page-tabs">
+			<div class="page-tabs" class:page-tabs--local={builder.shared}>
+				{#if builder.shared}
+					<!-- The session shares ONE canvas. Which page you are looking at is
+					     yours, and a colleague who "cannot see" your work may simply be
+					     on the page you left. -->
+					<span class="page-tabs-local-tag" title="Pages are yours alone — the session shares one canvas"
+						>YOURS</span
+					>
+				{/if}
 				{#each builder.pages as page (page.id)}
 					{@const active = page.id === builder.activePageId}
 					<div class="page-tab" class:page-tab--active={active}>
@@ -1424,7 +1551,15 @@
 
 						<!-- Canvas settings -->
 						<div class="canvas-settings">
-							<div class="cs-title">CANVAS</div>
+							<div class="cs-title">
+								CANVAS
+								{#if builder.shared}
+									<!-- Every setting in this panel is a viewing preference. Two
+									     participants on different grids is correct, and looks like
+									     a fault unless the panel says so. -->
+									<span class="cs-local-tag" title="These settings are yours alone">YOURS</span>
+								{/if}
+							</div>
 							<div class="cs-row">
 								<span class="cs-label">Grid</span>
 								<input
@@ -2238,6 +2373,80 @@
 		letter-spacing: 0.15em;
 		color: var(--fg-dim);
 		margin-right: 4px;
+	}
+
+	.shared-badge {
+		font-family: var(--mono);
+		font-size: 9px;
+		letter-spacing: 0.15em;
+		color: var(--accent);
+		border: 1px solid var(--accent);
+		border-radius: 2px;
+		padding: 1px 5px;
+		margin-right: 4px;
+	}
+
+	.local-notice {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 8px 14px;
+		font-family: var(--mono);
+		font-size: 11px;
+		color: var(--fg);
+		background: var(--bg-raised, rgb(0 0 0 / 0.35));
+		border-bottom: 1px solid var(--accent);
+	}
+
+	.local-notice__close {
+		background: none;
+		border: none;
+		color: var(--fg-dim);
+		font-size: 16px;
+		line-height: 1;
+		cursor: pointer;
+		padding: 0 4px;
+	}
+
+	.local-notice__close:hover {
+		color: var(--fg);
+	}
+
+	/* A local-only control in a shared session. Understated on purpose: this is a
+	   standing fact about the control, not a warning about the last click. */
+	.cs-local-tag,
+	.page-tabs-local-tag {
+		font-family: var(--mono);
+		font-size: 8px;
+		letter-spacing: 0.12em;
+		color: var(--fg-dim);
+		border: 1px solid var(--fg-dim);
+		border-radius: 2px;
+		padding: 0 3px;
+		margin-left: 6px;
+		opacity: 0.75;
+	}
+
+	.page-tabs-local-tag {
+		align-self: center;
+		margin-left: 0;
+		margin-right: 6px;
+	}
+
+	.toolbar-btn--local::after {
+		content: '·';
+		margin-left: 4px;
+		color: var(--fg-dim);
+	}
+
+	.lost-notice {
+		padding: 8px 14px;
+		font-family: var(--mono);
+		font-size: 11px;
+		color: rgb(254, 202, 202);
+		background: rgb(127 29 29 / 0.35);
+		border-bottom: 1px solid rgb(248, 113, 113);
 	}
 
 	.toolbar-btn {

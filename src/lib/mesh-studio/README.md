@@ -2,7 +2,7 @@
 
 The interactive mesh canvas: an editable graph of agents around a control-plane hub. Drag nodes, draw links from any port, fan a multi-mode agent out into satellites, spin the whole thing on a globe.
 
-`MeshStudio.svelte` is a **layer inside a shared `<Canvas>`**, not a standalone widget. Canvas owns pan/zoom and publishes the transform; layers read it and draw into the same world coordinates. That's what lets `GlobeFrame` sit under `MeshStudio` and stay registered to it — they're siblings reading one camera, not a component wrapping another.
+`MeshStudio.svelte` is a **layer inside a shared `<Canvas>`**, not a standalone widget. Canvas owns pan/zoom and publishes the transform; layers read it and draw into the same world coordinates. That's what lets `GlobeShell` sit under `MeshStudio` and stay registered to it — they're siblings reading one camera, not a component wrapping another.
 
 ## Files
 
@@ -23,7 +23,7 @@ The interactive mesh canvas: an editable graph of agents around a control-plane 
 | `layout/chip-placement.ts`       | Caption/chip placement around nodes                                     |
 | `layout/MeshViewControls.svelte` | Layout picker + view toggles                                            |
 | **`globe/`**                     |                                                                         |
-| `globe/GlobeFrame.svelte`        | Wireframe sphere layer, drawn behind MeshStudio                         |
+| `globe/GlobeShell.svelte`        | Wireframe sphere layer (WebGL2), drawn behind MeshStudio                |
 | `globe/GlobePieces.svelte`       | WebGL instanced solids on the sphere                                    |
 | `globe/TerritoryCaps.svelte`     | Terrain caps / territory shading                                        |
 | `globe/GlobeDevControls.svelte`  | Dev-only orbit and globe controls                                       |

@@ -10,7 +10,7 @@
 	import type { Snippet } from 'svelte';
 	import Canvas from '../primitives/canvas/Canvas.svelte';
 	import CameraControls from '../primitives/canvas/CameraControls.svelte';
-	import GlobeFrame from '../mesh-studio/globe/GlobeFrame.svelte';
+	import GlobeShell from '../mesh-studio/globe/GlobeShell.svelte';
 	import MeshStudio from '../mesh-studio/MeshStudio.svelte';
 	import type { StudioNode, StudioEdge } from '../mesh-studio/studio.types.js';
 	import HorizonBackdrop from '../backdrop/HorizonBackdrop.svelte';
@@ -223,7 +223,7 @@
 		<Canvas bind:camera minZoom={0.2} maxZoom={3}>
 			{#if isGlobe && globePose}
 				<!-- Same pose the nodes project with, or the web slides off them. -->
-				<GlobeFrame
+				<GlobeShell
 					cx={scene.hub.x}
 					cy={scene.hub.y}
 					radius={globeRadius}

@@ -30,7 +30,7 @@ export { default as ArmornetCrestChrome } from './icons/ArmornetCrestChrome.svel
 // THE logo. Anything that means "this product" — header, footer, hero,
 // favicon — renders this and nothing else. It is ArmornetCrestMesh pinned
 // to one shield; that choice lives here so it is made once, not per app.
-export { default as ArmornetLogo } from './icons/ArmornetLogo.svelte';
+export { default as ArmornetLogo, LOGO_SHAPE, LOGO_GEOMETRY } from './icons/ArmornetLogo.svelte';
 
 // The crest with the console's own mesh-centre object inside it, cut on seven
 // shields. `CREST_MESH_GEOMETRY` is exported so an exporter can read a
@@ -224,7 +224,10 @@ export type {
 
 // Interactive mesh canvas — radial hub, drag/drop, closest-port line routing.
 export { default as MeshStudio } from './mesh-studio/MeshStudio.svelte';
-export { default as GlobeFrame } from './mesh-studio/globe/GlobeFrame.svelte';
+
+// The sphere, on the GPU. There is no SVG twin — see the header of GlobeShell
+// for why the one that used to be here was removed rather than kept on standby.
+export { default as GlobeShell } from './mesh-studio/globe/GlobeShell.svelte';
 export { default as TerritoryCaps } from './mesh-studio/globe/TerritoryCaps.svelte';
 export type { Territory, TerritoryStyle } from './mesh-studio/globe/TerritoryCaps.svelte';
 export { default as NodePiece } from './mesh-studio/pieces/NodePiece.svelte';
@@ -234,6 +237,10 @@ export { default as NodePiece } from './mesh-studio/pieces/NodePiece.svelte';
 // log row and still be the object the canvas draws rather than a flat
 // glyph chosen to represent it.
 export { default as PieceCrest } from './mesh-studio/pieces/PieceCrest.svelte';
+
+// `from` pins the ambiguity: `mesh-studio/gl/renderer.ts` declares a
+// `BlendMode` of its own — a WebGL blend function, nothing to do with
+// how a backdrop composites — and that one is not public.
 export { default as Backdrop } from './backdrop/Backdrop.svelte';
 export { BACKDROPS } from './backdrop/backdrops.js';
 export type { BackdropId, BlendMode } from './backdrop/backdrops.js';
@@ -243,9 +250,24 @@ export type { CharacterSkin, Shape } from './character/characters.js';
 export { art, figureFacets, DEFAULT_ART } from './character/render.js';
 export type { Art, ArtOpts, Tri } from './character/render.js';
 export { CLIPS, FRAMES, poseAt, REST } from './character/poses.js';
-export type { Clip, ClipId, Pose } from './character/poses.js';
+export type { Clip, ClipId, ClipOpts, Pose } from './character/poses.js';
 export { STATUSES, lampLevel, statusById } from './character/status.js';
 export type { Status, StatusId } from './character/status.js';
+
+// More than one figure under one camera and one depth sort. The `Scene`
+// INTERFACE from the same module stays private: it is what `sceneArt` returns,
+// and a consumer that wanted it would be reaching for the paint list rather
+// than the component that paints it.
+export { default as Scene } from './character/Scene.svelte';
+export { sceneArt, heightOf } from './character/scene.js';
+export type { SceneSpec, Actor, Prop, Spot } from './character/scene.js';
+
+// Aliased, because a barrel that already publishes mode glyphs and supply-chain
+// glyphs cannot also publish a bare `GLYPHS` and expect anybody to know which
+// one they imported. These are the CHARACTER marks — extruded plates in the
+// figure's own frame, not SVG icons.
+export { glyph as charGlyph, GLYPHS as CHAR_GLYPHS } from './character/glyphs.js';
+export type { Glyph } from './character/glyphs.js';
 export { PIECES, box, gable, tooth, prism, octagon } from './mesh-studio/pieces/pieces.js';
 export type { Piece, Solid, PieceVert, PieceId } from './mesh-studio/pieces/pieces.js';
 export {
@@ -538,6 +560,8 @@ export type { StepStyle } from './display/progress/SteppedProgress.svelte';
 export { default as RadialProgress } from './display/progress/RadialProgress.svelte';
 export { default as StackedBar } from './display/progress/StackedBar.svelte';
 export type { StackedSegment } from './display/progress/StackedBar.svelte';
+export { default as Pips } from './display/progress/Pips.svelte';
+export type { PipShape } from './display/progress/Pips.svelte';
 
 // ── Choice lists ─────────────────────────────────────────────────────────────
 
@@ -704,6 +728,14 @@ export { default as AdvancedSettingsPanel } from './settings/AdvancedSettingsPan
 export { perfBudget } from './perf/budget.svelte.js';
 export type { PerfTier } from './perf/budget.svelte.js';
 export { default as PerfPanel } from './perf/PerfPanel.svelte';
+
+// The HUD is deliberately NOT re-exported as a component — it is
+// imported on demand by the host that toggles it, so a page that never
+// opens it never downloads it. `hitchWatch` is the part worth having in
+// the barrel.
+export { hitchWatch } from './perf/hitch-watch.js';
+export { watchOnScreen } from './perf/on-screen.js';
+export type { Hitch, HitchSnapshot } from './perf/hitch-watch.js';
 export { frameProbe } from './perf/frame-probe.js';
 export type { FrameStats, Quantiles } from './perf/frame-probe.js';
 
@@ -755,6 +787,21 @@ export type {
 	EnvMatrixRow,
 	EnvironmentsReport
 } from './model-explorer/types.js';
+
+// The schema linter behind ErdDiagram's lint overlay — naming and reference
+// conventions inferred from the schema itself rather than a house style.
+// The function is exported as well as the overlay because it is pure over
+// ErdData and needs no browser: the same rules that paint the diagram can
+// run in a CI check or a CLI. ErdLintPanel stays unexported, same as
+// ErdInspector.
+export { lintErd, canon, squash, LINT_RULES } from './model-explorer/erd-lint.js';
+export type {
+	LintReport,
+	LintFinding,
+	LintRule,
+	LintSeverity,
+	LintOptions
+} from './model-explorer/erd-lint.js';
 
 // ── Browser agent (WASM Agent Line) ──────────────────────────────────────────
 // The WebAssembly Agent Line client every armornet agent runs, compiled for the

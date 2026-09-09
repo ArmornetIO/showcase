@@ -12,12 +12,12 @@
 	// prevented. Pointer capture on the card is the tidier-looking version and it
 	// loses the drag the moment the browser decides the gesture was a text
 	// selection — which, over a card made of text, it will.
-	import { cssZoom, type IconName } from 'showcase';
+	import { cssZoom } from 'showcase';
 	import { fxFor } from './internal/fx.js';
 	import { structureById } from './internal/rules.js';
 	import type { BreachMatch } from './internal/match.svelte.js';
 	import { DRAG_GHOST_ID, nodeUnder } from './aim.js';
-	import CardFace from './CardFace.svelte';
+	import CardFace from './cards/CardFace.svelte';
 
 	interface Props {
 		match: BreachMatch;
@@ -33,13 +33,36 @@
 
 	let { match, spread = 132, split = 0, class: cls = '' }: Props = $props();
 
-	let hoverKey = $state<string | null>(null);
+	let hoverUid = $state<string | null>(null);
 
 	/** The seat's hand, as instances. Cards come off the deck now, so two copies
 	 *  of the same card can be held at once — every read below is by instance,
 	 *  and the `{#each}` is keyed on `uid` rather than the card's key. A shared
 	 *  key in a keyed each block is not a cosmetic problem in Svelte, it throws. */
 	const hand = $derived(match.handOf(match.seat.key));
+
+	/**
+	 * The instance the player last put a finger on.
+	 *
+	 * `armedKey`, `inspectKey` and `drag.key` are card KEYS and have to be:
+	 * which of two identical copies you play is a question the rules have no
+	 * answer to, and `commit` sends a key to the server. But a hand holds
+	 * instances, so matching a lift state on the key lifted BOTH copies — hover
+	 * did the same thing off `ability.key`. Only the fan knows which one the
+	 * pointer was over, so only the fan can answer it, and it is a
+	 * presentational answer that belongs nowhere else.
+	 */
+	let touchedUid = $state<string | null>(null);
+
+	/** The one instance wearing the armed / inspected state: the copy actually
+	 *  touched while it is still in hand, else the first copy — for a card armed
+	 *  from somewhere other than this fan. */
+	const markedUid = $derived.by(() => {
+		const key = match.armedKey ?? match.inspectKey;
+		if (!key) return null;
+		const touched = hand.find((c) => c.uid === touchedUid);
+		return touched?.key === key ? touched.uid : (hand.find((c) => c.key === key)?.uid ?? null);
+	});
 
 	/**
 	 * Where the ghost is DRAWN, as distinct from where the pointer IS.
@@ -119,12 +142,9 @@
 		{@const offset = raw + (raw < 0 ? -split : split)}
 		{@const affordable = (match.ap[match.seat.key] ?? 0) >= ability.ap}
 		{@const playable = affordable && !match.busy && !match.winner && match.isMyTurn}
-		{@const lifted =
-			hoverKey === ability.key ||
-			match.armedKey === ability.key ||
-			match.inspectKey === ability.key}
+		{@const lifted = hoverUid === card.uid || markedUid === card.uid}
 		{@const dealt = i < match.dealtCount}
-		{@const flying = match.drag?.key === ability.key}
+		{@const flying = match.drag?.key === ability.key && markedUid === card.uid}
 		<div
 			class="absolute left-1/2 bottom-0 pointer-events-auto select-none touch-none"
 			style:transform={dealt
@@ -135,29 +155,31 @@
 			style:transition="transform 520ms cubic-bezier(0.16, 0.9, 0.3, 1), opacity 300ms ease-out"
 			style:z-index={lifted ? 40 : 10 + i}
 			style:cursor={playable ? 'grab' : 'default'}
-			onpointerenter={() => (hoverKey = ability.key)}
-			onpointerleave={() => (hoverKey = null)}
+			onpointerenter={() => (hoverUid = card.uid)}
+			onpointerleave={() => (hoverUid = null)}
 			onpointerdown={(e) => {
-				match.armedKey = ability.key;
-				match.inspectKey = ability.key;
+				touchedUid = card.uid;
+				match.arm(ability.key);
 				startDrag(e, ability.key);
 			}}
 			role="button"
 			tabindex="0"
 			aria-label={ability.name}
 			onkeydown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') match.inspectKey = ability.key;
+				if (e.key === 'Enter' || e.key === ' ') {
+					touchedUid = card.uid;
+					match.inspectKey = ability.key;
+				}
 			}}
 		>
+			<!-- `owner` is the seat: a hand is dealt from that character's own deck,
+			     so the figure standing in the art is the player holding the card. -->
 			<CardFace
 				{ability}
 				fx={fxFor(ability.key, match.seat.faction)}
-				seatColor={match.seat.color}
-				{affordable}
-				disabled={!playable}
-				armed={match.armedKey === ability.key}
+				owner={match.seat}
+				{playable}
 				raised={lifted}
-				icon={fxFor(ability.key, match.seat.faction).icon as IconName}
 				skillMod={match.seat.skills[ability.skill]}
 			/>
 		</div>
@@ -176,16 +198,17 @@
 			style:left="{ghostAt.x}px"
 			style:top="{ghostAt.y}px"
 		>
+			<!-- `played`, because this is the card mid-throw. The scene's play state
+			     is the half of the art that only exists once the card is used — a
+			     visor going hostile, a crack letting go — and the moment it is worth
+			     showing is the moment the player commits to the throw, not after the
+			     server has answered. -->
 			<CardFace
 				{ability}
 				fx={fxFor(ability.key, match.seat.faction)}
-				seatColor={match.seat.color}
-				affordable
-				disabled={false}
-				armed
+				owner={match.seat}
 				raised
-				ghost
-				icon={fxFor(ability.key, match.seat.faction).icon as IconName}
+				played
 				skillMod={match.seat.skills[ability.skill]}
 			/>
 		</div>

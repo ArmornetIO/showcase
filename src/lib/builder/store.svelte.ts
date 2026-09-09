@@ -1,7 +1,9 @@
-import { readJson, writeJson } from '$lib/storage.js';
+import { readJson, writeJson } from '../storage.js';
 import { REGISTRY_MAP } from './registry.js';
 import type { BuilderTemplate } from './templates.js';
-import type { TourStep } from '$lib/primitives/canvas/canvas-camera.js';
+import type { TourStep } from '../primitives/canvas/canvas-camera.js';
+import type { CanvasSessionPort, SessionOp, SessionState } from './session.js';
+import { LOCAL_SURFACES, type LocalSurface } from './localSurfaces.js';
 
 const STORAGE_KEY = 'armornet-builder-v2';
 const LEGACY_KEY = 'armornet-builder-v1';
@@ -305,7 +307,7 @@ function revive(parsed: unknown): BuilderSnapshot {
  * they skip persistence and the matching `snapItem`/`snapGroup` commits at the
  * end of the gesture.
  */
-class BuilderStore {
+export class BuilderStore {
 	#items = $state<CanvasItem[]>([]);
 	#groups = $state<Group[]>([]);
 	#frames = $state<CanvasFrame[]>([]);
@@ -368,6 +370,201 @@ class BuilderStore {
 
 	/** Items lifted by copy — a canvas-local clipboard, not the OS one. */
 	#clipboard: CanvasItem[] = [];
+
+	// ── Session ────────────────────────────────────────────────────────────────
+	// With no session attached this store IS the canvas, exactly as it always
+	// has been, and every field below sits inert. With one attached the session
+	// becomes the record and this store is its projection: changes go out through
+	// `#emit`, and what comes back arrives through `adopt`.
+	//
+	// Nothing here names a transport. The port is an interface this package owns;
+	// what is on the other end is the host application's business.
+	#session: CanvasSessionPort | null = null;
+	/** True while `adopt` is writing. Guards the echo: adopting must not emit, or
+	 *  every participant would send back everything they were just told. */
+	#adopting = false;
+	/** The item this browser is dragging right now, if any. */
+	#draggingItemId = $state<string | null>(null);
+	/** Who is dragging what, as the session last reported it. */
+	#heldBy = $state<Record<string, string>>({});
+	/** Participant id → display name, so a hold can name a person rather than an
+	 *  identifier nobody recognises. */
+	#names = $state<Record<string, string>>({});
+	/** This participant's own id, so their own hold is not reported to them. */
+	#youId = $state('');
+	/** Local-only surfaces this person has already been told about. */
+	#told = $state<string[]>([]);
+	/** The one thing waiting to be said about what is shared, if anything. */
+	#notice = $state<string | null>(null);
+
+	/** Whether anybody else can see this canvas. */
+	get shared(): boolean {
+		return this.#session !== null;
+	}
+
+	/**
+	 * Who is dragging this item, by display name, or null when nobody is.
+	 *
+	 * Never yourself: your own drag is not something to warn you about, and an
+	 * item that refused its own dragger would simply not move.
+	 *
+	 * A NAME rather than the id, because the only caller is showing it to a
+	 * person, and a caller that had to resolve it would be one more place that
+	 * could resolve it wrongly.
+	 */
+	holderOf(itemId: string): string | null {
+		const holder = this.#heldBy[itemId];
+		if (!holder || holder === this.#youId || itemId === this.#draggingItemId) return null;
+		return this.#names[holder] ?? 'SOMEONE';
+	}
+
+	get draggingItemId(): string | null {
+		return this.#draggingItemId;
+	}
+
+	/**
+	 * Hand the canvas to a session.
+	 *
+	 * The first `adopt` that follows replaces whatever was on screen: with a
+	 * session attached the server is the record, and merging would show this
+	 * browser's opinion of a shared document.
+	 */
+	attachSession(session: CanvasSessionPort | null): void {
+		this.#session = session;
+		this.#heldBy = {};
+		this.#names = {};
+		this.#youId = '';
+		this.#draggingItemId = null;
+		// Fresh session, fresh notices: what is local is a property of THIS
+		// session, and somebody who was told last time is owed telling again.
+		this.#told = [];
+		this.#notice = null;
+	}
+
+	/**
+	 * Take the session's canvas as the truth.
+	 *
+	 * A state with no canvas leaves this store alone — that is the solo session
+	 * saying "you are still the record", and adopting an empty canvas from it
+	 * would wipe the page.
+	 */
+	adopt(state: SessionState): void {
+		const canvas = state.canvas;
+		if (!canvas) return;
+
+		this.#heldBy = canvas.heldBy;
+		this.#youId = state.youId;
+		this.#names = Object.fromEntries(
+			state.participants.map((p) => [p.id, (p.name || 'GUEST').toUpperCase()])
+		);
+		this.#adopting = true;
+		try {
+			const dragging = this.#draggingItemId;
+			const mine = dragging ? this.#items.find((i) => i.id === dragging) : undefined;
+
+			this.#items = canvas.items.map((incoming) => {
+				// Your own drag outranks anything arriving about it. Without this
+				// your earlier positions come back as newer state and fight your
+				// pointer, which reads as the canvas stuttering under your hand.
+				if (mine && incoming.id === mine.id) return mine;
+				const existing = this.#items.find((i) => i.id === incoming.id);
+				return {
+					id: incoming.id,
+					componentId: incoming.componentId,
+					x: incoming.x,
+					y: incoming.y,
+					w: incoming.w,
+					h: incoming.h,
+					props: incoming.props ?? {},
+					zIndex: incoming.z,
+					groupId: incoming.groupId,
+					// Local-only, so they survive adoption rather than being reset by
+					// somebody else's frame. See `localSurfaces.ts`.
+					name: existing?.name,
+					visible: existing?.visible ?? true,
+					locked: existing?.locked ?? false,
+					styleOverrides: existing?.styleOverrides
+				};
+			});
+
+			this.#frames = canvas.frames.map((f) => {
+				const existing = this.#frames.find((x) => x.id === f.id);
+				return {
+					id: f.id,
+					name: f.name,
+					x: f.x,
+					y: f.y,
+					w: f.w,
+					h: f.h,
+					// The wire carries a frame's bounds, not how this browser chose to
+					// present it. Preset, clipping and visibility are local.
+					preset: existing?.preset ?? 'custom',
+					clip: existing?.clip ?? false,
+					visible: existing?.visible ?? true,
+					locked: existing?.locked ?? false
+				};
+			});
+
+			this.#groups = canvas.groups.map((g) => {
+				const existing = this.#groups.find((x) => x.id === g.id);
+				return {
+					id: g.id,
+					name: g.name,
+					visible: existing?.visible ?? true,
+					locked: existing?.locked ?? false
+				};
+			});
+
+			// A connector whose endpoint somebody else deleted has nothing left to
+			// route between. Connectors are local, but the items they join are not.
+			const present = new Set(this.#items.map((i) => i.id));
+			this.#connectors = this.#connectors.filter(
+				(c) =>
+					(typeof c.fromId !== 'string' || present.has(c.fromId)) &&
+					(typeof c.toId !== 'string' || present.has(c.toId))
+			);
+		} finally {
+			this.#adopting = false;
+		}
+	}
+
+	/** Send one change to the session. Silent when solo, and silent while
+	 *  adopting — otherwise the echo never stops. */
+	#emit(op: SessionOp): void {
+		if (!this.#session || this.#adopting) return;
+		this.#session.apply(op);
+	}
+
+	/**
+	 * Note that somebody just used a surface the session does not carry.
+	 *
+	 * Says nothing at all when solo — nothing is unshared when there is nobody to
+	 * share with — and says it only once per surface per session. Repeating it
+	 * would be nagging about something they now know, and a notice that always
+	 * appears is a notice nobody reads.
+	 *
+	 * The wording lands in `notice` rather than being returned, so that call
+	 * sites are one line and do not each have to decide how to present it.
+	 */
+	#noteLocal(surface: LocalSurface): void {
+		if (!this.#session || this.#told.includes(surface)) return;
+		this.#told = [...this.#told, surface];
+		this.#notice = LOCAL_SURFACES[surface];
+	}
+
+	/** Something the person should be told about what is and is not shared. */
+	get notice(): string | null {
+		return this.#notice;
+	}
+
+	dismissNotice(): void {
+		this.#notice = null;
+	}
+
+	/** Whether a surface's notice has already been shown. */
+	toldAbout(surface: LocalSurface): boolean {
+		return this.#told.includes(surface);
+	}
 
 	// ── Reads ──────────────────────────────────────────────────────────────────
 	get items(): CanvasItem[] {
@@ -589,6 +786,14 @@ class BuilderStore {
 	}
 
 	undo(): void {
+		// With a session attached the session owns undo, because whose edit gets
+		// reversed is a rule about a shared document: yours are yours alone, the
+		// agent's are anybody's to reject. Local history knows none of that — it
+		// is single-author — so it steps aside rather than guessing.
+		if (this.#session) {
+			this.#emit({ kind: 'undo' });
+			return;
+		}
 		if (!this.canUndo) return;
 		this.#cursor -= 1;
 		this.#restore(this.#history[this.#cursor]);
@@ -788,6 +993,7 @@ class BuilderStore {
 		this.#pages = [...this.#pages, page];
 		this.#parked[page.id] = emptyPage();
 		this.switchPage(page.id);
+		this.#noteLocal('page');
 		return page;
 	}
 
@@ -863,6 +1069,7 @@ class BuilderStore {
 		this.clearSelection();
 		this.#persist();
 		this.#seedHistory();
+		this.#noteLocal('page');
 	}
 
 	/** The last page is never deleted — a workspace with no page has nowhere to
@@ -887,22 +1094,26 @@ class BuilderStore {
 	setGridSize(v: number): void {
 		this.#gridSize = Math.max(4, Math.min(80, v));
 		this.#persist();
+		this.#noteLocal('grid');
 	}
 
 	setGridVisible(v: boolean): void {
 		this.#gridVisible = v;
 		this.#persist();
+		this.#noteLocal('grid');
 	}
 
 	setSnapToGrid(v: boolean): void {
 		this.#snapToGrid = v;
 		this.#persist();
+		this.#noteLocal('grid');
 	}
 
 	setCanvasSize(w: number, h: number): void {
 		this.#canvasW = Math.max(400, w);
 		this.#canvasH = Math.max(400, h);
 		this.#persist();
+		this.#noteLocal('canvasSize');
 	}
 
 	// ── Item CRUD ──────────────────────────────────────────────────────────────
@@ -925,6 +1136,10 @@ class BuilderStore {
 		this.#items = [...this.#items, item];
 		this.select(item.id);
 		this.#persist();
+		// The session mints its own id, so the local one is provisional until the
+		// next frame replaces it. Sending the position rather than the id is what
+		// lets that work without a round trip before the item appears.
+		this.#emit({ kind: 'add', componentId, x: item.x, y: item.y, props: item.props });
 	}
 
 	/**
@@ -964,9 +1179,13 @@ class BuilderStore {
 
 	/** Update raw position/size during drag — does NOT snap or persist. */
 	setItemRect(id: string, x: number, y: number, w: number, h: number): void {
+		if (this.holderOf(id)) return;
 		this.#items = this.#items.map((item) =>
 			item.id === id ? { ...item, x: Math.max(0, x), y: Math.max(0, y), w, h } : item
 		);
+		// A drag reaches here through `dragItemTo`, which sends the move itself.
+		// Emitting again would put a resize on the wire for every pointer frame.
+		if (id !== this.#draggingItemId) this.#emit({ kind: 'resize', itemId: id, w, h });
 	}
 
 	/** Snap to grid and persist — call on drag/resize end. */
@@ -985,6 +1204,7 @@ class BuilderStore {
 		);
 		if (cluster) this.#reflow(cluster.id);
 		this.#persist();
+		this.#endDrag(id);
 	}
 
 	/** Snap all group members to grid and persist. */
@@ -993,6 +1213,25 @@ class BuilderStore {
 			item.groupId === groupId ? this.#snapped(item) : item
 		);
 		this.#persist();
+		for (const item of this.#items) {
+			if (item.groupId === groupId) this.#emit({ kind: 'move', itemId: item.id, x: item.x, y: item.y });
+		}
+		this.#endDrag(this.#draggingItemId ?? '');
+	}
+
+	/**
+	 * The other end of a drag: settle where it landed, then let the item go.
+	 *
+	 * The final position is sent even though the drag has been sending all along,
+	 * because snapping moves the item one last time and the participants who
+	 * watched it travel must not be left holding the position before the snap.
+	 */
+	#endDrag(id: string): void {
+		if (!this.#draggingItemId) return;
+		const settled = this.#items.find((i) => i.id === id);
+		if (settled) this.#emit({ kind: 'move', itemId: id, x: settled.x, y: settled.y });
+		this.#emit({ kind: 'release', itemId: this.#draggingItemId });
+		this.#draggingItemId = null;
 	}
 
 	#snapped(item: CanvasItem, held?: Set<'x' | 'y'>): CanvasItem {
@@ -1025,6 +1264,7 @@ class BuilderStore {
 			item.id === id ? { ...item, props: { ...item.props, [key]: value } } : item
 		);
 		this.#persist(`prop:${id}:${key}`);
+		this.#emit({ kind: 'props', itemId: id, props: { [key]: value } });
 	}
 
 	setItemProps(id: string, props: Record<string, unknown>): void {
@@ -1032,6 +1272,7 @@ class BuilderStore {
 			item.id === id ? { ...item, props: { ...item.props, ...props } } : item
 		);
 		this.#persist(`props:${id}`);
+		this.#emit({ kind: 'props', itemId: id, props });
 	}
 
 	setStyleOverrides(id: string, overrides: Record<string, string>): void {
@@ -1044,6 +1285,7 @@ class BuilderStore {
 				: item
 		);
 		this.#persist(`style:${id}`);
+		this.#noteLocal('style');
 	}
 
 	renameItem(id: string, name: string): void {
@@ -1051,6 +1293,7 @@ class BuilderStore {
 			i.id === id ? { ...i, name: name.trim() || undefined } : i
 		);
 		this.#persist(`rename:${id}`);
+		this.#noteLocal('itemName');
 	}
 
 	deleteItem(id: string): void {
@@ -1069,6 +1312,9 @@ class BuilderStore {
 		if (this.#selectedId && ids.includes(this.#selectedId)) this.#selectedId = null;
 		this.#multiSelectedIds = this.#multiSelectedIds.filter((i) => !ids.includes(i));
 		this.#persist();
+		// Deleting a held item is allowed on purpose: a hold stops a tug-of-war
+		// over position, and treating it as a lock would block ordinary work.
+		for (const id of ids) this.#emit({ kind: 'remove', itemId: id });
 	}
 
 	/** Whatever the current selection means: one item, a multi-selection, or
@@ -1195,12 +1441,32 @@ class BuilderStore {
 		this.#frames = [...this.#frames, frame];
 		this.selectFrame(frame.id);
 		this.#persist();
+		this.#emit({
+			kind: 'frame',
+			name: frame.name,
+			x: frame.x,
+			y: frame.y,
+			w: frame.w,
+			h: frame.h
+		});
 		return frame;
 	}
 
 	updateFrame(id: string, patch: Partial<Omit<CanvasFrame, 'id'>>): void {
 		this.#frames = this.#frames.map((f) => (f.id === id ? { ...f, ...patch } : f));
 		this.#persist(`frame:${id}`);
+		// Only the four things the session knows about a frame. `preset`, `clip`,
+		// `visible` and `locked` are how THIS browser presents it, and sending
+		// them would make one person's viewport choice everybody's.
+		this.#emit({
+			kind: 'frame',
+			frameId: id,
+			name: patch.name,
+			x: patch.x,
+			y: patch.y,
+			w: patch.w,
+			h: patch.h
+		});
 	}
 
 	/** Switching preset resizes; `custom` keeps whatever size it has. */
@@ -1264,16 +1530,40 @@ class BuilderStore {
 		const members = new Set(this.frameMembers(id).map((i) => i.id));
 		this.#items = this.#items.map((i) => (members.has(i.id) ? this.#snapped(i) : i));
 		this.#persist();
+
+		// A frame settles rather than streaming, unlike an item.
+		//
+		// Dragging a frame drags everything inside it, so a continuous report
+		// would be one frame op plus one move per member per pointer frame — the
+		// multiplier grows with how much work is in the region, which is exactly
+		// backwards. Watching a region glide is also worth far less than watching
+		// a component you are placing.
+		const frame = this.#frames.find((f) => f.id === id);
+		if (frame) {
+			this.#emit({
+				kind: 'frame',
+				frameId: id,
+				x: frame.x,
+				y: frame.y,
+				w: frame.w,
+				h: frame.h
+			});
+		}
+		for (const i of this.#items) {
+			if (members.has(i.id)) this.#emit({ kind: 'move', itemId: i.id, x: i.x, y: i.y });
+		}
 	}
 
 	deleteFrame(id: string, withContents = false): void {
-		if (withContents) {
-			const ids = this.frameMembers(id).map((i) => i.id);
-			this.#items = this.#items.filter((i) => !ids.includes(i.id));
+		const doomed = withContents ? this.frameMembers(id).map((i) => i.id) : [];
+		if (doomed.length) {
+			this.#items = this.#items.filter((i) => !doomed.includes(i.id));
 		}
 		this.#frames = this.#frames.filter((f) => f.id !== id);
 		if (this.#selectedFrameId === id) this.#selectedFrameId = null;
 		this.#persist();
+		for (const itemId of doomed) this.#emit({ kind: 'remove', itemId });
+		this.#emit({ kind: 'unframe', frameId: id });
 	}
 
 	toggleFrameVisible(id: string): void {
@@ -1363,6 +1653,7 @@ class BuilderStore {
 		this.#clusters = [...this.#clusters, cluster];
 		this.selectCluster(cluster.id);
 		this.#persist();
+		this.#noteLocal('cluster');
 		return cluster;
 	}
 
@@ -1517,15 +1808,32 @@ class BuilderStore {
 	 * where the pointer went, and the document decides what that means.
 	 */
 	dragItemTo(itemId: string, x: number, y: number, w: number, h: number): void {
+		// Somebody else has it. Refused here rather than after a round trip, so
+		// the item simply does not move under the pointer instead of moving and
+		// then jumping back when the server disagrees.
+		if (this.holderOf(itemId)) return;
+
+		// This method is only ever called during a drag, and the first call of a
+		// gesture is therefore its start. Taking the boundary from the existing
+		// call pattern rather than asking the canvas to announce it keeps the
+		// drag surface unaware that any of this exists.
+		if (this.#draggingItemId !== itemId) {
+			this.#draggingItemId = itemId;
+			this.#emit({ kind: 'grab', itemId });
+		}
+
 		const cluster = this.clusterAt(x, y);
 		if (!cluster || cluster.layout !== 'free') {
 			this.#guides = [];
 			this.setItemRect(itemId, x, y, w, h);
-			return;
+		} else {
+			const { x: sx, y: sy, guides } = this.#alignToCluster(itemId, cluster, x, y, w, h);
+			this.#guides = guides;
+			this.setItemRect(itemId, sx, sy, w, h);
 		}
-		const { x: sx, y: sy, guides } = this.#alignToCluster(itemId, cluster, x, y, w, h);
-		this.#guides = guides;
-		this.setItemRect(itemId, sx, sy, w, h);
+
+		const moved = this.#items.find((i) => i.id === itemId);
+		if (moved) this.#emit({ kind: 'move', itemId, x: moved.x, y: moved.y });
 	}
 
 	/** Guides are gesture feedback; nothing outside a drag should see them. */
@@ -1624,6 +1932,7 @@ class BuilderStore {
 		this.#connectors = [...this.#connectors, conn];
 		this.selectConnector(conn.id);
 		this.#persist();
+		this.#noteLocal('connector');
 		return conn;
 	}
 
@@ -1701,11 +2010,13 @@ class BuilderStore {
 	toggleItemVisible(id: string): void {
 		this.#items = this.#items.map((i) => (i.id === id ? { ...i, visible: !i.visible } : i));
 		this.#persist();
+		this.#noteLocal('visibility');
 	}
 
 	toggleItemLocked(id: string): void {
 		this.#items = this.#items.map((i) => (i.id === id ? { ...i, locked: !i.locked } : i));
 		this.#persist();
+		this.#noteLocal('visibility');
 	}
 
 	// ── Group CRUD ─────────────────────────────────────────────────────────────

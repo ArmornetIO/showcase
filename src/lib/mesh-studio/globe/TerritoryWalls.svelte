@@ -7,7 +7,7 @@
 	// every region, and handed the browser a fresh path to re-parse, re-tessellate
 	// and re-rasterise. Here the same picture is one buffer upload and four draws.
 	//
-	// It stays a SIBLING layer inside the shared <Canvas>, exactly like GlobeFrame,
+	// It stays a SIBLING layer inside the shared <Canvas>, exactly like GlobeShell,
 	// GlobePieces and the caps themselves: it READS `ctx.transform` and never
 	// writes it. The moment a GL layer owns a camera of its own is the moment it
 	// drifts a pixel away from the SVG drawn on top of it.

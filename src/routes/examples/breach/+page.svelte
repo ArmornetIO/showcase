@@ -14,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>{spectating ? 'BREACH — spectate' : 'BREACH — supply-chain skirmish'}</title>
+	<title>{spectating ? 'BREACH — spectate' : 'BREACH'}</title>
 </svelte:head>
 
 {#if spectating}

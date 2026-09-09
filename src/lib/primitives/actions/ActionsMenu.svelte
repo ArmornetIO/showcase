@@ -40,7 +40,23 @@
 	 */
 	export type ActionMenuItem = ActionMenuAction | ActionMenuHeader | ActionMenuSeparator;
 
-	export type ActionsMenuPlacement = 'bottom-end' | 'bottom-start';
+	/**
+	 * Where the panel goes, as `<side>-<align>`.
+	 *
+	 * It is a PREFERENCE, not an instruction: the side flips when the preferred
+	 * one has no room and the other has more. A menu that only ever opened
+	 * downward was fine for the toolbars this was written for and wrong the
+	 * first time one appeared in a footer — the panel rendered below the
+	 * viewport, so the control looked inert and the values it held were
+	 * unreachable. The alignment is never flipped, only the side; a control that
+	 * jumps horizontally under the cursor is harder to use than one that is
+	 * slightly off-edge.
+	 */
+	export type ActionsMenuPlacement =
+		| 'bottom-end'
+		| 'bottom-start'
+		| 'top-end'
+		| 'top-start';
 
 	// ── Auto-dismiss ──────────────────────────────────────────────────────────
 	/** @deprecated Use `MotionExit` from `motion/exits.js` — kept as an alias. */
@@ -202,6 +218,10 @@
 	let open = $state(false);
 	let triggerEl = $state<HTMLElement | null>(null);
 	let menuEl = $state<HTMLElement | null>(null);
+	/** Which way it ended up opening, for the entrance animation — a panel above
+	 *  the trigger that slides down from -4px moves toward the thing it came
+	 *  from instead of away from it. */
+	let up = $state(false);
 	let menuStyle = $state('');
 
 	// ── Auto-dismiss ──────────────────────────────────────────────────────────
@@ -258,18 +278,47 @@
 		hovered = within(e.target as Node | null);
 	}
 
+	/** Trigger-to-panel gap, and the margin kept off the viewport edge. */
+	const GAP = 4;
+
 	function calcPosition() {
 		if (!triggerEl) return;
 		const r = (triggerEl.firstElementChild ?? triggerEl).getBoundingClientRect();
-		const top = r.bottom + 4;
+		const align = placement.endsWith('-start') ? 'start' : 'end';
+		const want = placement.startsWith('top') ? 'top' : 'bottom';
+
+		// The panel's height is only knowable once it has rendered, so the open
+		// pass places it by preference with `need` at 0 (meaning "assume it
+		// fits") and the effect below re-runs this with a real measurement. The
+		// correction lands before paint, so nothing is visibly repositioned.
+		const room = { bottom: window.innerHeight - r.bottom - GAP, top: r.top - GAP };
+		const need = menuEl?.getBoundingClientRect().height ?? 0;
+		const other = want === 'bottom' ? 'top' : 'bottom';
+		// Flip only when the preferred side cannot hold it AND the other side is
+		// roomier. Without the second test a panel too tall for the window would
+		// flip on every measurement and settle nowhere.
+		const side = need > room[want] && room[other] > room[want] ? other : want;
+		up = side === 'top';
+
+		// Anchored by its BOTTOM edge when opening upward, so the panel grows away
+		// from the trigger without anyone having to know how tall it is.
+		const y =
+			side === 'bottom'
+				? `top:${r.bottom + GAP}px`
+				: `bottom:${window.innerHeight - r.top + GAP}px`;
+		const x = align === 'end' ? `right:${window.innerWidth - r.right}px` : `left:${r.left}px`;
 		// `--exit-origin` points the exit back at the anchored corner, so the
 		// panel retracts toward its trigger rather than toward its own middle.
-		if (placement === 'bottom-end') {
-			menuStyle = `top:${top}px;right:${window.innerWidth - r.right}px;--exit-origin:top right`;
-		} else {
-			menuStyle = `top:${top}px;left:${r.left}px;--exit-origin:top left`;
-		}
+		menuStyle = `${y};${x};--exit-origin:${side === 'bottom' ? 'top' : 'bottom'} ${align === 'end' ? 'right' : 'left'}`;
 	}
+
+	// Re-place once the panel exists and can be measured. `calcPosition` treats
+	// an unmeasured panel as fitting, so without this the flip would never
+	// happen — the only call that knows the preferred side is too small is the
+	// one made after render.
+	$effect(() => {
+		if (open && menuEl) calcPosition();
+	});
 
 	function toggle() {
 		if (disabled) return;
@@ -346,6 +395,7 @@
 	<!-- svelte-ignore a11y_interactive_supports_focus -->
 	<div
 		class="menu"
+		class:up
 		style={menuStyle}
 		role="menu"
 		bind:this={menuEl}
@@ -462,6 +512,23 @@
 		from {
 			opacity: 0;
 			transform: translateY(-4px) scale(0.97);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	/* Opening upward reverses the entrance: the panel has to settle DOWN onto
+	   its trigger, not rise off it. */
+	.menu.up {
+		animation-name: menu-in-up;
+	}
+
+	@keyframes menu-in-up {
+		from {
+			opacity: 0;
+			transform: translateY(4px) scale(0.97);
 		}
 		to {
 			opacity: 1;

@@ -42,6 +42,10 @@
 
 	const power = $derived(match.power);
 	const spent = $derived(match.powerCharges <= 0);
+	// Spent-and-coming-back is a different state from spent-for-good, and the
+	// player plans around the difference: one is a turn to wait out, the other is
+	// a move that is over.
+	const cooling = $derived(spent && match.powerReadyIn > 0);
 	const powerArmable = $derived(
 		!!power &&
 			!spent &&
@@ -249,10 +253,7 @@
 		<button
 			type="button"
 			disabled={!powerArmable}
-			onclick={() => {
-				match.armedKey = power.key;
-				match.inspectKey = power.key;
-			}}
+			onclick={() => match.arm(power.key)}
 			class="relative grid place-items-center w-9 h-9 rounded-lg border-2 transition-all
 			       disabled:cursor-default"
 			style:color={spent ? 'color-mix(in srgb, var(--fg) 25%, transparent)' : fx.hue}
@@ -265,18 +266,26 @@
 			style:box-shadow={armed ? `0 0 16px color-mix(in srgb, ${fx.hue} 40%, transparent)` : 'none'}
 			style:opacity={spent || armed || powerArmable ? 1 : 0.55}
 			title="{power.name} — {power.ap} AP · {spent
-				? 'spent'
+				? cooling
+					? `back in ${match.powerReadyIn}`
+					: 'spent'
 				: `${match.powerCharges} charge${match.powerCharges === 1 ? '' : 's'}`} — {power.text}"
 		>
 			<Icon name={fx.icon as IconName} size={16} />
-			<!-- What is left of it, on the corner, the way an upgrade wears its value. -->
+			<!-- What is left of it, on the corner, the way an upgrade wears its value.
+			     A cooling power shows the countdown in that same corner instead of a
+			     zero: "0" reads as gone, and this one is coming back. -->
 			<b
 				class="absolute -right-1 -bottom-1 grid place-items-center min-w-[15px] h-[15px] px-[3px]
 				       rounded-full font-mono text-[0.55rem] font-black tabular-nums leading-none"
 				style:color="var(--bg-elev, #0b0f16)"
-				style:background={spent ? 'color-mix(in srgb, var(--fg) 25%, transparent)' : fx.hue}
+				style:background={cooling
+					? 'color-mix(in srgb, #FBBF24 65%, transparent)'
+					: spent
+						? 'color-mix(in srgb, var(--fg) 25%, transparent)'
+						: fx.hue}
 			>
-				{match.powerCharges}
+				{cooling ? match.powerReadyIn : match.powerCharges}
 			</b>
 		</button>
 	{/if}

@@ -223,6 +223,12 @@ export interface MatchOptions {
 
 const TURN_TICK = 200;
 
+/** The turn clock's length when a host does not set one.
+ *
+ *  Short on purpose: a hand with no legal play left has nothing to do but wait
+ *  the clock out, and the wait is the whole cost of that dead turn. */
+const DEFAULT_TURN_MS = 15_000;
+
 /** How long a networked click holds the controls while it waits for the board
  *  it asked for. Comfortably longer than a round trip, and short enough that a
  *  server which never answers hands the player their controls back rather than
@@ -537,12 +543,12 @@ export class BreachMatch {
 	#verdictSeq = 0;
 	/** A cutaway is on screen, so the host's chrome should get out of the way. */
 	povLive = $state(false);
-	turnLeft = $state(30_000);
+	turnLeft = $state(DEFAULT_TURN_MS);
 
 	// Initialised here as well as in the constructor: `presence` is a $derived
 	// field that reads it, and a class field may not read one that is only
 	// assigned later in the constructor.
-	readonly turnMs: number = 30_000;
+	readonly turnMs: number = DEFAULT_TURN_MS;
 	/**
 	 * Whether this table lets a player change chairs.
 	 *
@@ -565,7 +571,7 @@ export class BreachMatch {
 		this.#cinema = opts.cinema ?? NO_CINEMA;
 		this.#pace = opts.pace ?? wait;
 		this.#dice = opts.dice;
-		this.turnMs = opts.turnMs ?? 30_000;
+		this.turnMs = opts.turnMs ?? DEFAULT_TURN_MS;
 		this.takeover = opts.takeover ?? false;
 		this.turnLeft = this.turnMs;
 	}

@@ -444,7 +444,7 @@ distributes a posture budget across its own and neutral structures.
 simultaneously. Blue commits publicly; red reads and chooses an approach
 privately.
 
-> Sequential, with red waiting, turns a game with a 30-second clock into
+> Sequential, with red waiting, turns a game with a 15-second clock into
 > watching a loading bar.
 
 **TURN-6.** `proposed` A setup phase **MUST NOT** ship before the chain

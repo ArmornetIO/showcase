@@ -25,7 +25,9 @@
 		"perf:attribute": "node scripts/perf/attribute.mjs",
 		"gen:api": "node scripts/gen-api.mjs",
 		"gen:exports": "node scripts/gen-exports.mjs",
-		"gen:exports:check": "node scripts/gen-exports.mjs --check"
+		"gen:exports:check": "node scripts/gen-exports.mjs --check",
+		"gen:favicon": "node scripts/gen-favicon.mjs",
+		"gen:favicon:check": "node scripts/gen-favicon.mjs --check"
 	},
 	"files": [
 		"dist",

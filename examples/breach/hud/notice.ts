@@ -14,6 +14,7 @@
 // ever be seen by someone who had already lost their connection once.
 import type { TableSocket } from '../net.svelte.js';
 import type { BreachMatch } from '../internal/match.svelte.js';
+import { outcomeOf } from './outcome.js';
 
 export interface Notice {
 	/** Drives the icon and the colour; the bar does not re-derive either. */
@@ -127,16 +128,11 @@ export function noticeFor(
 	socket: TableSocket | null,
 	refusal: string | null
 ): Notice | null {
-	if (match.winner) {
-		const won = match.winner === match.seat.faction;
-		return {
-			kind: 'over',
-			text: won ? 'you take it' : 'you lose it',
-			detail: won
-				? 'the payload landed before the horizon'
-				: 'the horizon passed with the chain unfinished',
-			tone: won ? '#34D399' : '#EF4444'
-		};
+	// The verdict is the reader's and the detail is the board's — see `outcome.ts`
+	// for why this may not compose its own sentence out of `won`.
+	const over = outcomeOf(match);
+	if (over) {
+		return { kind: 'over', text: over.verdict, detail: over.event, tone: over.tone };
 	}
 
 	// Outranks a refusal: a move rejected because the table never heard it is

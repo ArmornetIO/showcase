@@ -1,6 +1,6 @@
 # BREACH — the client
 
-A 2v2 supply-chain skirmish, and the first real consumer of this package.
+A 2v2 card game, and the first real consumer of this package.
 
 It exists to prove the library works for something that is not a dashboard: a
 full application with its own domain and a real-time canvas, built out of

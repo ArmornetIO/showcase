@@ -38,6 +38,11 @@ export type { Foothold, Stage, Block, Roll, Drag, MatchOptions } from './interna
 // and plays any POV card with any character in it. The showcase's character
 // studio mounts this; the game itself never does.
 export { default as PovPreview } from './PovPreview.svelte';
+// The end of a match, and the shield it is read off. Exported for the showcase's
+// preview route — the two verdicts are 25 minutes apart in a real game, and the
+// only way to judge them as a pair is to put them side by side.
+export { default as MatchOver } from './hud/MatchOver.svelte';
+export { default as CrestVerdict } from './hud/CrestVerdict.svelte';
 export { NO_CINEMA } from './internal/cinema.js';
 export type { CinemaPort, Scene, PovBeat, ShotKind, Cut } from './internal/cinema.js';
 export type { Audience, LogEntry, LogTone } from './internal/log.js';

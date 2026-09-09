@@ -60,6 +60,10 @@
         },
         {
           "component": "ArmornetLogo",
+          "symbols": [
+            "LOGO_SHAPE",
+            "LOGO_GEOMETRY"
+          ],
           "note": [
             "THE logo. Anything that means \"this product\" — header, footer, hero,",
             "favicon — renders this and nothing else. It is ArmornetCrestMesh pinned",

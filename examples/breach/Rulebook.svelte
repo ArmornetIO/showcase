@@ -98,7 +98,7 @@
 		<header class="flex flex-col items-start gap-3">
 			<h1 class="m-0 text-3xl font-black tracking-tight">BREACH — rules &amp; deck</h1>
 			<p class="m-0 max-w-[68ch] text-[0.95rem] leading-relaxed text-[var(--fg-dim)]">
-				A 2v2 card skirmish about a software supply-chain attack. One side is trying to get a
+				A 2v2 card game played on the Armornet globe. One side is trying to get a
 				payload through five buildings; the other side is trying to run out the clock
 				while finding out what is already inside. Everything below is what the engine actually
 				does — where a card’s printed sentence promises more than the code delivers, it says so.

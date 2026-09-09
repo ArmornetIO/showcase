@@ -3,11 +3,17 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>BREACH — supply-chain skirmish</title>
+		<title>BREACH</title>
 		<meta
 			name="description"
-			content="A 2v2 supply-chain skirmish: two seats attack, two defend, twelve rounds."
+			content="A 2v2 card game on the Armornet globe: two seats attack, two defend, twelve rounds."
 		/>
+		<!--
+			Absolute on purpose. This is a public/ file, which Vite copies to the
+			bundle root and rebases with `--base=/breach/` — a relative `./` href
+			would instead be resolved as a module asset and 404 the copy in public/.
+		-->
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<!--
 			The dark, before there is any CSS to say so.
 

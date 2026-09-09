@@ -30,7 +30,7 @@ export { default as ArmornetCrestChrome } from './icons/ArmornetCrestChrome.svel
 // THE logo. Anything that means "this product" — header, footer, hero,
 // favicon — renders this and nothing else. It is ArmornetCrestMesh pinned
 // to one shield; that choice lives here so it is made once, not per app.
-export { default as ArmornetLogo } from './icons/ArmornetLogo.svelte';
+export { default as ArmornetLogo, LOGO_SHAPE, LOGO_GEOMETRY } from './icons/ArmornetLogo.svelte';
 
 // The crest with the console's own mesh-centre object inside it, cut on seven
 // shields. `CREST_MESH_GEOMETRY` is exported so an exporter can read a

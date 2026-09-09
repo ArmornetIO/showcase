@@ -11,6 +11,7 @@
 	import { BreachLobby } from './internal/lobby.svelte.js';
 	import type { Seated } from './internal/presence.js';
 	import RulesOverlay from './RulesOverlay.svelte';
+	import MatchOver from './hud/MatchOver.svelte';
 	import LogFeed from './hud/LogFeed.svelte';
 	import ObjectiveLine from './hud/ObjectiveLine.svelte';
 	import BuildingStack from './hud/BuildingStack.svelte';
@@ -181,6 +182,22 @@
 	});
 
 	let rulesOpen = $state(false);
+
+	// ── The end of the match ─────────────────────────────────────────────────
+	// Opened by the match ending rather than by a click, and closable — the final
+	// board is worth looking at, and the rail keeps a way back to the screen.
+	//
+	// `overSeen` is a PLAIN let: this effect writes `resultOpen`, and a reactive
+	// latch read here would subscribe it to its own output (see ObjectiveLine for
+	// the same note and the crash it prevents).
+	let resultOpen = $state(false);
+	let overSeen = false;
+	$effect(() => {
+		const won = !!match.winner;
+		if (won === overSeen) return;
+		overSeen = won;
+		resultOpen = won;
+	});
 
 	// ── HUD insets ───────────────────────────────────────────────────────────────
 	// The globe is fitted around the chrome, never under it. Measured rather than
@@ -374,7 +391,8 @@
 <svelte:window
 	onkeydown={(e) => {
 		if (e.key !== 'Escape') return;
-		if (rulesOpen) rulesOpen = false;
+		if (resultOpen) resultOpen = false;
+		else if (rulesOpen) rulesOpen = false;
 		else if (match.inspectKey) match.inspectKey = null;
 		else if (match.selectedId) match.selectedId = null;
 	}}
@@ -466,12 +484,16 @@
 			     a flex child defaults to `min-width: auto`, so it refuses to shrink
 			     below its content and pushes itself off the right edge of the screen.
 			     The buildings above cannot show it because they wrap. -->
+			<!-- `pointer-events-auto`: the column turns them off so the globe can be
+			     dragged through the rail, and this strip is the one thing in it that
+			     is pressed — its result button was inert on any screen wide enough
+			     for the column to exist. -->
 			<div
-				class="min-w-0 shrink-0 overflow-x-clip rounded-lg border border-[var(--border)]
+				class="pointer-events-auto min-w-0 shrink-0 overflow-x-clip rounded-lg border border-[var(--border)]
 				       bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_86%,transparent)]
 				       px-2.5 py-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.4)] backdrop-blur-md"
 			>
-				<ObjectiveLine {match} />
+				<ObjectiveLine {match} onresult={() => (resultOpen = true)} />
 			</div>
 
 			<!-- The dice, under the buildings. This floated in its own region to the
@@ -544,6 +566,20 @@
 
 {#if rulesOpen}
 	<RulesOverlay seat={match.seat} onclose={() => (rulesOpen = false)} />
+{/if}
+
+<!-- `match.newMatch()` and not `reset()`: on a hosted table this is a request the
+     server answers for all four screens, and the reset rides in on the snapshot
+     (see the `setup` effect above). -->
+{#if resultOpen}
+	<MatchOver
+		{match}
+		onclose={() => (resultOpen = false)}
+		onagain={() => {
+			resultOpen = false;
+			match.newMatch();
+		}}
+	/>
 {/if}
 
 <!-- The table assembles before the match does. The lobby owns who is here and

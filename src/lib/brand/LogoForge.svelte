@@ -579,6 +579,14 @@
 		top: calc(50% + 46%);
 		transform: translate(-50%, -50%) scaleY(-1);
 		filter: blur(3px);
-		mask-image: linear-gradient(to top, transparent 8%, rgba(0, 0, 0, 0.7) 78%);
+		/* Faded on all four sides, not just top and bottom. The mask is what the
+		   layer is composited through, so an edge it leaves at full alpha is the
+		   element's own box edge — and a masked, blurred box over the floor drew
+		   a visible rectangle around the mark for the whole held frame. */
+		mask-image:
+			linear-gradient(to top, transparent 8%, rgba(0, 0, 0, 0.7) 78%),
+			linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+		mask-composite: intersect;
+		-webkit-mask-composite: source-in;
 	}
 </style>

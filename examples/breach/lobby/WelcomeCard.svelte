@@ -80,10 +80,15 @@
 		pointer-events: none;
 		text-align: center;
 	}
+	/* Inline insets stay at 0. The card spans the frame, so a negative one puts
+	   the scrim past the viewport edge — and the lobby's root is `overflow-y:auto`,
+	   which makes overflow-x `auto` as well, so the title card was raising a
+	   horizontal scrollbar on itself. The gradient is soft enough that the extra
+	   width bought nothing. */
 	.wc-card::before {
 		content: '';
 		position: absolute;
-		inset: -140% -10% -180%;
+		inset: -140% 0 -180%;
 		background: radial-gradient(60% 60% at 50% 50%, rgba(3, 5, 10, 0.92), transparent 72%);
 		z-index: -1;
 	}

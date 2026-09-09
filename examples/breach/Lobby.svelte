@@ -382,7 +382,10 @@
 	     reading yet. It ends itself on the card; everything else here is the way
 	     out, and every one of them leaves through the same fade. -->
 	{#if titleUp}
-		<div class="absolute inset-0 z-40" out:curtain>
+		<!-- `overflow-hidden` because the root here scrolls: the curtain's own
+		     bleeds — the title card's scrim, the forge's floor — would otherwise
+		     grow the page and raise scrollbars over the cold open. -->
+		<div class="absolute inset-0 z-40 overflow-hidden" out:curtain>
 			<!-- The forge hands off to the card rather than to the setup screen: it
 			     is the mark ARRIVING, and cutting away on the frame it arrives at
 			     spends nine seconds of build on nothing. `oncomplete` already waits

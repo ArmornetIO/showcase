@@ -151,10 +151,34 @@ export function playHref(): string {
  *  Matches `rest.ErrCodeLegalRequired`. */
 const LEGAL_REQUIRED = 'legal_acceptance_required';
 
-/** Where a player clears the gate. `/breach/start` is app-ui's stepper and owns
- *  the legal step; the onboarding wizard is the wrong destination for somebody
- *  who arrived to play. */
-const LEGAL_PATH = '/play/start';
+/** Where a player clears every gate in front of a table — signing in, the legal
+ *  documents, a workspace, preferences. app-ui's stepper; the generic onboarding
+ *  wizard is the wrong destination for somebody who arrived to play. */
+const ONBOARDING_PATH = '/play/start';
+
+/**
+ * The stepper, carrying the table this visitor was invited to.
+ *
+ * ONLY the table id travels, and it is the id this page was opened with — never
+ * a URL, never anything read out of a response. A `next=`-style destination
+ * minted here would be an open redirect the moment the console honoured it, and
+ * `arrivedOnLink` has already checked the id against `TABLE_ID`, so what goes
+ * into this string cannot carry a scheme, a host or a slash. The stepper
+ * rebuilds `/breach?t=<id>` at the far end from its own constant.
+ */
+function onboardingHref(): string {
+	const id = arrivedOnLink();
+	return id ? `${ONBOARDING_PATH}?${INVITE_PARAM}=${id}` : ONBOARDING_PATH;
+}
+
+/** Leave for the stepper, unless we are somehow already on it. Guarded because
+ *  every call in this file can trigger it and a bounce loop is worse than the
+ *  refusal it was trying to explain. */
+function toOnboarding(): void {
+	if (typeof location === 'undefined') return;
+	if (location.pathname.startsWith(ONBOARDING_PATH)) return;
+	location.assign(onboardingHref());
+}
 
 /** Turn a failed response into something worth showing a person.
  *
@@ -162,23 +186,33 @@ const LEGAL_PATH = '/play/start';
  *  whole /api group, so it answers any call here, and a player left staring at
  *  "the server said 403" has no way to learn what to do about it. */
 async function explain(res: Response): Promise<string> {
-	// The body first, when there is one. Handlers answer with {"error": "..."}
+	// Before the body, because no body could change the answer. A 401 says
+	// "missing or invalid token", which is true and useless: the person holding
+	// an invitation has no account yet, so the response is to go and make one
+	// rather than to name the header they are missing.
+	if (res.status === 401) {
+		toOnboarding();
+		return 'signing you in…';
+	}
+	// The body next, when there is one. Handlers answer with {"error": "..."}
 	// saying WHY — "god admin only", "no organisation on this session" — and the
 	// status alone cannot tell those apart, since both are 403.
 	try {
 		const body = (await res.json()) as { error?: string; code?: string };
 		if (body.code === LEGAL_REQUIRED) {
-			if (typeof location !== 'undefined' && !location.pathname.startsWith(LEGAL_PATH)) {
-				location.assign(LEGAL_PATH);
-			}
+			toOnboarding();
 			return 'you have not accepted the terms yet';
 		}
 		if (body.error) return body.error;
 	} catch {
 		// A non-JSON body from an error path is not itself interesting.
 	}
-	if (res.status === 401 || res.status === 403) {
-		return 'you are not signed in to an organisation';
+	// NOT redirected, deliberately, and this is the half that has to stay put: a
+	// 403 means the session is real and was refused anyway — no workspace, no
+	// entitlement, the wrong org — and sending that back through a sign-in flow
+	// it has already completed is an infinite loop wearing a helpful name.
+	if (res.status === 403) {
+		return 'your account cannot join this table';
 	}
 	if (res.status === 503) return 'breach is not enabled on this server';
 	return `the server said ${res.status}`;
@@ -188,9 +222,26 @@ async function explain(res: Response): Promise<string> {
  *  `server/rest/breach.go` — the server builds the link, this reads it. */
 export const INVITE_PARAM = 't';
 
-/** The table this page was opened for, if it was opened from a link at all. */
+/**
+ * A table id, exactly as `newTableID` in `internal/breach/registry.go` mints
+ * one: 80 bits of CSPRNG as unpadded uppercase base32, so sixteen characters of
+ * `A-Z2-7` and nothing else.
+ *
+ * Anchored and charset-limited because this value arrives in a query string —
+ * anybody can put anything there — and is then written into the sign-in
+ * destination and into a WebSocket subscription. The charset admits no scheme,
+ * no host, no slash and no `<`, so a value that passes cannot leave the origin
+ * or land in the DOM as markup. Rejecting beats escaping here: a string that is
+ * not this shape names no table anyway.
+ */
+const TABLE_ID = /^[A-Z2-7]{16}$/;
+
+/** The table this page was opened for, if it was opened from a link at all —
+ *  and null when the parameter is there but is not a table id. */
 export function arrivedOnLink(): string | null {
-	return new URLSearchParams(location.search).get(INVITE_PARAM);
+	if (typeof location === 'undefined') return null;
+	const id = new URLSearchParams(location.search).get(INVITE_PARAM);
+	return id && TABLE_ID.test(id) ? id : null;
 }
 
 /** The query key that opens the gallery instead of the game.

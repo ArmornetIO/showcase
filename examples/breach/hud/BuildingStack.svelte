@@ -14,6 +14,16 @@
 	// already stands on the globe, so the thing in the hexagon here is the thing
 	// you are looking at out there — not an icon chosen to represent it.
 	//
+	// A row IS the building, so clicking one selects it — the globe is bound to
+	// `selectedId` with `focusOnSelect`, and turns to face whatever the row
+	// names. Written as a selection rather than a `camera.flyTo` on purpose:
+	// flying alone would move the view without moving the AIM, so the target
+	// sheet and the aim overlay would still be pointing at whatever was picked
+	// before, and clicking a building would mean two different things depending
+	// on which copy of it you clicked. This is the same write the canvas makes,
+	// which is why arming a card and clicking a row commits the move exactly as
+	// dragging onto the board does (see `Breach.svelte`, "aiming IS committing").
+	//
 	// Two behaviours a game does that a dashboard does not:
 	//   UNDER ATTACK   the row pulses in the attacker's hue for the whole beat,
 	//                  so you are looking at the right line when it changes.
@@ -142,13 +152,17 @@
 			{@const lev = match.leverageFor(s)}
 			{@const heat = match.heat[s.territory] ?? 0}
 			{@const tone = bar.held ? RED : bar.sealed ? SEAL : lev > 0 ? 'var(--accent)' : BLUE}
-			{@const up = !!attack || lifted === s.id}
-			<div
-				role="group"
+			{@const picked = match.selectedId === s.id}
+			{@const up = !!attack || lifted === s.id || picked}
+			<button
+				type="button"
+				onclick={() => (match.selectedId = s.id)}
 				onmouseenter={() => (lifted = s.id)}
 				onmouseleave={() => (lifted = null)}
-				class="bs-row relative -mt-2 flex items-stretch gap-2 overflow-hidden rounded-[10px]
-				       border py-1.5 pl-2 pr-1.5 transition-[left] duration-150 first:mt-0"
+				aria-pressed={picked}
+				class="bs-row relative -mt-2 flex w-full cursor-pointer items-stretch gap-2 overflow-hidden
+				       rounded-[10px] border py-1.5 pl-2 pr-1.5 text-left transition-[left]
+				       duration-150 first:mt-0"
 				class:left-1={up}
 				class:bs-striking={!!attack}
 				style:z-index={up ? 5 : 1}
@@ -161,9 +175,11 @@
 				style:background="radial-gradient(120% 120% at 14% 30%,
 					color-mix(in srgb, {tone} 22%, var(--bg-elev, #0b0f16)) 0%,
 					var(--bg-elev, #0b0f16) 64%)"
-				style:box-shadow={up
-					? `0 0 0 1px color-mix(in srgb, ${tone} 35%, transparent), 0 14px 30px rgba(0,0,0,0.55)`
-					: '0 6px 16px rgba(0,0,0,0.45)'}
+				style:box-shadow={picked
+					? `0 0 0 2px ${tone}, 0 14px 30px rgba(0,0,0,0.55)`
+					: up
+						? `0 0 0 1px color-mix(in srgb, ${tone} 35%, transparent), 0 14px 30px rgba(0,0,0,0.55)`
+						: '0 6px 16px rgba(0,0,0,0.45)'}
 			>
 				<!-- Whose ground this is, as one bar down the edge. The seats' card
 				     carries the same stripe for the same job. -->
@@ -378,7 +394,7 @@
 						)}
 					</div>
 				</div>
-			</div>
+			</button>
 		{/each}
 	</div>
 </div>

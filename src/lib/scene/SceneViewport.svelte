@@ -124,7 +124,7 @@
 				id: HUB_ID,
 				type: 'control-plane',
 				state: 'healthy',
-				label: 'control plane',
+				label: 'armornet',
 				x: scene.hub.x,
 				y: scene.hub.y,
 				r: scene.hub.r,

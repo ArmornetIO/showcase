@@ -10,6 +10,8 @@ by an agent that has never seen the source.
 and BREACH, a game built entirely from this library, at
 [armornet.io/breach](https://armornet.io/breach).
 
+![A scripted scene: a StatTile placed, a RadialProgress and a ProgressBar driven from 0, an enum stepped on a cue, then two agents brought up on the same timeline](docs/scenes/library-tour.gif)
+
 Most component libraries are built for humans and then, reluctantly, described
 to machines — a docs site scraped into a context window, a `.d.ts` file an
 agent has to infer intent from. Showcase was built the other way around. The
@@ -194,6 +196,13 @@ ever renders.
 
 Pair it with `storyboard/` — `StoryboardCanvas`, `SwimLane`, `StoryboardBranch`,
 `StoryboardArrow` — and you can lay out a flow, then play it.
+
+![The sample scene: six agents around a server, one goes dark, traffic moves to a proxy, a card reports the reroute](docs/scenes/mesh-reroute.gif)
+
+Every GIF in this README is a scene from `src/lib/scene/catalogue.ts`, filmed by
+`npm run record:scenes`. The recorder steps Playwright's fake clock one frame
+at a time, so a GIF is the scene exactly as it plays, and re-recording after a
+change gives the same frames for everything that did not change.
 
 ### 4. Frames: skeletons that *are* the component
 

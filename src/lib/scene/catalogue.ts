@@ -10,8 +10,9 @@ import type { Scene } from './types.js';
 import { SAMPLE_SCENE } from './sample-scene.js';
 import { BRIDGE_SCENE } from './bridge-scene.js';
 import { TUI_SCENE } from './tui-scene.js';
+import { LIBRARY_TOUR_SCENE } from './library-tour-scene.js';
 
-export const SCENES: readonly Scene[] = [SAMPLE_SCENE, BRIDGE_SCENE, TUI_SCENE];
+export const SCENES: readonly Scene[] = [SAMPLE_SCENE, BRIDGE_SCENE, TUI_SCENE, LIBRARY_TOUR_SCENE];
 
 /** The registry's `scene` enum options — derived, so a new scene added above
  *  offers itself to documents without a second edit. */

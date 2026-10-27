@@ -77,7 +77,7 @@ export const MESH_NODE_FILL: Record<MeshNodeType, string> = {
 };
 
 export const MESH_NODE_LABEL: Record<MeshNodeType, string> = {
-	'control-plane': 'CTRL·PLANE',
+	'control-plane': 'SERVER',
 	'agentic':       'AGENTIC',
 	'proxy':         'PROXY',
 	'daemon':        'DAEMON',

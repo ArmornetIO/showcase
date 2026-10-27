@@ -62,6 +62,9 @@
 	// `endsWith` and not `includes`, so `/examples/breach/rules` — a document,
 	// not a HUD — keeps the shell it is meant to be read in.
 	const isBreach = $derived(page.url.pathname.endsWith('/examples/breach'));
+	// What the scene recorder films: no sidebar and no DevCog, or both are in
+	// every GIF.
+	const isRecording = $derived(page.url.pathname.endsWith('/scene/record'));
 	// A local mockup that wants the whole window adds itself here. Mockups are
 	// gitignored, so such a line is a local edit you keep out of your commits.
 	const isFullScreen = $derived(
@@ -74,6 +77,7 @@
 			// A cinematic. It is a shot, not a screen — a sidebar beside it is a
 			// sidebar in the frame.
 			page.url.pathname.endsWith('/mockups/logo-nanotech') ||
+			isRecording ||
 			// The timeline is the content; a sidebar is width it does not get.
 			page.url.pathname.endsWith('/mockups/product-roadmap')
 	);
@@ -379,21 +383,23 @@
 	<GlobeDevControls only="globe" />
 {/snippet}
 
-<DevCog
-	groups={[
-		{ id: 'page', label: 'PAGE', glyph: '▤', order: 10, content: pageGroup },
-		{ id: 'render', label: 'RENDER', glyph: '◧', order: 20, content: renderGroup },
-		{
-			id: 'globe',
-			label: 'GLOBE',
-			glyph: '◍',
-			order: 30,
-			available: globeRegistry.globes.length > 0,
-			gate: 'Needs a registered globe on the page.',
-			content: globeGroup
-		}
-	]}
-/>
+{#if !isRecording}
+	<DevCog
+		groups={[
+			{ id: 'page', label: 'PAGE', glyph: '▤', order: 10, content: pageGroup },
+			{ id: 'render', label: 'RENDER', glyph: '◧', order: 20, content: renderGroup },
+			{
+				id: 'globe',
+				label: 'GLOBE',
+				glyph: '◍',
+				order: 30,
+				available: globeRegistry.globes.length > 0,
+				gate: 'Needs a registered globe on the page.',
+				content: globeGroup
+			}
+		]}
+	/>
+{/if}
 
 <style>
 	/* ── Global: selected mockup link ring ── */

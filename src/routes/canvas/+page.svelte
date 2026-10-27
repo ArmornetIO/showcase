@@ -82,7 +82,7 @@
 
 	let nodes = $state<StudioNode[]>([
 		{
-			id: 'ctrl', label: 'CTRL·PLANE', value: '4', valueLabel: 'CONNECTED',
+			id: 'ctrl', label: 'SERVER', value: '4', valueLabel: 'CONNECTED',
 			liveSlot: 'uptime 99.9%',
 			type: 'control-plane', state: 'healthy',
 			r: 64, x: 240, y: 200, flow: 0.9, popDelay: 0.1,

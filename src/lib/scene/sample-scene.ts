@@ -18,7 +18,7 @@ export const SAMPLE_SCENE: Scene = {
 		{
 			id: 'b1',
 			at: 0,
-			caption: 'Six agents. One control plane.',
+			caption: 'Six agents. One server.',
 			spin: false,
 			camera: { kind: 'fit' },
 		},

@@ -19,13 +19,13 @@
 	></span>
 	<div class="flex flex-col gap-[2px] flex-1 min-w-0">
 		<span
-			class="font-[var(--sans-brand)] text-[14px] font-semibold text-[var(--fg)] whitespace-nowrap overflow-hidden text-ellipsis"
+			class="font-(family-name:--sans-brand) text-[14px] font-semibold text-[var(--fg)] whitespace-nowrap overflow-hidden text-ellipsis"
 			>{name}</span
 		>
 		<span
-			class="font-[var(--mono)] text-[9px] text-[var(--fg-dim)] whitespace-nowrap overflow-hidden text-ellipsis"
+			class="font-(family-name:--mono) text-[9px] text-[var(--fg-dim)] whitespace-nowrap overflow-hidden text-ellipsis"
 			>{id}</span
 		>
 	</div>
-	<span class="font-[var(--mono)] text-[11px] text-[var(--fg-dim)] shrink-0 ml-auto">{latency}</span>
+	<span class="font-(family-name:--mono) text-[11px] text-[var(--fg-dim)] shrink-0 ml-auto">{latency}</span>
 </div>

@@ -25,13 +25,21 @@
 		createVao,
 		type GlContext
 	} from '../gl/context.js';
-	import { PIECE_VERT, PIECE_FRAG, PIECE_PASSES, PIECE_ATTRIBS } from '../gl/piece-shaders.js';
+	import {
+		PIECE_VERT,
+		PIECE_FRAG,
+		PIECE_PASSES,
+		PIECE_ATTRIBS,
+		PIECE_BASE_PASS
+	} from '../gl/piece-shaders.js';
+	import { DAIS_MESH, baseOf } from '../pieces/piece-base.js';
 	import { PIECE_MESHES, PIECE_VERT_FLOATS, PIECE_EDGE_FLOATS } from '../pieces/piece-mesh.js';
 	import { packInstances, INSTANCE_FLOATS, type InstanceStyle } from '../gl/piece-instances.js';
 
 	let {
 		nodes = [],
 		selectedId = null,
+		hoveredId = null,
 		/** Resolves a node's ink. Passed in because colour precedence — world hue,
 		 *  degraded amber, offline red — is a STUDIO decision, and duplicating that
 		 *  ordering here is how the two would drift. */
@@ -39,6 +47,7 @@
 	}: {
 		nodes?: StudioNode[];
 		selectedId?: string | null;
+		hoveredId?: string | null;
 		styleOf: (n: StudioNode) => InstanceStyle;
 	} = $props();
 
@@ -62,6 +71,8 @@
 	 *  `enableVertexAttribArray` + three `vertexAttribPointer`. */
 	let triVao: WebGLVertexArrayObject | null = null;
 	let edgeVao: WebGLVertexArrayObject | null = null;
+	/** The hover dais — one flat disc every `hover` piece stands over. */
+	let daisVao: WebGLVertexArrayObject | null = null;
 	/**
 	 * Every location the frame needs, resolved once at link.
 	 *
@@ -108,6 +119,7 @@
 		const staticAttribs = PIECE_ATTRIBS.filter((a) => !a.divisor);
 		triVao = createVao(gl, program, [{ buffer: triBuf, attribs: staticAttribs }]);
 		edgeVao = createVao(gl, program, [{ buffer: edgeBuf, attribs: staticAttribs }]);
+		daisVao = createVao(gl, program, [{ buffer: createBuffer(gl, DAIS_MESH), attribs: staticAttribs }]);
 
 		instLocs = PIECE_ATTRIBS.filter((a) => a.divisor).map((a) => ({
 			loc: gl.getAttribLocation(program!, a.name),
@@ -160,6 +172,7 @@
 			edgeBuf = null;
 			triVao = null;
 			edgeVao = null;
+			daisVao = null;
 			instLocs = [];
 			uCam = uSize = uPass = null;
 			triSpans.clear();
@@ -174,6 +187,7 @@
 		const cam = { tx: transform.tx, ty: transform.ty, tk: transform.tk };
 		const ns = nodes;
 		const sel = selectedId;
+		const hov = hoveredId;
 		if (!glc || glc.lost || !program || !triVao || !edgeVao) return;
 
 		const gl = glc.gl;
@@ -181,7 +195,7 @@
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
-		const packed = packInstances(ns, styleOf, sel, instances);
+		const packed = packInstances(ns, styleOf, sel, instances, hov);
 		instances = packed.data;
 		if (!packed.count) return;
 
@@ -204,6 +218,19 @@
 
 		gl.uniform3f(uCam, cam.tx, cam.ty, cam.tk);
 		gl.uniform2f(uSize, glc.cssWidth, glc.cssHeight);
+
+		// The bases first, under everything a piece draws: a dais is the floor
+		// the piece hangs over, so nothing of the piece may sit beneath it.
+		if (daisVao) {
+			gl.bindVertexArray(daisVao);
+			gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+			gl.uniform1i(uPass, PIECE_BASE_PASS.id);
+			for (let i = 0; i < packed.count; i++) {
+				if (baseOf(packed.order[i].piece) !== 'hover') continue;
+				bindInstance(gl, packed.data, i * INSTANCE_FLOATS);
+				gl.drawArrays(gl.TRIANGLES, 0, DAIS_MESH.length / 7);
+			}
+		}
 
 		for (const pass of PIECE_PASSES) {
 			// The edge pass is the only one drawn from the wireframe buffer. It is

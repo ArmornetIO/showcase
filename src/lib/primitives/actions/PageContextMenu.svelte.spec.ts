@@ -46,4 +46,15 @@ describe("PageContextMenu", () => {
     });
     await expect.element(page.getByText("Status: Open")).toBeInTheDocument();
   });
+
+  it("folds chips into a count on the Filter trigger when there is a filter menu", async () => {
+    render(PageContextMenu, {
+      chips: [{ label: "Status: Open", remove: () => {} }],
+      filterGroups: [
+        { title: "Status", options: [{ v: "open", l: "Open" }], current: "open", set: () => {} },
+      ],
+    });
+    await expect.element(page.getByLabelText("1 active")).toBeInTheDocument();
+    await expect.element(page.getByText("Status: Open")).not.toBeInTheDocument();
+  });
 });

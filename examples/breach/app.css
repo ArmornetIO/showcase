@@ -29,4 +29,22 @@ body {
    window with no way to reach it. */
 body.hud {
 	overflow: hidden;
+	/* iOS treats a one-finger drag on a full-bleed surface as a page gesture and
+	   rubber-bands the whole document, which steals the pointermove stream the
+	   globe drag is built on. The HUD never scrolls, so there is nothing to lose
+	   by refusing the gesture outright. */
+	overscroll-behavior: none;
+}
+
+/* ── The frame the hardware leaves us ────────────────────────────────────────
+   Read once, here, so no component has to remember the `env()` spelling or the
+   zero fallback. They are zero everywhere except a notched phone, which is why
+   the HUD can use them unconditionally. Requires `viewport-fit=cover` on the
+   viewport meta — without it every one of these reports 0 and the battle centre
+   sits under the home indicator. */
+:root {
+	--safe-t: env(safe-area-inset-top, 0px);
+	--safe-r: env(safe-area-inset-right, 0px);
+	--safe-b: env(safe-area-inset-bottom, 0px);
+	--safe-l: env(safe-area-inset-left, 0px);
 }

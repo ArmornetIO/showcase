@@ -31,7 +31,7 @@
 	// keep a real hard seam, and nothing is masked anywhere.
 	import type { Snippet } from 'svelte';
 	import MobiusWeave from '../backdrop/MobiusWeave.svelte';
-	import { spiderVerseStrips } from '../backdrop/strips.js';
+	import { misregisteredStrips } from '../backdrop/strips.js';
 	import { theme } from '../theme/store.svelte.js';
 
 	interface Props {
@@ -59,14 +59,27 @@
 		 *  when it is given. The flow's own heading then has to live on the right,
 		 *  which is what `.auth-title` is for. */
 		visual?: Snippet;
+		/** The flow pane at the width a `visual` screen gets, beside the
+		 *  statement: for a step that lists things (the workspace picker) rather
+		 *  than asking for one field. Implied by `visual`. */
+		wide?: boolean;
 	}
 
-	let { mark = '', statement, sub = '', step = '', form, aside, visual }: Props = $props();
+	let {
+		mark = '',
+		statement,
+		sub = '',
+		step = '',
+		form,
+		aside,
+		visual,
+		wide = false
+	}: Props = $props();
 
 	// A preset carries its strips AND the palette they were composed against, so
 	// both come from the same place — loading the arrangement without its colours
 	// is how a composition drifts from something nobody designed.
-	const SPIDER = spiderVerseStrips();
+	const PRESET = misregisteredStrips();
 
 	// Placement overrides, applied HERE rather than in `strips.ts`: the preset is
 	// shared, and re-aiming it for one screen's furniture would move the art
@@ -90,9 +103,9 @@
 	// `p2` and `p4` are the two small rings — dropped rather than hidden, so the
 	// frames they cost are not spent drawing something masked away.
 	const DROP = new Set(['p2', 'p4']);
-	const STRIPS = SPIDER.strips
+	const STRIPS = PRESET.strips
 		.filter((s) => !DROP.has(s.id))
-		// `energyColor` is authored yellow for the spider-verse palette. Overridden
+		// `energyColor` is authored yellow for the misregistered palette. Overridden
 		// alongside the placement so the riders stay in the same family as the band
 		// rather than reading as a second accent.
 		// `pulse` — the mesh's own solid-rim-plus-travelling-orb style, in place of
@@ -130,7 +143,7 @@
 	});
 </script>
 
-<div class="page" class:has-visual={!!visual}>
+<div class="page" class:has-visual={!!visual} class:wide={wide || !!visual}>
 	<!-- FULL PAGE, and above both panes. A spec's left/top are VIEWPORT
 	     percentages, so boxing the canvas inside the brand column did two things
 	     at once: squeezed the authored composition, and made the strip stop dead
@@ -189,7 +202,11 @@
 		position: fixed;
 		inset: 0;
 		display: grid;
-		grid-template-columns: 1fr min(clamp(380px, 34vw, 460px), 100%);
+		/* `minmax(0, 1fr)`, never a bare `1fr`: a fr track floors at min-content,
+		   and the visual pane's contents are fixed-px game panels — so the track
+		   grew past the viewport and crushed the form column to a few clipped
+		   characters, with a page-wide horizontal scrollbar to reach it. */
+		grid-template-columns: minmax(0, 1fr) min(clamp(380px, 34vw, 460px), 100%);
 		background: var(--bg);
 		color: var(--fg);
 		overflow: auto;
@@ -198,9 +215,10 @@
 	/* A visual pane is a wider flow pane too. The 340px measure below is sized for
 	   provider buttons and one field; a screen that puts its heading, a progress
 	   bar and a multi-step form on this side runs out of room at that width, and
-	   the stepper is the part that fails first — five labels on one rule. */
-	.page.has-visual {
-		grid-template-columns: 1fr min(clamp(420px, 32vw, 560px), 100%);
+	   the stepper is the part that fails first — five labels on one rule. A list
+	   of workspaces with their logos and blurbs fails the same way. */
+	.page.wide {
+		grid-template-columns: minmax(0, 1fr) min(clamp(420px, 32vw, 560px), 100%);
 	}
 
 	.brand {
@@ -230,7 +248,9 @@
 	     3  CONTENT   type and inputs. Never crossed, always legible.
 	   A canvas cannot depth-test against a DOM input, so the form does not go
 	   into the scene; it sits above it. The strip covers the pane's SURFACE,
-	   which is the effect, without ever landing on the field you are typing in. */
+	   which is the effect, without ever landing on the field you are typing in.
+	   Demoting this to plane 0 to quiet a dense step deletes the whole
+	   composition — the ribbon then only ever shows in the brand pane's margins. */
 	.art {
 		position: absolute;
 		inset: 0;
@@ -322,18 +342,22 @@
 		width: 100%;
 		max-width: 340px;
 	}
-	.page.has-visual .form-body {
+	.page.wide .form-body {
 		max-width: 100%;
 	}
 	/* Scrolls the FLOW rather than the page: the left pane is a fixed stage, and
 	   a page-level scrollbar would slide it out of view to reach a button on the
 	   right. `.form-side` is `place-items: center`, which pins a taller child to
 	   the middle and cuts off both ends, so the alignment relaxes here too. */
-	.page.has-visual .form-side {
+	/* `minmax(0, 1fr)` for the same reason as the page's columns: an auto track
+	   grows to its widest unbreakable row and pushes the flow past the pane's
+	   inset and off the edge of the screen. */
+	.page.wide .form-side {
+		grid-template-columns: minmax(0, 1fr);
 		align-items: stretch;
 		overflow-y: auto;
 	}
-	.page.has-visual .form-body {
+	.page.wide .form-body {
 		align-self: center;
 		padding: var(--sp-5) 0;
 	}
@@ -421,11 +445,41 @@
 	}
 
 	@media (max-width: 900px) {
-		.page {
-			grid-template-columns: 1fr;
+		.page,
+		.page.wide {
+			grid-template-columns: minmax(0, 1fr);
+			/* One column and nothing beside it, so there is nothing to scroll TO
+			   sideways — and a phone that can be dragged 200px off the form is how
+			   the flow ends up half off-screen with a strip in the gap. */
+			overflow-x: hidden;
 		}
 		.brand {
 			display: none;
+		}
+		/* With the brand pane gone the flow IS the screen, so it gets the screen.
+		   The 340px measure and the centring inset are sized for a column beside
+		   something; kept here they leave a narrow ribbon of form in the middle of
+		   a phone with the seam and its shadow drawn down a hairline edge. */
+		.form-side {
+			padding: var(--sp-5) var(--sp-4);
+			align-items: stretch;
+			overflow-y: auto;
+		}
+		.form-side::before {
+			border-left: 0;
+			box-shadow: none;
+		}
+		.form-body,
+		.page.wide .form-body {
+			max-width: 100%;
+			align-self: center;
+		}
+		/* The one place the strip does drop to the back plane. With the brand pane
+		   gone the form pane IS the viewport, so a plane-2 ribbon crosses every
+		   field on the screen rather than the margin beside them — the same paint
+		   that reads as depth on a split reads as noise on a phone. */
+		.art {
+			z-index: 0;
 		}
 	}
 </style>

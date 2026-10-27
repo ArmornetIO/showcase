@@ -28,6 +28,7 @@
 	// `hitchWatch`'s own rAF — one timestamp subtraction and a counter. Nothing
 	// here writes `$state` per frame, which is the mistake that makes a profiler
 	// perturb what it profiles.
+	import { untrack } from 'svelte';
 	import { hitchWatch, type HitchSnapshot } from './hitch-watch.js';
 
 	let { onClose }: { onClose?: () => void } = $props();
@@ -95,13 +96,17 @@
 	}
 
 	$effect(() => {
-		try {
-			const saved = localStorage.getItem(KEY);
-			if (saved) pos = JSON.parse(saved);
-		} catch {
-			// ignore
-		}
-		if (!pos) pos = cornerPos(0);
+		// Untracked: this reads `pos` and `el` and writes `pos`, and a restored
+		// position is a fresh object every run — tracked, it re-fires forever.
+		untrack(() => {
+			try {
+				const saved = localStorage.getItem(KEY);
+				if (saved) pos = JSON.parse(saved);
+			} catch {
+				// ignore
+			}
+			if (!pos) pos = cornerPos(0);
+		});
 		// `~` is shift-backtick, so opening the HUD and moving it are the same key
 		// with and without shift — no second shortcut to remember.
 		const onKey = (e: KeyboardEvent) => {

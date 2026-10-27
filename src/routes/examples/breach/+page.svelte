@@ -8,7 +8,7 @@
 	// server refuses a spectator subscription from anybody who is not a god
 	// admin, so typing the parameter in gets you an empty gallery.
 	import { Breach, BreachSpectate } from '$examples/breach/index.js';
-	import { arrivedToSpectate } from '$examples/breach/api.js';
+	import { arrivedOnLink, arrivedToSpectate } from '$examples/breach/api.js';
 
 	const spectating = arrivedToSpectate();
 </script>
@@ -18,7 +18,8 @@
 </svelte:head>
 
 {#if spectating}
-	<div class="h-screen"><BreachSpectate /></div>
+	<!-- `?spectate&t=<id>` goes straight to that table (`make breach-sim`). -->
+	<div class="h-screen"><BreachSpectate tableID={arrivedOnLink() ?? undefined} /></div>
 {:else}
 	<Breach />
 {/if}

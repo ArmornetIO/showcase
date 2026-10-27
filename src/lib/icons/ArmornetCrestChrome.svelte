@@ -64,7 +64,7 @@
 	 * a dark glass field, and the A drawn as machined tubing on ball joints. It is
 	 * presentation art — hero, splash, favicon source — NOT a UI icon. It carries
 	 * gradients and a cast shadow, so it will not survive single-colour
-	 * reproduction and it muddies below ~48px. Reach for `<ArmornetCrest />`
+	 * reproduction and it muddies below ~48px. Reach for `<ArmornetLogo />`
 	 * (two-tone line) or `<Icon name="armornet" />` (single weight) at UI sizes.
 	 *
 	 * Every colour here is SAMPLED from the reference render rather than picked by

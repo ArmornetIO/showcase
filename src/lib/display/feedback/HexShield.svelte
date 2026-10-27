@@ -36,7 +36,7 @@
 </script>
 
 <div class="relative w-full max-w-[30rem] aspect-square flex flex-col p-2">
-	<div class="flex justify-between font-[var(--mono)] text-[0.62rem] tracking-[0.22em] uppercase text-[var(--accent)]">
+	<div class="flex justify-between font-(family-name:--mono) text-[0.62rem] tracking-[0.22em] uppercase text-[var(--accent)]">
 		<span class="hex-meta-label">
 			<span
 				class="inline-block w-[6px] h-[6px] rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)] mr-[0.4rem] align-middle {active ? 'hex-dot-active' : ''}"
@@ -102,7 +102,7 @@
 		</svg>
 	</div>
 
-	<div class="flex justify-between font-[var(--mono)] text-[0.62rem] tracking-[0.22em] uppercase text-[var(--fg-muted)] mt-auto">
+	<div class="flex justify-between font-(family-name:--mono) text-[0.62rem] tracking-[0.22em] uppercase text-[var(--fg-muted)] mt-auto">
 		<span>LAYERS · <span class="text-[var(--accent)]">{String(layers).padStart(2, '0')}</span></span>
 		<span>PLATES · <span class="text-[var(--accent)]">{String(plates).padStart(2, '0')}</span></span>
 	</div>

@@ -15,12 +15,12 @@
 		groups: ToolGroup[];
 		state: ConsoleState;
 		nits: NitsController;
-		/** Where flags and serve mode live now. One link, not a sentence. */
+		/** Where flags and serve mode live. One link, not a sentence; none when unset. */
 		flagsHref?: string;
 		onClose: () => void;
 	}
 
-	let { groups, state, nits, flagsHref = '/admin/flags', onClose }: ConsoleProps = $props();
+	let { groups, state, nits, flagsHref, onClose }: ConsoleProps = $props();
 
 	const ordered = $derived([...groups].sort((a, b) => (a.order ?? 99) - (b.order ?? 99)));
 	const current = $derived(state.resolve(ordered));
@@ -49,9 +49,11 @@
 			{/if}
 		</div>
 
-		<footer class="dc-foot">
-			<a class="dc-link" href={flagsHref}>flags →</a>
-		</footer>
+		{#if flagsHref}
+			<footer class="dc-foot">
+				<a class="dc-link" href={flagsHref}>flags →</a>
+			</footer>
+		{/if}
 	</div>
 </aside>
 

@@ -30,11 +30,11 @@
 // Everything is octagonal, because the body is (`builds.ts`, rule 2: nothing
 // has a corner). A hat with square corners is a hat off a different model.
 
-import type { Solid } from '../mesh-studio/pieces/pieces.js';
+import { prism, type Solid } from '../mesh-studio/pieces/pieces.js';
 import type { Shape } from './characters.js';
 import { figure, measure, type Anchors, type BodyTag, type Material, type Part } from './builds.js';
 import { at, atAngle, lift, lump, ring, shear, taper } from './solids.js';
-import { glyph, GLYPHS } from './glyphs.js';
+import { glyph, GLYPHS, LOGO } from './glyphs.js';
 // Imported here rather than defined here: a card is a held OBJECT, not a worn
 // one, and its geometry has nothing in common with a hat beyond the anchor it
 // hangs off. Same registry, separate file.
@@ -247,18 +247,35 @@ const VISOR: Wearable = {
 	anchor: 'brow',
 	parts: (a) => {
 		const hh = headH(a);
-		const n = a.browFront - a.headD * 0.09;
+		const hw = a.headW;
+		const hd = a.headD;
+		// WRAPS the skull, the way the body's own visor does: chamfered where the
+		// skull is chamfered and sunk into it at the back. A straight bar standing
+		// proud of the face floats its ends past the skull's corners and reads as
+		// a rod passing through the head at three-quarter view.
+		const vw = hw * 1.04;
+		const front = a.browFront - hd * 0.12;
+		const side = front + hd * 0.38;
+		const band = prism(
+			[
+				[-hw * 0.74, front],
+				[hw * 0.74, front],
+				[vw, side],
+				[vw * 0.95, -hd * 0.3],
+				[-vw * 0.95, -hd * 0.3],
+				[-vw, side]
+			],
+			a.brow - 0.09 * hh,
+			a.brow + 0.1 * hh
+		);
 		return [
-			// Kept INSIDE the skull's own silhouette. Wider than the head, a band
-			// standing proud of the face stops reading as a visor and starts
-			// reading as a rod passing through it — which is exactly what it looked
-			// like the first time, at three-quarter view and nowhere else.
-			part(at(lump(a.headW * 0.97, a.headD * 0.12, a.brow - 0.09 * hh, a.brow + 0.1 * hh, 0.3), 0, n), 0.9),
+			part(band, 0.9),
+			// The lens stays on the band's flat front; wider, its ends hang in air.
 			part(
 				at(
-					lump(a.headW * 0.78, a.headD * 0.06, a.brow - 0.04 * hh, a.brow + 0.05 * hh, 0.3),
+					lump(hw * 0.62, hd * 0.06, a.brow - 0.04 * hh, a.brow + 0.05 * hh, 0.3),
 					0,
-					n - a.headD * 0.06
+					a.browFront - hd * 0.15
 				),
 				1,
 				'lamp'
@@ -385,6 +402,36 @@ const badge = (id: string): Wearable => ({
 
 export const BADGES: Wearable[] = Object.keys(GLYPHS).map(badge);
 
+/**
+ * The filled Armornet mark, worn AS the chest plate rather than on it: a trim
+ * shield with the figure standing proud of it in the suit's colour, which is how
+ * the punched-through logo survives a kernel that cannot punch. Founders' plate,
+ * so not in the badge set.
+ *
+ * Replacing the plate is what stops the clipping. Laid on top, the shield was
+ * wider than the plate's flat face and cut through its chamfers, and the plate's
+ * colour showed round it.
+ */
+const LOGO_PLATE: Wearable = {
+	key: 'emblem.logo',
+	anchor: 'chest',
+	suppress: ['chest'],
+	parts: (a) => {
+		// Sized off HEIGHT so the four builds wear one mark at nearly one size; a
+		// brute's chest is twice a drone's. Capped to the torso's flat front so an
+		// edge never crosses a corner.
+		const w = Math.min(a.tall * 0.09, (a.chestW * 0.66 * 0.92) / LOGO.halfWidth);
+		// Back buried in the torso, front where the chest plate's front was.
+		const back = -a.chestD * 0.96;
+		const t = back - a.plateN;
+		const on = (s: Solid) => at(lift(s, a.plateH), 0, back);
+		return [
+			...glyph(LOGO.shield, w, t).map((s) => part(on(s), 1.05)),
+			...glyph(LOGO.figure, w, t + a.chestD * 0.03).map((s) => ({ ...part(on(s), 0.45, 'suit'), over: w }))
+		];
+	}
+};
+
 export const WEARABLES: Record<string, Wearable> = Object.fromEntries(
 	[
 		NONE,
@@ -399,6 +446,7 @@ export const WEARABLES: Record<string, Wearable> = Object.fromEntries(
 		CROWN,
 		HALO,
 		...BADGES,
+		LOGO_PLATE,
 		...CARD_WEARABLES
 	].map((w) => [w.key, w])
 );

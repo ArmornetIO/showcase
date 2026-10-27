@@ -32,6 +32,25 @@
 		socket?: TableSocket | null;
 		refusal?: string | null;
 		onrules?: () => void;
+		/**
+		 * The plate on a hand-sized screen: two rows, three zones, nothing that is
+		 * only ever read.
+		 *
+		 * Wide, this card is a SHEET — five sections that answer every standing
+		 * question about your seat at once, which is right beside a board with
+		 * room for it. Across the bottom of a phone the same five sections wrap to
+		 * five rows and take a third of the screen, and four of them never change
+		 * between turns: your name, your passive, and two of the three track slots
+		 * are facts you learn once. A bar you re-read every turn to find the one
+		 * line that moved is the shape that makes a game feel like a form.
+		 *
+		 * So compact keeps what a player ACTS on — the live sentence, what you
+		 * have to spend, the signature, and the two keys — and lets the portrait
+		 * carry identity. Nothing is deleted: the name and the passive are on the
+		 * character in the drawer, and a locked slot's date is in the one chip
+		 * still shown.
+		 */
+		compact?: boolean;
 	}
 
 	let {
@@ -40,7 +59,8 @@
 		takeover = false,
 		socket = null,
 		refusal = null,
-		onrules = () => {}
+		onrules = () => {},
+		compact = false
 	}: Props = $props();
 
 	// When the card has something to SAY rather than something to show. The turn
@@ -73,6 +93,17 @@
 	);
 
 	const HEX = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
+
+	/** Everything online, and the next thing to come. Derived off `match.track()`
+	 *  rather than sliced at the call site so the "next" is the first one still
+	 *  locked in track ORDER — the rail is ordered by round, and taking `[0]` of
+	 *  a filtered list would name whichever slot happened to be listed first. */
+	const shortTrack = $derived.by(() => {
+		const all = match.track();
+		const open = all.filter((u) => match.round >= u.at);
+		const next = all.find((u) => match.round < u.at);
+		return next ? [...open, next] : open;
+	});
 
 </script>
 
@@ -132,19 +163,33 @@
 	     in its own hue, and whose turn it is as the same round bordered gem the
 	     hero cards use for AP. The CHANGE still carries the meaning — the gem
 	     lights when the turn is yours — it just no longer shouts it. -->
-	<div class="flex items-center gap-2 px-3 pt-2">
+	<!-- Wraps. Every row on this plate was laid out for 54rem and none of them
+	     shrink — five `shrink-0` sections do not add up to less than themselves —
+	     so at a third of that width they hung off the right edge instead of
+	     folding. Wrapping is width-driven rather than breakpoint-driven, which is
+	     what this card needs: it is `min(94vw, 54rem)`, so it is nearly full width
+	     in landscape and a third of it in portrait, and there is no single number
+	     at which "narrow" begins. -->
+	<div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 pt-2">
 		<!-- `shrink-0` on the identity half and `min-w-0` on the status half: the
 		     header is a flex row whose right side holds a sentence, and without a
 		     `min-w-0` a flex child refuses to shrink below its content — so the
 		     sentence pushed the row wider than the card instead of truncating, and
 		     ran out under everything to its right. -->
-		<span class="flex shrink-0 items-center gap-2">
-			<b
-				class="truncate font-mono text-[0.6875rem] leading-none font-black tracking-[0.06em] uppercase"
-				style:color={seat.color}
-			>
-				{seat.name}
-			</b>
+		<span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 xl:shrink-0 xl:flex-nowrap">
+			<!-- Your own name and your own passive, hidden on a phone. Both are
+			     answers to "who am I", both were settled in the lobby, and neither
+			     changes for the rest of the match — but together they are the widest
+			     thing on the header and they wrap the two gems, which DO change, onto
+			     a line of their own. The portrait a row below says the same thing in
+			     46px, and the character in the drawer says it in full. -->
+			{#if !compact}
+				<b
+					class="truncate font-mono text-[0.6875rem] leading-none font-black tracking-[0.06em] uppercase"
+					style:color={seat.color}
+				>
+					{seat.name}
+				</b>
 			<!-- The passive rides up here, where `YOUR SEAT` was. That label named
 			     the card you are already looking at — it is the only card on screen
 			     with your character in it — while the passive was taking a whole
@@ -168,6 +213,7 @@
 					{seat.passive.name}
 				</span>
 			</Tooltip>
+			{/if}
 
 			<!-- ── The readouts ────────────────────────────────────────────────
 			     Back on the header's LEFT, beside the passive. They spent one pass in
@@ -198,7 +244,17 @@
 		     mounts this at `big`, and two copies of the same line would then be on
 		     screen at once. -->
 		{#if !moment}
-			<SeatStatus {match} {state} {socket} {refusal} class="min-w-0 flex-1 justify-end" />
+			<!-- A floor, so the sentence takes a line of its own rather than being
+			     ground down to `EARNEST CO…` beside the gems. It is the only part of
+			     this header that changes with the moment, and a truncated verb is
+			     worth less than a second row. -->
+			<SeatStatus
+				{match}
+				{state}
+				{socket}
+				{refusal}
+				class="grow basis-[14rem] justify-start xl:justify-end"
+			/>
 		{/if}
 	</div>
 
@@ -234,7 +290,10 @@
 	<!-- `min-w-0` and a real gap budget: the row is five sections wide and every
 	     one of them was `shrink-0`, so the moment they added up past the card they
 	     kept their size and spilled out of it instead of tightening. -->
-	<div class="flex min-w-0 items-center justify-between gap-3">
+	<!-- Wraps, for the same reason the header does. The vertical rules go with it
+	     below `xl`: a divider between two sections is only a divider while they
+	     are on the same line, and on the next one it is a tick mark. -->
+	<div class="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2">
 		<!-- `shrink-0`, not `flex-1`. The identity block claiming the row's slack is
 		     what pushed the divider 300px right of the content it divides; the
 		     slack belongs between the sections, not inside one. -->
@@ -272,9 +331,12 @@
 						     at a shoulder. -->
 						<span class="absolute inset-x-0 top-0 aspect-square">
 							<Figure
-								klass={klassByKey(seat.key)}
+								klass={match.figureOf?.(seat.key)?.skin ?? klassByKey(seat.key)}
 								crop="bust"
-								art={{ worn: kitFor(seat.key), trim: seat.color }}
+								art={match.figureOf?.(seat.key)?.art ?? {
+									worn: kitFor(seat.key),
+									trim: seat.color
+								}}
 							/>
 						</span>
 					</div>
@@ -304,9 +366,13 @@
 				</span>
 
 				<!-- 176px, not "whatever is left". A bar reads as a proportion and had
-				     no use for the 400px it was being handed. -->
+				     no use for the 400px it was being handed.
+				     It is also the widest thing in the identity block, so below `xl` it
+				     is what decides whether the track fits on the same line as the
+				     crest — a proportion reads at 112px exactly as well, and buying the
+				     row back is worth more here than 64px of meter. -->
 				<span
-					class="block h-[8px] w-[176px] overflow-hidden bg-[var(--surface-strong)]"
+					class="block h-[8px] w-[112px] max-w-full overflow-hidden bg-[var(--surface-strong)] xl:w-[176px]"
 					class:pulse-soft={match.standing <= 30}
 					style:clip-path="polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%)"
 				>
@@ -321,7 +387,7 @@
 		</div>
 		</div>
 
-		<span class="h-12 w-px shrink-0 bg-[var(--border)]"></span>
+		<span class="hidden h-12 w-px shrink-0 bg-[var(--border)] xl:block"></span>
 
 		<!-- ── The track, as a charge rail ──────────────────────────────────────
 		     Rectangles rather than rings: the slots fill from the bottom like an
@@ -336,7 +402,12 @@
 		     height, and nothing else. -->
 		<div class="flex shrink-0 self-stretch">
 			<span class="flex items-stretch gap-1.5">
-				{#each match.track() as upgrade (upgrade.key)}
+				<!-- Compact shows every slot that is ONLINE plus the ONE next to come.
+				     Three locked rectangles reading R3 R6 R9 are a release schedule,
+				     and a release schedule is not a control — the only one that
+				     changes anything soon is the first, and each slot names its own
+				     round, so nothing about the rest is lost by not drawing them. -->
+				{#each compact ? shortTrack : match.track() as upgrade (upgrade.key)}
 					{@const open = match.round >= upgrade.at}
 					{@const kind = UPGRADE_KIND[upgrade.kind]}
 					{@const away = Math.max(0, upgrade.at - match.round)}
@@ -360,7 +431,7 @@
 						{/snippet}
 						<span class="flex items-stretch">
 							<span
-								class="relative grid w-[52px] place-items-center overflow-hidden rounded-[8px] border"
+								class="relative grid w-[44px] place-items-center overflow-hidden rounded-[8px] border xl:w-[52px]"
 								style:border-color={open
 									? `color-mix(in srgb, ${kind.hue} 75%, transparent)`
 									: 'color-mix(in srgb, #FBBF24 55%, transparent)'}
@@ -419,7 +490,7 @@
 
 		     `disabled` still gates the click. Looking available and being clickable
 		     are different questions and only the second one is the button's. -->
-		<span class="h-12 w-px shrink-0 bg-[var(--border)]"></span>
+		<span class="hidden h-12 w-px shrink-0 bg-[var(--border)] xl:block"></span>
 
 		{#if power}
 			{@const pfx = fxFor(power.key, seat.faction)}
@@ -431,12 +502,22 @@
 			     label was naming what the reader is already looking at, and `READY`
 			     was saying in a word what the glow says without one.
 			     `self-stretch` in an `items-center` row: it fills its side, top to
-			     bottom, which is the whole point of putting it here. -->
+			     bottom, which is the whole point of putting it here.
+
+			     190px is a PREFERENCE now, not a floor. As a `min-width` it was the
+			     one number on this plate that could not be honoured — the key
+			     measured off the right edge of a 390px screen, still 190px wide,
+			     because a minimum cannot fold. As a basis it asks for 190, takes the
+			     next line when it cannot have it, and gives ground only when even
+			     that line is short. -->
+			<!-- `min-h` on the key and nothing on the two round ones: this stretches
+			     to a row that is already taller than the touch minimum, and only
+			     falls short when it is alone on a wrapped line. -->
 			<button
 				type="button"
 				disabled={!powerArmable}
 				onclick={() => match.arm(power.key)}
-				class="relative flex min-w-[190px] flex-1 items-center gap-2.5 self-stretch overflow-hidden rounded-[8px] border px-2.5 text-left transition-all disabled:cursor-default"
+				class="relative flex min-h-[44px] min-w-0 grow basis-[190px] items-center gap-2.5 self-stretch overflow-hidden rounded-[8px] border px-2.5 text-left transition-all disabled:cursor-default"
 					style:color={spent ? 'var(--fg-dim)' : pfx.hue}
 					style:border-color={spent
 						? 'color-mix(in srgb, var(--fg) 14%, transparent)'
@@ -504,7 +585,7 @@
 			</button>
 		{/if}
 
-		<span class="h-12 w-px shrink-0 bg-[var(--border)]"></span>
+		<span class="hidden h-12 w-px shrink-0 bg-[var(--border)] xl:block"></span>
 
 		<!-- No commit key and no end key. Dragging a card onto a building already
 		     resolves on release, and a selection made while a card is armed commits
@@ -520,7 +601,7 @@
 			{/snippet}
 			<button
 				type="button"
-				class="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full text-[var(--fg-muted)] transition-colors hover:text-[var(--fg)]"
+				class="touch-key grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full text-[var(--fg-muted)] transition-colors hover:text-[var(--fg)]"
 				onclick={onrules}
 				aria-label="rules"
 			>
@@ -542,7 +623,7 @@
 			{/snippet}
 			<button
 				type="button"
-				class="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full transition-colors"
+				class="touch-key grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full transition-colors"
 				style:color={match.auto ? '#34D399' : 'var(--fg-muted)'}
 				style:background={match.auto ? 'color-mix(in srgb, #34D399 16%, transparent)' : 'transparent'}
 				onclick={() => (match.auto = !match.auto)}
@@ -564,6 +645,16 @@
 	   is not here: the clock moved to `TopClock` and took its animation with it. */
 	.pulse-soft {
 		animation: pulse-fade 1400ms ease-in-out infinite;
+	}
+
+	/* 26px is a cursor's target. A finger has no crosshair and no hover to aim
+	   with, so where there is neither, the pad grows to the 44px minimum — the
+	   glyph inside is unchanged, and a mouse never sees this. */
+	@media (hover: none) and (pointer: coarse) {
+		.touch-key {
+			height: 44px;
+			width: 44px;
+		}
 	}
 	@keyframes pulse-fade {
 		0%,

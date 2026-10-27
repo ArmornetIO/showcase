@@ -48,14 +48,6 @@ export interface ShapeSpec {
 	/** Blob lobe depth (fraction of r) + count. */
 	lobeAmp?: number;
 	lobeFreq?: number;
-	/** Instrument facet — one shallow inward flat centred on facetAngle. */
-	facetAngle?: number;
-	facetDepth?: number; // fraction of r pulled inward
-	facetWidth?: number; // half-width of the flat, deg
-	/** Instrument notches — shallow inward dimples at these angles. */
-	notchAngles?: number[];
-	notchDepth?: number;
-	notchSigma?: number; // deg
 	// ── Additive outline / decoration devices (drawn by the renderer) ─────────
 	/** Concentric inner ring radii, as fractions of r (authority / nesting). */
 	innerRings?: number[];
@@ -64,8 +56,6 @@ export interface ShapeSpec {
 	/** Second concentric outline stroke (trust boundary). */
 	doubleStroke?: boolean;
 	// ── State deformation (applied on top of the base silhouette) ─────────────
-	/** Degraded "deflation" dent amplitude (fraction of r). */
-	dentAmp?: number;
 	/** Uniform scale (offline recede). */
 	scale?: number;
 }
@@ -150,38 +140,9 @@ function baseRatio(spec: ShapeSpec, thetaDeg: number): number {
 	}
 }
 
-/** Applies instrument facet + notch perturbations (inward) to a ratio. */
-function applyPerturbations(spec: ShapeSpec, thetaDeg: number, ratio: number): number {
-	let out = ratio;
-	if (spec.facetAngle !== undefined) {
-		const d = angDist(thetaDeg, spec.facetAngle);
-		const w = spec.facetWidth ?? 30;
-		// smoothstep flatten over the window
-		const t = Math.max(0, Math.min(1, (w - d) / w));
-		const smooth = t * t * (3 - 2 * t);
-		out *= 1 - (spec.facetDepth ?? 0.1) * smooth;
-	}
-	if (spec.notchAngles?.length) {
-		const sigma = spec.notchSigma ?? 12;
-		let dip = 0;
-		for (const na of spec.notchAngles) {
-			const d = angDist(thetaDeg, na);
-			dip += Math.exp(-((d / sigma) * (d / sigma)));
-		}
-		out *= 1 - (spec.notchDepth ?? 0.06) * Math.min(1, dip);
-	}
-	return out;
-}
-
-/** Full silhouette radius ratio at θ (deg), including perturbations + state deform. */
+/** Full silhouette radius ratio at θ (deg), including the offline recede. */
 export function radiusRatio(spec: ShapeSpec, thetaDeg: number): number {
-	let ratio = baseRatio(spec, thetaDeg);
-	ratio = applyPerturbations(spec, thetaDeg, ratio);
-	if (spec.dentAmp) {
-		// subtle irregular deflation — degraded
-		ratio *= 1 - spec.dentAmp * (1 + Math.sin(3 * thetaDeg * DEG)) * 0.5;
-	}
-	return ratio * (spec.scale ?? 1);
+	return baseRatio(spec, thetaDeg) * (spec.scale ?? 1);
 }
 
 /** Shape-aware successor to resolvePortOffset — dx/dy from centre to the silhouette. */
@@ -250,12 +211,11 @@ const SIGNET: Record<MeshNodeType, ShapeSpec> = {
 const INSTRUMENT: Record<MeshNodeType, ShapeSpec> = {
 	// Triple-ring gauge — the deepest instrument = authority.
 	'control-plane': { kind: 'disc', innerRings: [0.8, 0.58], strokeWidth: 2.4, doubleStroke: true },
-	// Machined disc — a circle, but squared at the shoulders.
-	'agentic': { kind: 'squircle', n: 4, strokeWidth: 1.8 },
-	// Faceted dial — one chamfer facing the port it filters.
-	'proxy': { kind: 'disc', facetAngle: 90, facetDepth: 0.1, facetWidth: 30, strokeWidth: 2.2, doubleStroke: true },
-	// Notched dial — three gauge inlets, one per port.
-	'daemon': { kind: 'disc', notchAngles: [270, 0, 90], notchDepth: 0.06, notchSigma: 12, strokeWidth: 1.5 },
+	// True circles. The squared shoulders, chamfer and notches that used to tell
+	// these apart read as a badly drawn circle, never as a type.
+	'agentic': { kind: 'disc', strokeWidth: 1.8 },
+	'proxy': { kind: 'disc', strokeWidth: 2.2, doubleStroke: true },
+	'daemon': { kind: 'disc', strokeWidth: 1.5 },
 };
 
 export function shapeForType(concept: ShapeConcept, type: MeshNodeType): ShapeSpec {
@@ -265,7 +225,6 @@ export function shapeForType(concept: ShapeConcept, type: MeshNodeType): ShapeSp
 
 /** Applies state deformation to a base shape (additive to badges). */
 export function withState(spec: ShapeSpec, state: NodeState | undefined): ShapeSpec {
-	if (state === 'degraded') return { ...spec, dentAmp: 0.05 };
 	if (state === 'offline') return { ...spec, scale: 0.9 };
 	return spec;
 }

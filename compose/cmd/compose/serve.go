@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	iofs "io/fs"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,8 +12,10 @@ import (
 	"sort"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/ArmornetIO/showcase/compose"
+	"github.com/ArmornetIO/showcase/compose/devcog"
 )
 
 // addrFlags maps a listener to the address serving it.
@@ -62,8 +65,16 @@ func runServe(args []string) error {
 	load := bindInputs(fs, traits)
 	addrs := newAddrFlags()
 	fs.Var(addrs, "addr", "where to listen: [listener=]host:port (repeatable, default :8080 for the web listener)")
+	devtools := fs.Bool("devtools", false, "inject the dev console into every page and serve the app index")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	var bundle iofs.FS
+	if *devtools {
+		if !devcog.Built() {
+			return errors.New("--devtools: the console bundle is not built — run `npx vite build` in compose/devcog")
+		}
+		bundle = devcog.FS()
 	}
 	in, err := load()
 	if err != nil {
@@ -100,7 +111,7 @@ func runServe(args []string) error {
 		}
 	}
 
-	return serveAll(set, holder, addrs, in)
+	return serveAll(set, holder, addrs, in, bundle)
 }
 
 // setFromDisk builds the Set this process carries.
@@ -163,7 +174,7 @@ func listenersOf(res compose.Resolved) []string {
 
 // serveAll runs one HTTP server per listener and returns when any of them stops
 // or the process is interrupted.
-func serveAll(set compose.Set, holder *compose.Holder, addrs *addrFlags, in inputs) error {
+func serveAll(set compose.Set, holder *compose.Holder, addrs *addrFlags, in inputs, devTools iofs.FS) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
@@ -181,8 +192,8 @@ func serveAll(set compose.Set, holder *compose.Holder, addrs *addrFlags, in inpu
 		// is anonymous and only `anyone`, `dev` and the --trait overrides can
 		// hold. Inventing a caller here would be inventing an input, and the
 		// inputs are the thing the host and this tool have to share.
-		h := compose.Handler(set, holder, compose.HandlerOptions{Listener: listener})
-		srv := &http.Server{Addr: addr, Handler: h}
+		h := compose.Handler(set, holder, compose.HandlerOptions{Listener: listener, DevTools: devTools})
+		srv := &http.Server{Addr: addr, Handler: h, ReadHeaderTimeout: 10 * time.Second}
 		servers = append(servers, srv)
 		fmt.Printf("compose: listener %q on %s — apps: %s\n", listener, addr, strings.Join(appsOn(in.resolved, listener), " "))
 		go func() {

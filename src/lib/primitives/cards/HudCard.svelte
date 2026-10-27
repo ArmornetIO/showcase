@@ -14,6 +14,8 @@
 		variant?: CardVariant;
 		icon?: Snippet;
 		children?: Snippet;
+		/** Compact size for pickers and dense grids: less padding, smaller type. */
+		dense?: boolean;
 		class?: string;
 	}
 
@@ -29,6 +31,7 @@
 		variant = 'accent',
 		icon,
 		children,
+		dense = false,
 		class: cls = ''
 	}: Props = $props();
 
@@ -100,7 +103,7 @@
 </script>
 
 <div
-	class="relative overflow-hidden r-inset border p-7 pr-8 transition-[border-color,box-shadow] duration-[250ms] {featured ? 'border-[var(--border-feat)] shadow-[var(--shadow-feat)]' : 'border-[var(--border)]'} {cls}"
+	class="relative overflow-hidden r-inset border {dense ? 'p-4' : 'p-7 pr-8'} transition-[border-color,box-shadow] duration-[250ms] {featured ? 'border-[var(--border-feat)] shadow-[var(--shadow-feat)]' : 'border-[var(--border)]'} {cls}"
 	style:background={v.bg}
 	style:--border={v.border}
 	style:--border-feat={v.borderFeatured}
@@ -130,7 +133,7 @@
 
 	{#if num != null}
 		<span
-			class="pointer-events-none absolute bottom-[-0.25rem] right-4 select-none font-[var(--mono-display)] text-[5rem] font-bold leading-none text-transparent [webkit-text-stroke:1px_var(--c-num)] [text-stroke:1px_var(--c-num)]"
+			class="pointer-events-none absolute bottom-[-0.25rem] right-4 select-none font-(family-name:--mono-display) text-[5rem] font-bold leading-none text-transparent [webkit-text-stroke:1px_var(--c-num)] [text-stroke:1px_var(--c-num)]"
 			aria-hidden="true"
 			style="-webkit-text-stroke: 1px var(--c-num)">{num}</span
 		>
@@ -138,30 +141,30 @@
 
 	{#if windowLabel}
 		<div
-			class="absolute right-6 top-[0.625rem] font-[var(--mono)] text-[0.5rem] uppercase tracking-[0.25em] text-[var(--fg-dim)]"
+			class="absolute right-6 top-[0.625rem] font-(family-name:--mono) text-[0.5rem] uppercase tracking-[0.25em] text-[var(--fg-dim)]"
 		>
 			{windowLabel}
 		</div>
 	{/if}
 
-	<div class="relative flex flex-col gap-[0.625rem]">
+	<div class="relative flex flex-col {dense ? 'gap-1.5' : 'gap-[0.625rem]'}">
 		{#if icon}
-			<div class="mb-1 text-2xl leading-none">{@render icon()}</div>
+			<div class="mb-1 leading-none {dense ? 'text-lg' : 'text-2xl'}">{@render icon()}</div>
 		{/if}
 		{#if eyebrow}
 			<div
-				class="font-[var(--mono)] text-[0.625rem] uppercase tracking-[0.3em] text-[var(--c-eyebrow)]"
+				class="font-(family-name:--mono) text-[0.625rem] uppercase tracking-[0.3em] text-[var(--c-eyebrow)]"
 			>
 				/ {eyebrow}
 			</div>
 		{/if}
 		<h3
-			class="m-0 font-[var(--mono-display)] text-[1.125rem] font-bold leading-[1.25] text-[var(--fg)]"
+			class="m-0 font-(family-name:--mono-display) font-bold leading-[1.25] text-[var(--fg)] {dense ? 'text-sm' : 'text-[1.125rem]'}"
 		>
 			{title}
 		</h3>
 		{#if body}
-			<p class="m-0 text-[0.9375rem] leading-[1.65] text-[var(--fg-muted)]">{body}</p>
+			<p class="m-0 text-[var(--fg-muted)] {dense ? 'text-xs leading-snug' : 'text-[0.9375rem] leading-[1.65]'}">{body}</p>
 		{/if}
 		{#if children}
 			{@render children()}
@@ -169,12 +172,12 @@
 		{#if ctaLabel}
 			{#if ctaHref}
 				<a
-					class="mt-1 inline-block font-[var(--mono)] text-[0.6875rem] uppercase tracking-[0.15em] text-[var(--c-cta)] no-underline transition-opacity duration-200 hover:opacity-75"
+					class="mt-1 inline-block font-(family-name:--mono) text-[0.6875rem] uppercase tracking-[0.15em] text-[var(--c-cta)] no-underline transition-opacity duration-200 hover:opacity-75"
 					href={ctaHref}>{ctaLabel} →</a
 				>
 			{:else}
 				<span
-					class="mt-1 inline-block font-[var(--mono)] text-[0.6875rem] uppercase tracking-[0.15em] text-[var(--c-cta)] transition-opacity duration-200 hover:opacity-75"
+					class="mt-1 inline-block font-(family-name:--mono) text-[0.6875rem] uppercase tracking-[0.15em] text-[var(--c-cta)] transition-opacity duration-200 hover:opacity-75"
 					>{ctaLabel} →</span
 				>
 			{/if}

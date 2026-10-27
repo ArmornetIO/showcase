@@ -251,6 +251,44 @@
 		padding: { top: 4, right: 4, bottom: 4, left: 4 }
 	};
 
+	// ── Swimlane ──────────────────────────────────────────────────────────────
+	// Codebase scan dispatch: x is a step ordinal, not wall-clock time.
+	const swimlaneConfig: ChartConfig = {
+		type: 'swimlane',
+		legend: { position: 'none' },
+		xAxis: { domain: [0, 12], ticks: 12, format: (v) => String(Number(v) + 1).padStart(2, '0') },
+		series: [
+			{ id: 'console', label: 'Console', color: 'var(--palette-sky)', points: [
+				{ x: 0, x1: 1, y: 0, label: 'Request scan' },
+				{ x: 11.5, y: 0, label: 'Report ready' }
+			] },
+			{ id: 'server', label: 'Server', color: 'var(--accent)', points: [
+				{ x: 1, x1: 2, y: 0, label: 'Queue' },
+				{ x: 9, x1: 10.5, y: 0, label: 'Ingest + repo check' }
+			] },
+			{ id: 'store', label: 'Store', color: 'var(--palette-purple-l)', points: [
+				{ x: 2, x1: 3, y: 0, label: 'scan_requests' },
+				{ x: 10.5, x1: 11.5, y: 0, label: 'Encrypt + store' }
+			] },
+			{ id: 'linehub', label: 'Line hub', color: 'var(--palette-amber)', points: [
+				{ x: 4, x1: 5, y: 0, label: 'Dispatch + token' }
+			] },
+			{ id: 'agent', label: 'Org agent', color: 'var(--palette-green)', points: [
+				{ x: 3.5, y: 0, label: 'Contact' },
+				{ x: 5, x1: 8, y: 0, label: 'Run codebase tools' }
+			] }
+		],
+		links: [
+			{ from: { lane: 'console', x: 1 }, to: { lane: 'server', x: 1 }, label: 'POST' },
+			{ from: { lane: 'server', x: 2 }, to: { lane: 'store', x: 2 } },
+			{ from: { lane: 'agent', x: 3.5 }, to: { lane: 'linehub', x: 4 }, label: 'hello' },
+			{ from: { lane: 'linehub', x: 5 }, to: { lane: 'agent', x: 5 }, label: 'command' },
+			{ from: { lane: 'agent', x: 8 }, to: { lane: 'server', x: 9 }, label: 'report' },
+			{ from: { lane: 'server', x: 10.5 }, to: { lane: 'store', x: 10.5 } },
+			{ from: { lane: 'store', x: 11.5 }, to: { lane: 'console', x: 11.5 }, label: 'poll' }
+		]
+	};
+
 	// ── Radar ─────────────────────────────────────────────────────────────────
 
 	const radarAxes = ['Latency', 'Throughput', 'Error Rate', 'Coverage', 'Trust Score', 'Isolation'];
@@ -650,6 +688,17 @@
 			<p class="demo-desc">No bands, no needle, custom sweep. Everything but the reading is optional.</p>
 			<div style="height: 200px">
 				<Chart config={gaugePlainConfig} />
+			</div>
+		</ShowcaseBlock>
+
+		<ShowcaseBlock component="Chart">
+			<h3 class="demo-label">Swimlane</h3>
+			<p class="demo-desc">
+				Lanes are series, spans are points with x → x1, a point with no x1 is a milestone.
+				Handoffs live on the root as <code>links</code> because they belong to two lanes.
+			</p>
+			<div style="height: 308px">
+				<Chart config={swimlaneConfig} />
 			</div>
 		</ShowcaseBlock>
 

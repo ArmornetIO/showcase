@@ -77,7 +77,7 @@
 	const BANDS = [
 		{ key: 'botch', margin: '−5 or worse', means: 'It went wrong. Extra heat, and on an attack you lose one of your own figures and do not even scuff the wall.' },
 		{ key: 'fail', margin: '0 or less', means: 'Short. A tie counts as a fail — ties go to the defender. An attack that just missed still chips 1 off the building.' },
-		{ key: 'partial', margin: '+1 to +3', means: 'Half the printed effect, rounded up. An attack gets in, but the foothold is dislodgeable rather than persistent.' },
+		{ key: 'partial', margin: '+1 to +3', means: 'Half the printed effect, rounded up. An attack gets in, but the foothold lands one rung weaker than the card’s kind.' },
 		{ key: 'clean', margin: '+4 to +7', means: 'Exactly what the card says.' },
 		{ key: 'critical', margin: '+8 or better', means: 'The card and then some: +1 on effects, and an attack drives off two defenders instead of one.' }
 	] as const;
@@ -105,7 +105,7 @@
 			</p>
 			{#if playHref}
 				<a
-					class="flex items-center gap-2 rounded-md border border-[var(--border-strong)]
+					class="flex min-h-[44px] items-center gap-2 rounded-md border border-[var(--border-strong)]
 					       px-3 py-2 font-mono text-[0.65rem] uppercase tracking-widest
 					       hover:border-[var(--accent)] hover:text-[var(--accent)]"
 					href={playHref}
@@ -135,8 +135,9 @@
 					is the win.
 				</li>
 				<li>
-					Blue wins by surviving to the end of round {HORIZON}. Blue cannot remove a foothold
-					red has taken; blue can only make the next one harder and slower.
+					Blue wins by surviving to the end of round {HORIZON}. Blue can pull out a foothold
+					it has found, unless red dug in hard enough to make it permanent; mostly blue makes
+					the next one harder and slower.
 				</li>
 				<li>
 					Every card play is a 2d6 roll. Attacks roll against the target building’s hardening;
@@ -406,8 +407,8 @@
 					</li>
 					<li>
 						<span style:color={OUTCOME_COLOR.partial}>{pct(example.chance)}</span> to take it ·
-						<span style:color={OUTCOME_COLOR.clean}>{pct(example.chanceClean)}</span> for a
-						persistent foothold ·
+						<span style:color={OUTCOME_COLOR.clean}>{pct(example.chanceClean)}</span> for the
+						card’s full foothold ·
 						<span style:color={OUTCOME_COLOR.botch}>{pct(example.chanceBotch)}</span> to come
 						apart
 					</li>
@@ -464,9 +465,16 @@
 			</p>
 			<ul class="m-0 flex list-none flex-col gap-2 pl-0 text-[0.85rem] leading-relaxed">
 				<li class="border-l-2 border-[#F472B6]/50 pl-3">
-					<b>A hit takes the building.</b> A partial gets you in but the foothold is
-					<em>dislodgeable</em>; a clean or better makes it <em>persistent</em>. One blue
-					defender is driven off (two on a critical), and your figures take their place.
+					<b>A hit takes the building.</b> One blue defender is driven off (two on a
+					critical), and your figures take their place.
+				</li>
+				<li class="border-l-2 border-[#F472B6]/50 pl-3">
+					<b>Every foothold has a kind</b> — <em>temporary</em>, <em>removable</em> or
+					<em>permanent</em>. The card sets it (removable unless it says otherwise); a partial
+					lands one rung weaker, a critical one rung stronger. A temporary foothold lasts by
+					the roll’s margin — 1 round at +1, 2 up to +3, 3 up to +7, 4 beyond — then lapses at
+					the start of a round and red’s figures there leave. Blue is not told about a lapse it
+					never found. A permanent foothold never falls.
 				</li>
 				<li class="border-l-2 border-[#F472B6]/50 pl-3">
 					<b>A miss still hurts the wall.</b> A plain fail chips 1 permanent point off the
@@ -475,8 +483,8 @@
 					keeping the pressure <em>on it</em> rather than chipping at everything once.
 				</li>
 				<li class="border-l-2 border-[#F472B6]/50 pl-3">
-					<b>Attacking a building you already hold digs in.</b> It becomes persistent and
-					<em>staged</em> — which is worth +2 on your next step of the path. That is the real
+					<b>Attacking a building you already hold digs in.</b> Its kind moves up one rung and
+					it is <em>staged</em> — which is worth +2 on your next step of the path. That is the real
 					choice a foothold creates: push on now at the odds you have, or spend a turn and push
 					on at better ones.
 				</li>
@@ -487,9 +495,12 @@
 					fights; this is what makes it an intrusion.
 				</li>
 				<li class="border-l-2 border-[#F472B6]/50 pl-3">
-					<b>Nothing removes a foothold.</b> Not one card in the deck. Once red is in, red is
-					in — blue can only reveal it, clear the implant figures out of it, and seal the door
-					so the chain cannot advance through it.
+					<b>Blue can evict what it has found.</b> Rebuild From Source, Diff the Tarball,
+					Retro-Hunt and Know What You Ship remove a revealed temporary or removable foothold,
+					and red’s figures on it with it. The work is priced by what the foothold cost red: one
+					play finds and removes a 1 AP foothold on any hit, a 2 AP one on a clean or better; a
+					3 AP one needs a play to reveal it and a second to remove it. A foothold revealed
+					earlier comes off on any evicting hit. Losing it breaks leverage for the next step.
 				</li>
 			</ul>
 			<p class="m-0 max-w-[70ch] text-[0.88rem] leading-relaxed text-[var(--fg-dim)]">
@@ -559,8 +570,8 @@
 		<section class="flex flex-col gap-3">
 			<h2 id="blue" class="m-0 scroll-mt-8 text-lg font-black">How blue actually fights back</h2>
 			<p class="m-0 max-w-[70ch] text-[0.88rem] leading-relaxed">
-				Blue has no attacks and cannot evict a foothold, which reads as hopeless until you see
-				what blue is really doing: making every remaining step of the path cost more time than
+				Blue has no attacks and can evict only what it finds and red has not made permanent,
+				which reads as hopeless until you see what blue is really doing: making every remaining step of the path cost more time than
 				red has.
 			</p>
 			<ul class="m-0 flex list-none flex-col gap-2 pl-0 text-[0.85rem] leading-relaxed">
@@ -576,13 +587,17 @@
 				</li>
 				<li class="border-l-2 border-[#34D399]/50 pl-3">
 					<b>Reveal</b> — Sweep looks at a whole region; Diff, Attestation and Rebuild look at one
-					building but read deep. Revealing does not remove anything, but it is the only way blue
-					learns where the chain has got to.
+					building but read deep. Revealing is the only way blue learns where the chain has got
+					to, and nothing can be evicted until it is revealed.
 				</li>
 				<li class="border-l-2 border-[#34D399]/50 pl-3">
 					<b>Clean</b> — the same reveal cards pull implant figures out of the tree. One on a
 					partial, all of them on a clean. This is what stops the burrowing and takes red’s
 					leverage away.
+				</li>
+				<li class="border-l-2 border-[#34D399]/50 pl-3">
+					<b>Evict</b> — Rebuild, Diff, Retro-Hunt and Know What You Ship also remove a
+					revealed foothold that is not permanent, figures and all. Sweep never evicts.
 				</li>
 				<li class="border-l-2 border-[#38BDF8]/50 pl-3">
 					<b>Counter-attack</b> — Segment on the Relay Beacon reveals <em>every</em> hidden
@@ -674,8 +689,9 @@
 				</li>
 				<li>
 					<b>Rebuild From Source</b> — “evicts any non-persistent foothold in the Foundry”. It
-					evicts implant <em>figures</em>, at the one building you played it on. No move in the
-					game removes a foothold, and none of them read the Foundry as a unit.
+					does evict, but only at the one building you played it on, only a foothold already
+					revealed or cheap enough to find and pull in one play, and it never reads the Foundry
+					as a unit.
 				</li>
 				<li>
 					<b>Harden</b> — “+3 hardening, permanently”. The +3 is three figures standing on the

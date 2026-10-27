@@ -142,7 +142,7 @@
 
 		{#if trailing}
 			<span
-				class="shrink-0 font-[var(--mono)] text-[0.68rem] tabular-nums text-[var(--fg-dim)] opacity-70 text-right"
+				class="shrink-0 font-(family-name:--mono) text-[0.68rem] tabular-nums text-[var(--fg-dim)] opacity-70 text-right"
 			>
 				{trailing}
 			</span>

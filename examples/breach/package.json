@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A 2v2 supply-chain skirmish. Runs standalone, and doubles as the first real consumer of the showcase package.",
+  "description": "A 2v2 supply-chain CTF. Runs standalone, and doubles as the first real consumer of the showcase package.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

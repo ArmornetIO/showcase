@@ -8,7 +8,16 @@ import {
 	contours,
 	type Terrain
 } from './terrain.js';
-import { fibonacciDir, capRing, alignZ, type Vec3, type Cap } from './sphere.js';
+import {
+	fibonacciDir,
+	capRing,
+	alignZ,
+	capAlpha,
+	capBearing,
+	COAST_MIN,
+	type Vec3,
+	type Cap
+} from './sphere.js';
 
 /** A good spread of directions to sample any claim about the field over. */
 const spread = (n = 400): Vec3[] => Array.from({ length: n }, (_, i) => fibonacciDir(i, n));
@@ -117,11 +126,38 @@ describe('capMask / maskTerrain', () => {
 	it('reaches the shore at the rim, not past it', () => {
 		// Ground must stop exactly where the region does — the wall is built on that
 		// rim, and land spilling under it would show the wall standing in a field.
+		//
+		// The rim is `capAlpha`, not `cap.alpha`: a region is a coastline, and this
+		// is the assertion that the mask and the drawn outline are the same curve.
 		const cs = caps();
-		for (const c of cs) {
-			const rim = rimPoint(c, c.alpha);
-			expect(angleTo(c, rim)).toBeCloseTo(c.alpha, 6);
-			expect(capMask(cs, rim)).toBeCloseTo(0, 6);
+		for (const c of cs)
+			for (let i = 0; i < 8; i++) {
+				const t = (i / 8) * Math.PI * 2;
+				const a = capAlpha(c, t);
+				const rim = alignZ(c.center, {
+					x: Math.cos(t) * Math.sin(a),
+					y: Math.sin(t) * Math.sin(a),
+					z: Math.cos(a)
+				});
+				expect(angleTo(c, rim)).toBeCloseTo(a, 6);
+				expect(capMask(cs, rim)).toBeCloseTo(0, 6);
+			}
+	});
+
+	it('gives each region a coastline rather than a circle', () => {
+		// A globe of discs reads as a diagram of a globe. The shape has to vary with
+		// the bearing — and by enough to see, which a few percent is not.
+		const c = caps()[0];
+		const as = Array.from({ length: 64 }, (_, i) => capAlpha(c, (i / 64) * Math.PI * 2));
+		const spread = (Math.max(...as) - Math.min(...as)) / c.alpha;
+		expect(spread).toBeGreaterThan(0.15);
+		// …and never past the packed rim. `cap.alpha` is what sized the border
+		// between neighbours and placed the members; a coast that bulged beyond it
+		// merges two landmasses and crosses their walls. This is the assertion that
+		// keeps `COAST_MIN` honest about the harmonics, too.
+		for (const a of as) {
+			expect(a).toBeLessThanOrEqual(c.alpha + 1e-12);
+			expect(a).toBeGreaterThanOrEqual(COAST_MIN * c.alpha - 1e-12);
 		}
 	});
 
@@ -155,7 +191,9 @@ describe('capMask / maskTerrain', () => {
 	it('is exactly zero everywhere outside the regions', () => {
 		const cs = caps();
 		const t = maskTerrain(makeTerrain({ seed: 4 }), cs);
-		const outside = spread(500).filter((d) => cs.every((c) => angleTo(c, d) > c.alpha));
+		const outside = spread(500).filter((d) =>
+			cs.every((c) => angleTo(c, d) > capAlpha(c, capBearing(c, d)))
+		);
 		expect(outside.length).toBeGreaterThan(50);
 		for (const d of outside) expect(t.heightAt(d)).toBe(0);
 	});
@@ -309,9 +347,14 @@ describe('contours', () => {
 				for (const p of [s.a, s.b]) {
 					expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(1, 9);
 					// Inside the region it was cut from — a contour that escaped its cap
-					// would draw one territory's ground across its neighbour.
+					// would draw one territory's ground across its neighbour. Bounded by
+					// the COASTLINE, since that is where the lattice now reaches.
 					const dot = p.x * cap.center.x + p.y * cap.center.y + p.z * cap.center.z;
-					expect(Math.acos(Math.min(1, dot))).toBeLessThanOrEqual(cap.alpha + 1e-6);
+					// 1% of slack, because a segment endpoint is interpolated BETWEEN two
+					// lattice bearings and the coast moves between them.
+					expect(Math.acos(Math.min(1, dot))).toBeLessThanOrEqual(
+						capAlpha(cap, capBearing(cap, p)) * 1.01 + 1e-6
+					);
 				}
 			}
 		}

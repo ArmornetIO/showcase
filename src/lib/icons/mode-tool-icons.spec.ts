@@ -55,7 +55,7 @@ describe('mode registry alignment', () => {
 	// still written out by hand (a literal is what keeps IconName a union of real
 	// names), so nothing structural stops a new mode from landing in modes.go
 	// with a drawn glyph the mesh picks up and Icon does not. The fallback is
-	// silent by design — modeIconName returns hello_world for an unknown key — so
+	// silent by design — modeIconName returns mode-unknown for an unknown key — so
 	// the failure looks like "the drawer shows a terminal", not like an error.
 	it('every mode is reachable as an Icon, drawing the mesh silhouette', () => {
 		for (const m of MODES) {

@@ -7,7 +7,7 @@
 // is snake_case and the diff is camelCase with a shouty `Ddl`/`Sql` — and the
 // temptation to tidy that here is a trap: a renamed field does not fail to
 // compile, it silently reads `undefined` at runtime. Cross-check against
-// dbmgr/event.go, dbmgr/erd.go, dbmgr/erd_diff.go, dbmgr/capture.go and
+// dbmgr/event.go, dbmgr/erd/introspect.go, dbmgr/erd/diff.go, dbmgr/erd/capture.go and
 // dbmgr/environments.go before touching a name.
 
 export interface ErdColumn {
@@ -89,8 +89,10 @@ export interface MigrationEvent {
 export interface LedgerEntry {
 	sequence: number;
 	name: string;
-	/** applied | pending | reverted | checksum_drift | orphan_applied */
+	/** applied | pending | adoptable | behind | superseded | reverted | checksum_drift | orphan_applied */
 	state: string;
+	/** Why a squash baseline is behind, and what to apply first. */
+	detail?: string;
 	checksum: string;
 	has_rollback: boolean;
 	rollback_not_possible: boolean;

@@ -12,6 +12,7 @@
 		maxZoom = 4,
 		fitOnLoad = false,
 		tool = 'select',
+		ground = true,
 		onSelectionChange,
 		camera = $bindable(),
 		children,
@@ -25,6 +26,21 @@
 		 * told. Defaults to `select` so every existing canvas is unchanged.
 		 */
 		tool?: 'select' | 'pan';
+		/**
+		 * The hairline GRID behind the scene.
+		 *
+		 * On for a flat diagram, where it is the only thing the eye can measure a
+		 * pan or a zoom against. OFF for a scene that brings its own structure — a
+		 * globe already has a graticule, and a flat 64px grid outside its limb is a
+		 * SECOND grid at a different scale and perspective, which reads as two
+		 * backgrounds fighting rather than as ground.
+		 *
+		 * Off does not mean bare: the grid is replaced by a STARFIELD over the same
+		 * aurora (`--glass-space`). Points have nothing to duplicate — the globe
+		 * owns every line in the frame — and they say the one thing a grid behind a
+		 * planet says wrongly, which is where the camera is.
+		 */
+		ground?: boolean;
 		minZoom?: number;
 		maxZoom?: number;
 		fitOnLoad?: boolean;
@@ -35,6 +51,12 @@
 
 	let rootEl = $state<HTMLDivElement | undefined>();
 	const transform = $state({ tx: 0, ty: 0, tk: 1 });
+
+	/** The grid's tile, in WORLD px — the same 64 the token carries, restated
+	 *  here because the token's value is what one tile looks like at zoom 1 and
+	 *  this is the number that gets scaled. Keep them equal or the grid changes
+	 *  size the moment a canvas first renders. */
+	const GRID_WORLD_PX = 64;
 	const svgSize = $state({ w: 800, h: 600 });
 
 	const nodePositions = $state(new Map<string, () => { x: number; y: number } | null>());
@@ -68,8 +90,14 @@
 		svgSize,
 		nodePositions,
 		boundsRegistry,
-		minZoom,
-		maxZoom,
+		{
+			get min() {
+				return minZoom;
+			},
+			get max() {
+				return maxZoom;
+			},
+		},
 	);
 
 	camera = cameraImpl;
@@ -82,7 +110,11 @@
 		camera: cameraImpl,
 		getRoot: () => rootEl,
 		selectionHandler,
-		onSelectionChange,
+		// A getter, not the value: the context object is built once, so a plain
+		// copy would pin consumers to the callback the host passed on mount.
+		get onSelectionChange() {
+			return onSelectionChange;
+		},
 		screenToCanvas,
 	});
 
@@ -230,6 +262,22 @@
 	role="region"
 	aria-label="Canvas"
 >
+	<!-- The ground, and it is IN the world rather than on the frame.
+	     As a background on `.cv-root` the grid stayed nailed to the viewport, so
+	     a pan slid the scene across a floor that never moved and the nodes read
+	     as floating on top of a backdrop instead of standing somewhere. Both
+	     halves of that matter: the position follows the camera, and the tile
+	     scales with the zoom, so the grid is a fixed thing in WORLD space that
+	     you travel over. A repeating gradient tiles forever, so there is no
+	     extent to run off the end of and nothing to size to the content. -->
+	{#if ground}
+		<div
+			class="cv-ground"
+			style:background-position="{transform.tx}px {transform.ty}px"
+			style:--glass-grid-size="{GRID_WORLD_PX * transform.tk}px"
+			aria-hidden="true"
+		></div>
+	{/if}
 	{@render children?.()}
 </div>
 
@@ -239,17 +287,26 @@
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
-		/* The canvas ground: colour blobs plus a hairline grid, over the page
-		   colour. The grid is the load-bearing half — anything glass laid over
-		   this canvas has structure to soften, and a blurred hairline beside a
-		   sharp one is what actually reads as a pane. It also gives the camera
-		   something to move against, so panning and zooming have a reference.
-		   `--glass-ground` is `none` in high contrast, leaving the flat colour. */
+		/* The AMBIENT half of the ground — the colour blobs, which are lighting in
+		   the room rather than anything in the scene, so they stay put while the
+		   camera moves. The grid is the other half and is a child element now
+		   (`.cv-ground`), because the camera has to be able to move it: a floor
+		   you cannot travel over is a wallpaper. `--glass-space` is the aurora
+		   alone, and it is `none` in high contrast. */
 		background-color: var(--bg);
-		background-image: var(--glass-ground);
+		background-image: var(--glass-space);
 		font-family: var(--mono);
 		cursor: grab;
 		user-select: none;
+	}
+	/* The travelling floor. Behind everything (first child, and the scene's own
+	   layers are positioned) and deaf to the pointer, so it can never eat a click
+	   meant for a node or swallow the marquee. */
+	.cv-ground {
+		position: absolute;
+		inset: 0;
+		background-image: var(--glass-grid);
+		pointer-events: none;
 	}
 	/* `allowPan={false}` — so no grab cursor, for the reason stated where
 	   `selectionHandler` is declared: a grab cursor promises a pan the button

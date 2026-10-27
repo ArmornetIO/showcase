@@ -34,6 +34,16 @@ await page.goto(url, { waitUntil: 'networkidle' });
 // SvelteKit's hydration navigation destroys the evaluate context mid-measure.
 await page.waitForTimeout(5000);
 
+// A scene gated on an IntersectionObserver churns nothing from the top of the
+// page, and 0/s would clear it wrongly. Same flag as cpu-profile.
+const scrollAt = process.argv.indexOf('--scroll');
+if (scrollAt > 0) {
+	await page.evaluate((s) => {
+		document.querySelector(s)?.scrollIntoView({ block: 'center' });
+	}, process.argv[scrollAt + 1]);
+	await page.waitForTimeout(2500);
+}
+
 const out = await page.evaluate(async (ms) => {
 	const attrs = new Map();
 	const nodes = { added: 0, removed: 0, text: 0 };

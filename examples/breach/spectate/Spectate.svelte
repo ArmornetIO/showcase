@@ -14,9 +14,10 @@
 	// and mounts it, the same way the route mounts `Breach`.
 	import { onMount } from 'svelte';
 	import { Button, Icon, Panel } from 'showcase';
-	import { listLiveTables, type LiveTable } from '../api.js';
+	import { listLiveTables, listSimulations, runSimulation, type LiveTable } from '../api.js';
 	import { TableSocket, type SpectatableMatchView } from '../net.svelte.js';
 	import { klassByKey } from '../internal/rules.js';
+	import OfficeWatch from './OfficeWatch.svelte';
 
 	interface Props {
 		/** Start watching this table immediately, skipping the picker. */
@@ -42,6 +43,10 @@
 		void refresh(controller.signal);
 		const timer = setInterval(() => void refresh(controller.signal), REFRESH_MS);
 		if (tableID) watch(tableID);
+		void listSimulations(controller.signal).then((s) => {
+			scripts = s;
+			script = s[0] ?? '';
+		});
 		return () => {
 			controller.abort();
 			clearInterval(timer);
@@ -68,6 +73,24 @@
 		const s = new TableSocket(id, { spectate: true });
 		s.connect();
 		socket = s;
+	}
+
+	/** Built-in simulations; empty unless the server is a `dev` build. */
+	let scripts = $state<string[]>([]);
+	let script = $state('');
+	let running = $state(false);
+
+	async function simulate() {
+		running = true;
+		try {
+			const id = await runSimulation(script);
+			await refresh();
+			watch(id);
+		} catch (err) {
+			listError = err instanceof Error ? err.message : 'could not start the simulation';
+		} finally {
+			running = false;
+		}
 	}
 
 	function stop() {
@@ -100,15 +123,33 @@
 	const sideTone = (side: string) => (side === 'red' ? '#FB7185' : '#38BDF8');
 </script>
 
+<!-- An office match is watched in the office, through one player; the card
+     gallery below has nothing to show for it. -->
+{#if socket && view?.office}
+	<OfficeWatch {socket} onstop={stop} />
+{:else}
 <div class="flex flex-col gap-3 h-full p-4 text-[var(--fg)]">
-	<div class="flex items-baseline gap-3">
+	<!-- Wraps: title, count and Refresh on one unbreakable row pushed the button
+	     past the right edge of a phone-width host. -->
+	<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
 		<h2 class="m-0 font-mono text-sm font-semibold tracking-[0.04em]">
 			Spectate <span class="text-[var(--fg-dim)]">· god mode</span>
 		</h2>
 		<span class="font-mono text-[0.65rem] text-[var(--fg-dim)]">
 			{tables.length} live table{tables.length === 1 ? '' : 's'} · nothing here is in the database
 		</span>
-		<div class="ml-auto">
+		<div class="ml-auto flex items-center gap-2">
+			{#if scripts.length}
+				<!-- Every seat a bot, started at once; you watch, nobody plays. -->
+				<select
+					bind:value={script}
+					aria-label="Simulation"
+					class="rounded-md border border-[var(--border)] bg-transparent px-2 py-1 font-mono text-[0.7rem]"
+				>
+					{#each scripts as s (s)}<option value={s}>{s}</option>{/each}
+				</select>
+				<Button disabled={running || !script} onclick={simulate}>Run simulation</Button>
+			{/if}
 			<Button variant="ghost" onclick={() => refresh()}>Refresh</Button>
 		</div>
 	</div>
@@ -190,7 +231,7 @@
 				</div>
 			{:else}
 				<div class="flex flex-col gap-3">
-					<div class="flex items-center gap-3">
+					<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
 						<code class="font-mono text-xs font-semibold">{watching}</code>
 						<span class="font-mono text-[0.62rem] text-[var(--fg-dim)]">{socket?.status}</span>
 						{#if omniscient}
@@ -384,3 +425,4 @@
 		</div>
 	</div>
 </div>
+{/if}

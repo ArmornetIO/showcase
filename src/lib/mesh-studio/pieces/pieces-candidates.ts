@@ -33,7 +33,7 @@
 //
 //  · `ward`, a quartered shield — the best of the three on the turntable, and
 //    ditched on a fact about the SET rather than about the shape. The shield is
-//    already spent: `supply_chain_proxy` stands as `Guarded pkg`, which is a
+//    already spent: `relay` stands as `Guarded pkg`, which is a
 //    shield too, and two modes sharing a silhouette is the exact failure this
 //    catalogue exists to prevent. Light market research says the same thing from
 //    outside — shield/shield-check is the category cliché and carries no

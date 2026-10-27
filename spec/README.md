@@ -35,7 +35,7 @@ about how two of them meet.
                  exports.manifest.json  ──┐
                           ▲               │ editorial facts
                           │               │ (tier, stability)
-  source  ──gen:api──▶  generated contract ──▶ builder registry
+  source  ──propsgen──▶ generated contract ──▶ builder registry
     │                        ▲
     │                        │ describes
     ▼                        │
@@ -76,7 +76,7 @@ through which a component reads theme default props and style overrides. Defined
 in `styling.md` §4.
 
 **Generated contract** — the machine-readable description emitted per component
-by `gen:api`: props, types, defaults, slots, regions, callback signatures, tier,
+by `propsgen`: props, types, defaults, slots, regions, callback signatures, tier,
 stability. The library's public description of itself.
 
 ### Two distinctions worth stating twice

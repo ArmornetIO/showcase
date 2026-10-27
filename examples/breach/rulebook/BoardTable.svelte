@@ -78,7 +78,11 @@
 				</span>
 			</header>
 
-			<table class="w-full border-collapse text-left">
+			<!-- Five columns of prose do not fit a phone: at 375px they crushed to
+			     26px of "CONTROLS STANDING ON IT" per line. The `data-label`s are
+			     what let the same rows restack as labelled blocks below `sm` without
+			     the markup existing twice. -->
+			<table class="stack w-full border-collapse text-left">
 				<thead>
 					<tr class="font-mono text-[0.55rem] uppercase tracking-widest text-[var(--fg-dim)]">
 						<th class="py-1 pr-3 font-normal">Building</th>
@@ -93,13 +97,17 @@
 				<tbody class="text-[0.78rem]">
 					{#each inTerritory(key) as s (s.id)}
 						<tr class="border-t border-[var(--border)] align-top">
-							<td class="py-1.5 pr-3 font-bold">{s.name}</td>
-							<td class="py-1.5 pr-3 text-[var(--fg-dim)]">{s.role}</td>
-							<td class="py-1.5 pr-3 text-right font-mono tabular-nums">{s.hardening}</td>
-							<td class="py-1.5 pr-3 text-right font-mono tabular-nums" style:color={t.color}
-								>{s.chain ?? '—'}</td
+							<td class="py-1.5 pr-3 font-bold" data-label="Building">{s.name}</td>
+							<td class="py-1.5 pr-3 text-[var(--fg-dim)]" data-label="Really is">{s.role}</td>
+							<td class="py-1.5 pr-3 text-right font-mono tabular-nums" data-label="Hard"
+								>{s.hardening}</td
 							>
-							<td class="py-1.5 font-mono text-[0.65rem] text-[var(--fg-dim)]"
+							<td
+								class="py-1.5 pr-3 text-right font-mono tabular-nums"
+								style:color={t.color}
+								data-label="Step">{s.chain ?? '—'}</td
+							>
+							<td class="py-1.5 font-mono text-[0.65rem] text-[var(--fg-dim)]" data-label="Controls"
 								>{s.controls.join(', ') || '—'}</td
 							>
 						</tr>
@@ -109,3 +117,33 @@
 		</section>
 	{/each}
 </div>
+
+<style>
+	/* 40rem is Tailwind's `sm`, which the rest of this page's layout already
+	   turns on — not a new stop, the one already in use one level up. */
+	@media (width < 40rem) {
+		.stack thead {
+			display: none;
+		}
+		.stack tr {
+			display: block;
+			padding: 0.5rem 0;
+		}
+		.stack td {
+			display: grid;
+			grid-template-columns: 5rem 1fr;
+			gap: 0.5rem;
+			padding: 0.1rem 0;
+			text-align: left;
+		}
+		.stack td::before {
+			content: attr(data-label);
+			font-family: var(--mono, ui-monospace, monospace);
+			font-size: 0.55rem;
+			letter-spacing: 0.1em;
+			text-transform: uppercase;
+			color: var(--fg-dim);
+			padding-top: 0.15rem;
+		}
+	}
+</style>

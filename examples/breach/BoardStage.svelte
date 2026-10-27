@@ -31,6 +31,9 @@
 		presenceModes?: PresenceRenderMode[];
 		/** Toggle a mode, for the tactical rail. */
 		onpresence?: (id: PresenceRenderMode) => void;
+		/** Narrow window: the HUD has left the sides and the rail cannot be placed
+		 *  relative to a column that is no longer there. */
+		compact?: boolean;
 		/** Terrain seed. A setting rather than a constant: the same number is the
 		 *  same ground, which is what makes a table reproducible and shareable. */
 		seed?: number;
@@ -42,6 +45,7 @@
 		top = 40,
 		presenceModes = DEFAULT_MODES,
 		onpresence,
+		compact = false,
 		seed = 20260809
 	}: Props = $props();
 
@@ -115,7 +119,15 @@
      but on the map that advance is not a turning planet — it is the sheet
      sliding sideways under the pieces, and a board that scrolls while nobody
      is touching it is a board you cannot plan on. The map holds still. -->
-<div class="absolute inset-x-0 bottom-0 {match.povLive ? 'z-[20]' : ''}" style:top="{top}px">
+<!-- `touch-none` is what makes the globe draggable with a finger at all. The drag
+     is built on `pointermove`, and a touch browser will not send that stream to
+     a full-bleed surface it has decided is being scrolled — it claims the gesture
+     and pans the page instead. Refusing the default action here is how the board
+     gets the pointer. -->
+<div
+	class="absolute inset-x-0 bottom-0 touch-none {match.povLive ? 'z-[20]' : ''}"
+	style:top="{top}px"
+>
 	<MeshCanvas
 		bind:this={mesh}
 		bind:camera
@@ -168,20 +180,31 @@
 	<FirstPerson bind:this={pov} {mesh} {camera} {insets} />
 </div>
 
-<!-- The tactical rail. Bottom-right, above the scrim, and out of the way of the
+<!-- The tactical bar. Bottom corner, above the scrim, and out of the way of the
      felt — it is a commander's control, not a card.
 
      Offset by the HUD's own right inset rather than by `right-3`: the buildings
-     rail now runs the full height of that side, so a rail pinned to the window
-     edge lands ON it. `insets.right` is already the one description of how much
-     of that side the chrome has taken, so the toolbar cannot drift out of step
-     with a column that changes width. -->
+     rail runs the full height of that side, so a bar pinned to the window edge
+     lands ON it. `insets.right` is already the one description of how much of
+     that side the chrome has taken, so the toolbar cannot drift out of step with
+     a column that changes width. -->
+<!-- `13.5rem` clears the felt on a wide window because the hand is 556px in the
+     MIDDLE of it and the bar is out at the margin. On a narrow one the hand is
+     the full width of the screen and that same offset drops the bar straight
+     onto the cards — so there it is placed above the floor the HUD reported,
+     which is the one number that already knows how tall the hand and the battle
+     centre came out. -->
+<!-- Left edge when compact, and not for symmetry: the narrow HUD puts its drawer
+     and the tab that opens it against the RIGHT edge, and the roll chip lands in
+     that corner too. The toolbar is furniture and they are not, so the furniture
+     moves. Wide it stays right, where the feed column owns the other side. -->
 <div
-	class="absolute bottom-[13.5rem] z-[6] pointer-events-auto"
-	style:right="{(insets.right ?? 0) + 12}px"
+	class="absolute z-[6] pointer-events-auto"
+	style:right={compact ? 'auto' : `${(insets.right ?? 0) + 12}px`}
+	style:left={compact ? '12px' : 'auto'}
+	style:bottom={compact ? `${(insets.bottom ?? 0) + 12}px` : '13.5rem'}
 >
 	<TacticalToolbar
-		{match}
 		{camera}
 		{layout}
 		onlayout={(id) => (layout = id)}

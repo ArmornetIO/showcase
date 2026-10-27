@@ -11,12 +11,15 @@
 // costs nothing and mounting is what makes it move.
 
 import { untrack } from 'svelte';
+import type { resolve } from './appearance.js';
 import {
 	CHAIN,
 	CORE_ID,
 	OUTCOME_COLOR,
 	OUTCOME_LABEL,
+	ONE_PLAY_MAX_AP,
 	ROSTER,
+	TEMPORARY_ROUNDS,
 	STRUCTURES,
 	TERRITORIES,
 	TERRITORY_ORDER,
@@ -35,6 +38,7 @@ import {
 	type Ability,
 	type DiceSource,
 	type Faction,
+	type FootholdKind,
 	type Klass,
 	type MatchSize,
 	type Outcome,
@@ -42,7 +46,6 @@ import {
 	type Structure,
 	type TerritoryKey
 } from './rules.js';
-import { randomBotName } from './names.js';
 import {
 	BEATS,
 	GARRISON_CAP,
@@ -86,7 +89,11 @@ export const HORIZON = 12;
 export interface Foothold {
 	structure_id: string;
 	seat_key: string;
-	persistent: boolean;
+	kind: FootholdKind;
+	/** AP of the card that placed it — what an evicting card has to out-price. */
+	cost_ap: number;
+	/** The round a temporary foothold lapses on. Absent for the other kinds. */
+	expires_round?: number;
 	revealed: boolean;
 	sleeper: boolean;
 	placed_round: number;
@@ -100,7 +107,7 @@ export interface Foothold {
  * class an identity rather than a dropdown — you sit down as somebody, and the
  * deal that follows is what hands you their tools.
  */
-export type Stage = 'select' | 'deal' | 'play';
+export type Stage = 'select' | 'deal' | 'play' | 'office';
 
 /**
  * Two kinds of "no".
@@ -214,12 +221,22 @@ export interface MatchOptions {
 	 * each play it out at their own tempo.
 	 */
 	pace?: (ms: number) => Promise<void>;
-	/** Whether a player may take a demonstrator's chair mid-match. Off unless the
-	 *  table's settings turned it on — see `MatchConfig.takeover`. */
-	takeover?: boolean;
 	/** Where the offline engine's dice come from. Omit for real ones; pass a
 	 *  scripted source to pin a game. */
 	dice?: DiceSource;
+}
+
+// The numbers come generated from rules.yaml; the wasm engine is the authority,
+// and this only keeps the no-wasm fallback table playing by the same rules.
+const KIND_RUNGS: FootholdKind[] = ['temporary', 'removable', 'permanent'];
+
+function shiftKind(kind: FootholdKind, by: number): FootholdKind {
+	const i = KIND_RUNGS.indexOf(kind) + by;
+	return KIND_RUNGS[Math.max(0, Math.min(KIND_RUNGS.length - 1, i))];
+}
+
+function temporaryRounds(margin: number): number {
+	return (TEMPORARY_ROUNDS.find((b) => margin <= b.upto) ?? TEMPORARY_ROUNDS.at(-1)!).rounds;
 }
 
 const TURN_TICK = 200;
@@ -254,14 +271,27 @@ export interface SiteView {
 	hardening: number;
 	base: number;
 	held: boolean;
-	persistent: boolean;
+	/** Empty when not held, and fogged like the foothold itself. */
+	kind?: FootholdKind;
+	expires_round?: number;
 	staged: boolean;
 	sealed: boolean;
 	red: number;
 	blue: number;
 }
 
+/** One seat's score for a finished match. Mirrors `breachview.SeatResult`. */
+export interface SeatResult {
+	seat_key: string;
+	faction: Faction;
+	won: boolean;
+	rounds: number;
+	buildings_held: number;
+}
+
 export interface RemoteMatchView {
+	/** Present only once the match is over — the numbers the leaderboard records. */
+	results?: SeatResult[];
 	round: number;
 	phase: number;
 	/** How many chairs are in play. `phase` indexes the seats at THIS size, so a
@@ -450,9 +480,15 @@ export class BreachMatch {
 	 * wholesale and never mutated, and proxying it would only wrap the calls.
 	 */
 	remote = $state.raw<RemotePort | null>(null);
+	/** The customized figure sitting in a role's chair, set by the host that owns
+	 *  the lobby. Null (or a null answer) falls back to the role's stock build. */
+	figureOf: ((klassKey: string) => ReturnType<typeof resolve> | null) | null = null;
 	/** Whose HUD is on screen — the fog is computed from here. */
 	seatKey = $state('maintainer');
 	winner = $state<Faction | null>(null);
+	/** Every seat's score, as the rules computed it. Empty until the match ends,
+	 *  and never derived here: the end screen and the leaderboard read one number. */
+	results = $state.raw<SeatResult[]>([]);
 	auto = $state(false);
 
 	// ── Board ──────────────────────────────────────────────────────────────────
@@ -550,16 +586,6 @@ export class BreachMatch {
 	// field that reads it, and a class field may not read one that is only
 	// assigned later in the constructor.
 	readonly turnMs: number = DEFAULT_TURN_MS;
-	/**
-	 * Whether this table lets a player change chairs.
-	 *
-	 * A setting, and settled in the lobby — which runs after this object exists,
-	 * so it cannot be `readonly`. The constructor seeds it and the setup screen
-	 * is the only thing that writes it; nothing does once the board is up, which
-	 * is the property that matters and the one a `readonly` was only ever
-	 * approximating.
-	 */
-	takeover = $state(false);
 	#cinema: CinemaPort;
 	#pace: (ms: number) => Promise<void>;
 	#dice: DiceSource | undefined;
@@ -573,7 +599,6 @@ export class BreachMatch {
 		this.#pace = opts.pace ?? wait;
 		this.#dice = opts.dice;
 		this.turnMs = opts.turnMs ?? DEFAULT_TURN_MS;
-		this.takeover = opts.takeover ?? false;
 		this.turnLeft = this.turnMs;
 	}
 
@@ -967,6 +992,7 @@ export class BreachMatch {
 		this.yourTurn = m.your_turn;
 		this.seatKey = m.seat_key;
 		this.winner = m.winner ? (m.winner as Faction) : null;
+		this.results = m.results ?? [];
 		this.footholds = m.footholds ?? [];
 		// The server spells this `structure_id`; the board has always spelled it
 		// `structureId`. Mapped rather than renamed on either side, because the
@@ -1113,7 +1139,9 @@ export class BreachMatch {
 			value,
 			base: s.hardening,
 			held: !!f,
-			persistent: !!f?.persistent,
+			kind: f?.kind ?? null,
+			roundsLeft:
+				f?.expires_round != null ? Math.max(0, f.expires_round - this.round) : null,
 			staged: !!f?.staged,
 			sealed: this.quarantined.includes(s.id),
 			tone: f ? 'bad' : value < s.hardening ? 'warn' : 'ok',
@@ -1374,6 +1402,18 @@ export class BreachMatch {
 	}
 
 	/**
+	 * Into Insider Threat, with the cards left undealt. `takeSeat` used to be
+	 * the way in, and its `play` stage started the turn clock and the
+	 * demonstrators on a card match nobody could see — offline it played all
+	 * twelve rounds behind the office and opened the card game's end screen
+	 * over the office's own.
+	 */
+	enterOffice(key: string) {
+		this.seatKey = key;
+		this.stage = 'office';
+	}
+
+	/**
 	 * Take a chair and deal. The cards are fired one at a time from the dispenser
 	 * — 130ms apart, fast enough to read as one motion and slow enough that you
 	 * watch each card land somewhere different.
@@ -1407,6 +1447,9 @@ export class BreachMatch {
 		// cards landed would leave them dealt and permanently off-screen. Ending
 		// on the hand as it stands now costs an offline table nothing.
 		this.dealtCount = Math.max(this.dealtCount, this.handOf(key).length);
+		// A reset during the ceremony (leaving the street mid-deal) already sent
+		// the table back to `select`; finishing here would walk it straight in.
+		if (this.stage !== 'deal') return;
 		this.stage = 'play';
 	}
 
@@ -1500,56 +1543,6 @@ export class BreachMatch {
 		this.discards = { ...this.discards, [side]: discard };
 	}
 
-	/** Re-deal on a seat swap so a switched chair still gets its hand thrown to
-	 *  it rather than appearing fully formed. */
-	switchSeat(key: string) {
-		if (this.busy) return;
-		void this.takeSeat(key);
-	}
-
-	/**
-	 * Sit down in a chair the demonstrator is playing.
-	 *
-	 * A SWAP, not a second chair: the seat you got up from becomes automatic in
-	 * the same breath. One person is one player, and a chair left holding nobody
-	 * would sit on the clock until it timed out, every round, forever.
-	 *
-	 * Nothing here pauses anything. The demonstrator's gate is `players`, so the
-	 * chair stops playing itself because it is no longer a chair that plays
-	 * itself — and the one you left starts, for the same reason.
-	 *
-	 * Refused, and each refusal is a different question:
-	 *
-	 *   - the table's settings did not offer it
-	 *   - the server owns the seating, and a client moving itself is a lie
-	 *   - a resolution is playing out
-	 *   - THE CHAIR IS SOMEBODY'S. A person is not a chair you can take, and an
-	 *     unstated chair is refused too: "nobody said" is not "nobody is there".
-	 */
-	claim(klassKey: string): boolean {
-		if (!this.takeover || this.remote || this.busy || this.winner) return false;
-		if (klassKey === this.seatKey) return false;
-		if (this.players[klassKey]?.kind !== 'ai') return false;
-
-		const you = this.players[this.seatKey];
-		this.players = {
-			...this.players,
-			[klassKey]: { name: you?.name ?? 'you', kind: 'human' },
-			// The chair you just left is a bot now, and it is named like every
-			// other one — a seat you walked away from should be indistinguishable
-			// from a seat nobody ever sat in.
-			[this.seatKey]: { name: randomBotName(), kind: 'ai' }
-		};
-		this.seatKey = klassKey;
-		// Everything below is aimed at a board from the other chair's point of
-		// view, and none of it survives the move.
-		this.armedKey = null;
-		this.inspectKey = null;
-		this.selectedId = null;
-		this.lastRoll = null;
-		return true;
-	}
-
 	/** Ask for another match. On a hosted table this is a REQUEST and nothing
 	 *  more: the board is emptied by the answer, through `reset`. */
 	newMatch() {
@@ -1578,6 +1571,7 @@ export class BreachMatch {
 		// empty board.
 		this.verdict = null;
 		this.winner = null;
+		this.results = [];
 		this.auto = false;
 		this.round = 1;
 		this.phase = 0;
@@ -2226,8 +2220,16 @@ export class BreachMatch {
 				// spending a turn DEEPENING it. That is the choice a foothold is
 				// supposed to create: push on now at the odds you have, or work this
 				// one and push on at better ones.
+				const kind = shiftKind(already.kind, 1);
 				this.footholds = this.footholds.map((f) =>
-					f.structure_id === target.id ? { ...f, persistent: true, staged: true } : f
+					f.structure_id === target.id
+						? {
+								...f,
+								kind,
+								expires_round: kind === 'temporary' ? f.expires_round : undefined,
+								staged: true
+							}
+						: f
 				);
 				const next = CHAIN.find((c) => c.chain === (target.chain ?? 0) + 1);
 				// A region past 80 has stopped keeping secrets, which is the same
@@ -2246,7 +2248,7 @@ export class BreachMatch {
 						major: true,
 						qualifiers: [
 							OUTCOME_LABEL[outcome].toLowerCase(),
-							'persistent · staged',
+							`${kind} · staged`,
 							next ? `${next.name} +2` : 'ready for the core'
 						]
 					}
@@ -2255,13 +2257,21 @@ export class BreachMatch {
 				this.checkVictory();
 				return;
 			}
+			const kind = shiftKind(
+				a.foothold ?? 'removable',
+				outcome === 'partial' ? -1 : outcome === 'critical' ? 1 : 0
+			);
 			this.footholds = [
 				...this.footholds,
 				{
 					structure_id: target.id,
 					seat_key: actor.key,
-					// A partial gets you in and nothing more.
-					persistent: outcome === 'clean' || outcome === 'critical',
+					kind,
+					cost_ap: a.ap,
+					expires_round:
+						kind === 'temporary'
+							? this.round + temporaryRounds(total - targetNumber)
+							: undefined,
 					// Heat is what gives you away. A quiet hit is one nobody logged.
 					revealed: this.heat[t] >= 80,
 					sleeper: a.key === 'sleeper',
@@ -2283,7 +2293,7 @@ export class BreachMatch {
 					qualifiers: [
 						OUTCOME_LABEL[outcome].toLowerCase(),
 						`roll ${total} vs ${targetNumber}`,
-						outcome === 'partial' ? 'dislodgeable' : 'persistent',
+						kind,
 						`+${added * 6} heat`
 					]
 				}
@@ -2518,10 +2528,38 @@ export class BreachMatch {
 			(f) => scope.includes(f.structure_id) && !f.revealed && !(a.key === 'sweep' && f.sleeper)
 		);
 		const found = outcome === 'partial' ? candidates.slice(0, 1) : candidates;
-		this.footholds = this.footholds.map((f) =>
-			found.some((g) => g.structure_id === f.structure_id) ? { ...f, revealed: true } : f
-		);
+		// Evicting cards pull what they can see: anything already revealed, plus a
+		// fresh find cheap enough to take in the same play. Dearer finds need a
+		// second play, and permanent ground never comes off.
+		const ceiling = ONE_PLAY_MAX_AP[outcome] ?? 0;
+		const evicted = a.evicts
+			? this.footholds.filter(
+					(f) =>
+						scope.includes(f.structure_id) &&
+						f.kind !== 'permanent' &&
+						(f.revealed || (found.includes(f) && f.cost_ap <= ceiling))
+				)
+			: [];
+		this.footholds = this.footholds
+			.filter((f) => !evicted.includes(f))
+			.map((f) => (found.includes(f) ? { ...f, revealed: true } : f));
 		for (const f of found) this.ping(f.structure_id, 'reveal');
+		for (const f of evicted) {
+			this.ping(f.structure_id, 'cleared');
+			this.#played(
+				'all',
+				{ by: actor, loud: true, at: s, card: a, outcome },
+				{
+					when: `R${this.round} · ${a.name}`,
+					title: 'evicted red from',
+					subject: structureById(f.structure_id)?.name ?? f.structure_id,
+					icon: 'trash',
+					tone: 'ok',
+					major: true,
+					qualifiers: [OUTCOME_LABEL[outcome].toLowerCase(), `${f.kind} · ${f.cost_ap} AP`]
+				}
+			);
+		}
 
 		// The code review. This is the counter to an implant, and the reason the
 		// implant is allowed to sit there indefinitely: it stays until somebody
@@ -2629,6 +2667,24 @@ export class BreachMatch {
 				this.rout(id, 'blue', GARRISON_CAP, 'garrison');
 			}
 			delete this.expiry[k];
+		}
+
+		const lapsed = this.footholds.filter(
+			(f) => f.expires_round != null && this.round >= f.expires_round
+		);
+		if (lapsed.length) {
+			this.footholds = this.footholds.filter((f) => !lapsed.includes(f));
+			for (const f of lapsed) {
+				this.push(f.revealed ? 'all' : 'red', {
+					round: this.round,
+					when: `R${this.round}`,
+					title: 'lost the foothold at',
+					subject: structureById(f.structure_id)?.name ?? f.structure_id,
+					icon: 'clock',
+					tone: 'ok',
+					qualifiers: ['temporary · lapsed']
+				});
+			}
 		}
 
 		// Detection decays. Without this red can never go quiet again, and a game

@@ -125,5 +125,5 @@ sharing `node_modules` does not leak the current checkout's library in. Confirm
 When the whole server matters rather than the bundle, run the images instead: the
 Dockerfile is `ENTRYPOINT ["/armornet"]`, so `docker run <image> model init
 --db-url …` migrates a database with that image's own registry. Give each side
-its **own** database — see `specs/009-perf-ab-harness/spec.md` for why sharing one
-is only safe for migrations you have personally audited.
+its **own** database: sharing one is only safe for migrations you have
+personally audited.

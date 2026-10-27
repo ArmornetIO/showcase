@@ -12,7 +12,6 @@
 	import FormField from '$lib/primitives/forms/FormField.svelte';
 	import Select from '$lib/primitives/forms/Select.svelte';
 	import type { SelectOption } from '$lib/primitives/forms/Select.svelte';
-	import Combobox from '$lib/primitives/forms/Combobox.svelte';
 	import Tile from '$lib/primitives/chrome/Tile.svelte';
 	import Tooltip from '$lib/primitives/status/Tooltip.svelte';
 	import ViewToggle from '$lib/primitives/actions/ViewToggle.svelte';
@@ -22,10 +21,17 @@
 	import type { ChoiceOption } from '$lib/primitives/forms/choice.types.js';
 	import CommandPalette from '$lib/primitives/actions/CommandPalette.svelte';
 	import SectionBar from '$lib/primitives/chrome/SectionBar.svelte';
+	import BrowserTab from '$lib/primitives/chrome/BrowserTab.svelte';
 	import type { StatusLevel } from '$lib/primitives/status/StatusDot.svelte';
 
 	let toggleA = $state(true);
 	let toggleB = $state(false);
+
+	let tabCount = $state(3);
+	let tabPanel = $state(false);
+	const TAB_DEMO_ICON =
+		'data:image/svg+xml,' +
+		encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#f97316"/></svg>');
 
 	const toggleVariants: ToggleVariant[] = [
 		'focus-scope', 'pulse-phase', 'node-target', 'power-breaker',
@@ -112,6 +118,7 @@
 	let lastAction = $state('');
 	let lastExport = $state('');
 	let comboValue = $state(['github.com', 'npmjs.org', 'docker.io']);
+	let multiValue = $state(['soc2']);
 
 	const demoVendorItems: ActionMenuItem[] = [
 		{ label: 'View details', icon: 'eye', onclick: () => (lastAction = 'View details') },
@@ -121,9 +128,7 @@
 	];
 </script>
 
-<svelte:head>
-	<title>Primitives — UI Lib</title>
-</svelte:head>
+<BrowserTab title="Primitives" site="UI Lib" count={tabCount} />
 
 <div class="px-3 sm:px-6 py-4 sm:py-5">
 	<!-- Button -->
@@ -423,7 +428,23 @@
 	<!-- Select -->
 	<ShowcaseBlock component="Select">
 		<h3 class="component-name">Select</h3>
-		<p class="component-desc">Styled native <code class="demo-code">&lt;select&gt;</code> — matches <code class="demo-code">Input</code> exactly (same height, border, font, focus ring). Use when a <code class="demo-code">SegmentGroup</code> would have more than three options or when you need <code class="demo-code">optgroup</code> separators. Wrap with <code class="demo-code">FormField</code> for labelling. Supports flat <code class="demo-code">options</code> or grouped <code class="demo-code">groups</code>.</p>
+		<p class="component-desc">The house dropdown — a field-style trigger over the same panel <code class="demo-code">ActionsMenu</code> uses (ActionsMenu is built on it). ↑/↓ open it and move through it, Esc closes. Use when a <code class="demo-code">SegmentGroup</code> would have more than three options. Flat <code class="demo-code">options</code>, grouped <code class="demo-code">groups</code>, or full <code class="demo-code">items</code> (headers, separators, action rows). <code class="demo-code">size="sm"</code> sits inline in a table row or toolbar. <code class="demo-code">onchange</code> receives the value.</p>
+
+		<div class="demo-row">
+			<span class="demo-label">size sm</span>
+			<div class="demo-items">
+				<Select
+					size="sm"
+					label="Role"
+					value="member"
+					options={[
+						{ value: 'owner', label: 'Owner' },
+						{ value: 'admin', label: 'Admin' },
+						{ value: 'member', label: 'Member' }
+					]}
+				/>
+			</div>
+		</div>
 
 		<div class="demo-row">
 			<span class="demo-label">flat options</span>
@@ -514,18 +535,51 @@
 		</div>
 	</ShowcaseBlock>
 
-	<!-- Combobox -->
-	<ShowcaseBlock component="Combobox">
-		<h3 class="component-name">Combobox</h3>
-		<p class="component-desc">Typeahead with add-your-own — the allowlist/scope entry control. Type to filter suggestions, click or <code class="demo-code">↵</code> to add a chip, and if nothing matches it offers to add the raw value. Backspace on an empty input removes the last chip.</p>
+	<!-- Select — multiple -->
+	<ShowcaseBlock component="Select">
+		<h3 class="component-name">Select — multiple / autocomplete</h3>
+		<p class="component-desc"><code class="demo-code">multiple</code> picks several: chips in the field, checkbox rows, the panel stays open between picks; it reads and writes <code class="demo-code">values</code> and reports through <code class="demo-code">onvalues</code>. Add <code class="demo-code">searchable</code> to type-filter — ↑/↓ move the highlight, <code class="demo-code">↵</code> takes it, Backspace on an empty input drops the last chip. <code class="demo-code">creatable</code> offers the typed text as its own row when nothing matches, for open sets like domains.</p>
 
 		<div class="demo-row">
-			<span class="demo-label">Allowed domains</span>
+			<span class="demo-label">multiple</span>
 			<div class="demo-items" style="width: 100%; max-width: 440px;">
-				<Combobox
-					bind:value={comboValue}
-					suggestions={['github.com','npmjs.org','pypi.org','crates.io','docker.io','golang.org','maven.apache.org','rubygems.org']}
+				<Select
+					multiple
+					width="100%"
+					placeholder="Frameworks…"
+					bind:values={multiValue}
+					options={[
+						{ value: 'soc2', label: 'SOC 2' },
+						{ value: 'iso27001', label: 'ISO 27001' },
+						{ value: 'hipaa', label: 'HIPAA' },
+						{ value: 'pci', label: 'PCI DSS' },
+						{ value: 'gdpr', label: 'GDPR' }
+					]}
+				/>
+			</div>
+		</div>
+
+		<div class="demo-row">
+			<span class="demo-label">searchable + creatable</span>
+			<div class="demo-items" style="width: 100%; max-width: 440px;">
+				<Select
+					multiple
+					creatable
+					width="100%"
 					placeholder="Add a domain…"
+					bind:values={comboValue}
+					options={['github.com','npmjs.org','pypi.org','crates.io','docker.io','golang.org','maven.apache.org','rubygems.org'].map((d) => ({ value: d, label: d }))}
+				/>
+			</div>
+		</div>
+
+		<div class="demo-row">
+			<span class="demo-label">single, searchable</span>
+			<div class="demo-items" style="max-width: 260px; width: 100%;">
+				<Select
+					searchable
+					placeholder="Find a registry…"
+					options={['github.com','npmjs.org','pypi.org','crates.io','docker.io'].map((d) => ({ value: d, label: d }))}
 				/>
 			</div>
 		</div>
@@ -710,6 +764,29 @@
 					value="table"
 					onchange={() => {}}
 				/>
+			</div>
+		</div>
+	</ShowcaseBlock>
+
+	<!-- BrowserTab -->
+	<ShowcaseBlock component="BrowserTab">
+		<h3 class="component-name">BrowserTab</h3>
+		<p class="component-desc">Owns the browser tab: <code class="demo-code">title</code>, <code class="demo-code">site</code> suffix, unread <code class="demo-code">count</code> and favicon <code class="demo-code">icon</code>. Every instance is a layer; the newest one that sets a field wins it, and unmounting hands the tab back. This page sets the title and count; the toggle mounts a panel layer over it. Watch the tab.</p>
+		<div class="demo-row">
+			<span class="demo-label">page count</span>
+			<div class="demo-items">
+				<Button variant="ghost" size="sm" onclick={() => (tabCount = Math.max(0, tabCount - 1))}>−</Button>
+				<Button variant="ghost" size="sm" onclick={() => (tabCount += 1)}>+</Button>
+				<span class="demo-label">{tabCount}</span>
+			</div>
+		</div>
+		<div class="demo-row">
+			<span class="demo-label">panel layer</span>
+			<div class="demo-items">
+				<Toggle checked={tabPanel} onchange={(v) => (tabPanel = v)} label="Mount panel tab" />
+				{#if tabPanel}
+					<BrowserTab title="Panel" icon={TAB_DEMO_ICON} />
+				{/if}
 			</div>
 		</div>
 	</ShowcaseBlock>

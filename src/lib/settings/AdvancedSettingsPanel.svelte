@@ -25,6 +25,7 @@
 	import Backdrop from '../backdrop/Backdrop.svelte';
 	import Flourish from '../motion/Flourish.svelte';
 	import StepSwitcher from '../primitives/forms/StepSwitcher.svelte';
+	import EdgeToolbarCard from '../primitives/cards/EdgeToolbarCard.svelte';
 	import type { ChoiceOption } from '../primitives/forms/choice.types.js';
 	import { BACKDROPS, parseStack, type BackdropId } from '../backdrop/backdrops.js';
 	import { FLOURISHES, type FlourishKind } from '../motion/effects.js';
@@ -45,9 +46,19 @@
 		 * a second outline nobody asked for.
 		 */
 		framed?: boolean;
+		/**
+		 * Dock a labelled rail against the panel's left edge, in `EdgeToolbarCard`,
+		 * instead of the compact icon rail across the top.
+		 *
+		 * For a panel embedded in a page (onboarding's "Look & feel"), where the
+		 * rail is how somebody discovers the groups exist. The popover keeps the
+		 * top rail: it is narrow, and there the reader knows what they came for.
+		 * Implies the card's frame, so `framed` is ignored.
+		 */
+		sideRail?: boolean;
 	}
 
-	let { framed = true }: Props = $props();
+	let { framed = true, sideRail = false }: Props = $props();
 
 	type GroupId = 'theme' | 'surface' | 'corners' | 'backdrop' | 'nav' | 'motion';
 
@@ -63,12 +74,17 @@
 	];
 
 	const railItems = $derived<IconToolbarItem[]>(
-		RAIL.map((r) => ({
-			icon: r.icon,
-			label: r.label,
-			active: group === r.id,
-			onclick: () => (group = r.id)
-		}))
+		RAIL.flatMap((r, i) => {
+			const btn: IconToolbarItem = {
+				icon: r.icon,
+				label: r.label,
+				active: group === r.id,
+				onclick: () => (group = r.id)
+			};
+			// Ticks only in the labelled side rail, where the words otherwise run
+			// together. Leading edge, so none dangles at the end.
+			return sideRail && i > 0 ? [{ divider: true as const }, btn] : [btn];
+		})
 	);
 	const current = $derived(RAIL.find((r) => r.id === group)!);
 
@@ -77,14 +93,21 @@
 	// want to decide" is the first thing you can pick.
 	// `theme.available` rather than `THEMES`: a host can turn the light palettes
 	// off, and an option the store will not honour is worse than no option.
+	// Unfinished palettes are left OUT of the switcher rather than disabled in
+	// it: StepSwitcher cycles its options, so a dead entry mid-cycle is a stop
+	// with no explanation. They are named underneath instead — still advertised,
+	// but not a choice that silently does nothing.
 	const THEME_OPTIONS = $derived<ChoiceOption[]>([
 		{
 			value: 'system',
 			label: 'System',
 			description: theme.allowLight ? 'Follows your OS setting.' : 'Dark while light is off.'
 		},
-		...theme.available.map((t) => ({ value: t.key, label: t.label, description: t.description }))
+		...theme.available
+			.filter((t) => !t.comingSoon)
+			.map((t) => ({ value: t.key, label: t.label, description: t.description }))
 	]);
+	const soonThemes = $derived(theme.available.filter((t) => t.comingSoon));
 	// The swatch has to show a real palette and `system` does not name one, so it
 	// previews whatever system currently resolves to.
 	const themeSwatch = $derived(getTheme(theme.resolved).swatch);
@@ -193,7 +216,16 @@
 	);
 </script>
 
-<div class="ap" class:ap--framed={framed}>
+{#snippet rail()}
+	<IconToolbar
+		items={railItems}
+		orientation={sideRail ? 'vertical' : 'horizontal'}
+		showLabels={sideRail}
+		bare={sideRail}
+	/>
+{/snippet}
+
+{#snippet panelBody()}
 	<header class="ap-head">
 		<span class="ap-title">Appearance</span>
 		<button type="button" class="ap-reset" onclick={() => advancedSettings.reset()}>
@@ -202,8 +234,10 @@
 		</button>
 	</header>
 
-	<div class="ap-rail">
-		<IconToolbar items={railItems} orientation="horizontal" />
+	<!-- With a side rail the buttons are already outside this column, so only the
+	     group's name and hint stay here; inline, the rail leads the same row. -->
+	<div class="ap-rail" class:ap-rail--side={sideRail}>
+		{#if !sideRail}{@render rail()}{/if}
 		<span class="ap-group">
 			<span class="ap-group-name">{current.label}</span>
 			<span class="ap-group-hint">{current.hint}</span>
@@ -306,6 +340,11 @@
 					wrap
 				/>
 			</div>
+			{#if soonThemes.length}
+				<p class="ap-soon">
+					{soonThemes.map((t) => t.label).join(' · ')} — coming soon
+				</p>
+			{/if}
 		{:else if group === 'surface'}
 			<div class="row">
 				<span class="row-k"><Icon name="layers" size={11} /> Panels</span>
@@ -401,7 +440,24 @@
 	<!-- Fixed height: the caption changes with every step, and a footer that grew
 	     with the sentence would resize the panel under the pointer. -->
 	<footer class="ap-foot">{caption}</footer>
-</div>
+{/snippet}
+
+{#if sideRail}
+	<!-- EdgeToolbarCard owns the frame here, so the panel must not draw its own —
+	     `framed` is deliberately ignored in this layout rather than fought with.
+	     The class sits on a div declared HERE rather than riding `contentClass`:
+	     a class name handed to a child component is a plain string that never
+	     picks up this file's scoping hash, so every `.ap` rule would silently
+	     fail to match and the docked panel would render unstyled. -->
+	<EdgeToolbarCard edge="left">
+		{#snippet toolbar()}{@render rail()}{/snippet}
+		<div class="ap ap--docked">{@render panelBody()}</div>
+	</EdgeToolbarCard>
+{:else}
+	<div class="ap" class:ap--framed={framed}>
+		{@render panelBody()}
+	</div>
+{/if}
 
 <style>
 	.ap {
@@ -410,6 +466,17 @@
 		width: 372px;
 		overflow: hidden;
 	}
+	/* Inside EdgeToolbarCard the card is the frame and the width. The popover's
+	   fixed 372px would fight the card's own sizing, so it is released here — the
+	   host decides how wide the card is. */
+	.ap--docked {
+		display: flex;
+		flex-direction: column;
+		width: auto;
+		min-width: 0;
+		overflow: hidden;
+	}
+
 	.ap--framed {
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-surface);
@@ -460,6 +527,11 @@
 		padding: 0.4rem 0.6rem;
 		border-bottom: 1px solid var(--border);
 	}
+	/* Only the group name and hint are left in this row once the buttons moved to
+	   the card's edge, so it gets the head's padding rather than the rail's. */
+	.ap-rail--side {
+		padding: 0.5rem 0.75rem;
+	}
 	.ap-group {
 		display: flex;
 		flex-direction: column;
@@ -472,6 +544,17 @@
 		color: var(--fg);
 		line-height: 1.1;
 	}
+	/* Named under the switcher rather than sitting in it — see THEME_OPTIONS. */
+	.ap-soon {
+		margin: 0.35rem 0 0;
+		padding-left: 0.1rem;
+		font-family: var(--mono);
+		font-size: 0.58rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--fg-dim);
+	}
+
 	.ap-group-hint {
 		font-size: 0.66rem;
 		color: var(--fg-dim);

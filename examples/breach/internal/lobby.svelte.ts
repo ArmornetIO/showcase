@@ -12,9 +12,12 @@
 // real deployment, buttons in this example — and the assignment rules do not
 // care which.
 
+import { untrack } from 'svelte';
 import {
 	INITIATIVE,
 	ROSTER,
+	asSide,
+	isOffice,
 	klassByKey,
 	seatOrder,
 	type Faction,
@@ -22,6 +25,7 @@ import {
 	type MatchSize
 } from './rules.js';
 import { botName } from './names.js';
+import { DEFAULT_APPEARANCE, randomLook, same, type Appearance } from './appearance.js';
 
 /** Who is sitting in a seat. `open` is a seat waiting for somebody. */
 export type Occupant =
@@ -72,7 +76,9 @@ const seatFaction = (seatId: string): Faction =>
 
 /** The characters that can be issued to a side. A seat is red or blue before
  *  anybody sits in it, and a red seat can only ever be a red character. */
-export const rosterFor = (side: Faction): Klass[] => ROSTER.filter((k) => k.faction === side);
+/** Every character, as it would play for a side. Any of them may sit in any
+ *  chair; the chair decides the kit. */
+export const rosterFor = (side: Faction): Klass[] => ROSTER.map((k) => asSide(k, side));
 
 export interface LobbyOptions {
 	/** Which seat the local player takes. */
@@ -111,6 +117,9 @@ export class BreachLobby {
 	 *  indexes the chairs at this size, and a 1v1 played as a 2v2 deals its cards
 	 *  to two people who are not there. */
 	size = $state<MatchSize>('2v2');
+	/** Which game the table plays. Set by the host before the table opens and
+	 *  fixed once it has — a networked table takes the server's word for it. */
+	variant = $state<'ctf' | 'insider_threat'>('ctf');
 	/** Seat the local player occupies, or `''` before they have chosen a side.
 	 *  Empty is the honest starting value: arriving at a table is not the same
 	 *  as sitting down at it, and pre-seating everybody at R1 was what made the
@@ -118,6 +127,79 @@ export class BreachLobby {
 	youSeatId = $state('');
 	/** Whose turn it is to pick, while drafting. */
 	draftSeatId = $state<string | null>(null);
+
+	/**
+	 * What each seat LOOKS LIKE, by seat id.
+	 *
+	 * Held beside `seats` rather than inside a `LobbySeat` because the two
+	 * change on completely different clocks: seating changes when somebody
+	 * arrives or is dealt a character, and an appearance changes every time
+	 * anybody moves a colour slider. Folding it in would rebuild the whole seat
+	 * array — and re-key every `{#each}` reading it — on each keystroke of
+	 * somebody else's callsign.
+	 *
+	 * Keyed by SEAT and not by person, because the seat is what the versus
+	 * ranks draw and what the server already names in every message. A player
+	 * who moves chairs brings their look with them the way they brought their
+	 * role: it is re-sent, not re-derived.
+	 */
+	looks = $state<Record<string, Appearance>>({});
+
+	/** How a seat is dressed. A seat whose occupant never chose a look is dealt
+	 *  one — see `randomLook` — rather than drawn in the default, because four
+	 *  identical figures is a line-up of nobody. An empty chair draws nothing. */
+	lookAt(seatId: string): Appearance {
+		const look = this.looks[seatId];
+		if (look) return look;
+		const seat = this.seats.find((s) => s.id === seatId);
+		return seat ? this.dealtLook(seat) : DEFAULT_APPEARANCE;
+	}
+
+	/**
+	 * The outfit a seat's occupant is dealt when they have none of their own.
+	 *
+	 * Seeded by WHO, not by chair, so a person keeps their look when they move:
+	 * a player's id, a bot's name. The one exception is the local stand-in
+	 * `'you'`, which every offline player shares — seeded by that alone it would
+	 * deal everybody who ever plays offline the same outfit, so it takes this
+	 * table's salt instead. Nobody else ever draws it, so nothing has to agree.
+	 */
+	dealtLook(seat: LobbySeat): Appearance {
+		const o = seat.occupant;
+		if (o.kind === 'open') return DEFAULT_APPEARANCE;
+		const seed = o.kind === 'ai' ? `ai:${o.name}:${seat.id}` : o.id === 'you' ? `you:${this.#salt}` : `u:${o.id}`;
+		return randomLook(seed);
+	}
+
+	readonly #salt = Math.random().toString(36).slice(2);
+
+	/** Adopt an appearance for a seat — the local player's, or one that arrived
+	 *  off the wire. The whole map is replaced so the change is a single rune
+	 *  write rather than a mutation nothing is watching. */
+	setLook(seatId: string, look: Appearance) {
+		if (!seatId) return;
+		this.looks = { ...this.looks, [seatId]: look };
+	}
+
+	/**
+	 * Called when the server describes YOUR OWN seat's appearance differently
+	 * from the last one it described.
+	 *
+	 * Two arrivals matter and they are the same event: the stored character put
+	 * back on at the join, and the resolved one handed back after an item this
+	 * client claimed turned out not to be owned. The host uses it to re-`load`
+	 * the outfitter, so the editor never disagrees with the figure everybody
+	 * else is looking at.
+	 *
+	 * Guarded on CHANGE rather than fired on every view, because a seat view
+	 * arrives for every move anybody makes — re-loading the editor on each one
+	 * would reset a half-finished colour under the player's hand.
+	 */
+	onyourlook?: (look: Appearance) => void;
+
+	/** The last appearance the server gave for your seat. Compared against, not
+	 *  rendered: `looks` is what draws. */
+	#lastYours: Appearance | null = null;
 
 	readonly #stagger: number;
 
@@ -192,6 +274,25 @@ export class BreachLobby {
 	firstOpenSeatOn(side: Faction): string | null {
 		return this.openSeatsOn(side)[0]?.id ?? null;
 	}
+	/**
+	 * The chair a person can actually SIT in on this side — an empty one, or a
+	 * demonstrator's if that is all there is.
+	 *
+	 * Distinct from `firstOpenSeatOn`, which answers "is there an empty chair"
+	 * and is the right question for counting and for gating. This one answers
+	 * "can this person join", and after a host presses `play with bots` those
+	 * two stop agreeing: every chair is occupied and none of them is held by a
+	 * person. Asking the first question at a join site is what left an invited
+	 * player standing at a full table with no way in.
+	 *
+	 * Open chairs come first so a fill never costs somebody their seat while a
+	 * genuinely empty one is going spare.
+	 */
+	firstTakeableSeatOn(side: Faction): string | null {
+		const open = this.openSeatsOn(side)[0];
+		if (open) return open.id;
+		return this.seatsOn(side).find((s) => s.occupant.kind === 'ai')?.id ?? null;
+	}
 
 	/**
 	 * May characters be chosen yet?
@@ -223,11 +324,14 @@ export class BreachLobby {
 	});
 	/** The character issued to a seat, resolved. */
 	klassAt(seatId: string): Klass | null {
-		const key = this.seats.find((s) => s.id === seatId)?.klassKey;
-		return key ? (ROSTER.find((k) => k.key === key) ?? null) : null;
+		const seat = this.seats.find((s) => s.id === seatId);
+		const k = seat?.klassKey ? ROSTER.find((r) => r.key === seat.klassKey) : undefined;
+		return seat && k ? asSide(k, seat.side) : null;
 	}
 	/** What is still on the table for a side, mid-draft. */
 	poolFor(side: Faction): Klass[] {
+		// Eight coworkers share four characters: nothing is ever taken.
+		if (isOffice(this.size)) return [...ROSTER];
 		const taken = new Set(this.seats.map((s) => s.klassKey).filter(Boolean));
 		return rosterFor(side).filter((k) => !taken.has(k.key));
 	}
@@ -243,6 +347,7 @@ export class BreachLobby {
 	 */
 	applyRemote(view: {
 		your_seat?: string;
+		config?: { variant?: 'ctf' | 'insider_threat' };
 		lobby: {
 			phase: string;
 			mode: string;
@@ -252,6 +357,10 @@ export class BreachLobby {
 				id: string;
 				side: string;
 				klass_key?: string;
+				/** What this seat is wearing. Server-resolved: it has already been
+				 *  checked against the account's entitlements, so a client that
+				 *  claimed the alpha crown it does not own arrives here without it. */
+				appearance?: Appearance;
 				occupant: { kind: string; user_id?: string; name?: string; ready?: boolean };
 			}>;
 			/** Whether the host may start. Decided server-side and sent to
@@ -266,7 +375,9 @@ export class BreachLobby {
 		const mine = view.your_seat ?? '';
 		this.seats = view.lobby.seats.map((s, i) => ({
 			id: s.id,
-			side: s.side as Faction,
+			// The server's office chairs have no side; 'red' is the placeholder
+			// `setSize` gives them, which every seat lookup here filters on.
+			side: (s.side || 'red') as Faction,
 			klassKey: s.klass_key ?? null,
 			occupant:
 				s.occupant.kind === 'human'
@@ -282,6 +393,27 @@ export class BreachLobby {
 						? { kind: 'ai' as const, name: s.occupant.name ?? botName(i) }
 						: { kind: 'open' as const }
 		}));
+		// Only seats the server actually described. A seat it said nothing about
+		// keeps the look it had, which is what stops a partial view undressing
+		// somebody mid-lobby.
+		//
+		// `untrack` is load-bearing. Both callers run this inside an `$effect`,
+		// so reading `looks` here to merge into it makes that effect depend on
+		// the state this line then writes — `effect_update_depth_exceeded` the
+		// moment any seat arrives carrying an appearance, which is every fill,
+		// every invite and every join. The input is `view`; this object's own
+		// state is never one.
+		const looks = { ...untrack(() => this.looks) };
+		for (const s of view.lobby.seats) if (s.appearance) looks[s.id] = s.appearance;
+		this.looks = looks;
+		// Your own seat, back from the server: either the character it had stored
+		// for you, or the one it resolved after filtering a claim. Either way it
+		// is the truth and the editor has to be told.
+		const yours = mine ? looks[mine] : undefined;
+		if (yours && !(this.#lastYours && same(this.#lastYours, yours))) {
+			this.#lastYours = yours;
+			this.onyourlook?.(yours);
+		}
 		// The two vocabularies are not the same word for the same state: the
 		// server calls the end of the ceremony `issued`, this file has always
 		// called it `ready`. Mapped explicitly rather than cast, because a cast
@@ -289,7 +421,8 @@ export class BreachLobby {
 		// renders a lobby stuck one screen behind the table.
 		this.phase = REMOTE_PHASE[view.lobby.phase] ?? 'waiting';
 		this.mode = view.lobby.mode as AssignmentMode;
-		this.size = view.lobby.size === '1v1' ? '1v1' : '2v2';
+		this.size = (view.lobby.size as MatchSize) || '2v2';
+		this.variant = view.config?.variant ?? 'ctf';
 		this.draftSeatId = view.lobby.draft_seat_id ?? null;
 		// The server computes this so two clients cannot disagree about whether
 		// the host may start — and so nobody has to re-implement the rule that
@@ -320,10 +453,19 @@ export class BreachLobby {
 	 */
 	joinSide(side: Faction): string | null {
 		if (this.phase !== 'waiting') return null;
-		const seatId = this.firstOpenSeatOn(side);
+		// Same reason as `pickSide`: a local host who filled with bots and then
+		// wanted the other side found every chair on it occupied by one.
+		const seatId = this.firstTakeableSeatOn(side);
 		if (!seatId) return null;
 		const here = this.you;
-		if (here) this.leave(here.id);
+		if (here) {
+			// A trade, not an eviction — mirrors `Lobby.TakeSeat` on the server.
+			// Vacating into an open chair would drop the table below full and
+			// close the character gate on everybody because one person moved.
+			const target = this.seats.find((s) => s.id === seatId);
+			if (target?.occupant.kind === 'ai') this.sit(here.id, target.occupant);
+			else this.leave(here.id);
+		}
 		this.youSeatId = seatId;
 		this.sit(seatId, { kind: 'human', id: 'you', name: 'You', ready: false });
 		return seatId;
@@ -363,21 +505,38 @@ export class BreachLobby {
 	 */
 	setSize(size: MatchSize) {
 		if (this.phase !== 'waiting') return;
+		const sitting = this.seats.filter((s) => s.occupant.kind !== 'open');
+		const wasYou = this.seats.findIndex((s) => s.id === this.youSeatId);
 		this.size = size;
-		const keys = seatOrder(size);
-		const wanted = new Set(keys.map((k) => klassByKey(k).seat));
+		// An office table is neutral chairs, P1…Pn. A seat's side is never read
+		// there; 'red' is only what keeps the shared seating code typed.
+		const ids = isOffice(size)
+			? Array.from({ length: Number(size[0]) }, (_, i) => `P${i + 1}`)
+			: SEAT_ORDER.filter((id) => new Set(seatOrder(size).map((k) => klassByKey(k).seat)).has(id));
 		const held = new Map(this.seats.map((s) => [s.id, s]));
-		this.seats = SEAT_ORDER.filter((id) => wanted.has(id)).map(
-			(id) =>
-				held.get(id) ?? {
-					id,
-					side: seatFaction(id),
-					occupant: { kind: 'open' } as Occupant,
-					klassKey: null
-				}
-		);
+		const sameShape = ids.every((id) => held.has(id)) && isOffice(size) === this.seats.some((s) => s.id === 'P1');
+		if (sameShape) {
+			this.seats = ids.map((id) => held.get(id)!);
+		} else {
+			// A different kind of table: everybody keeps a chair, in order, as far
+			// as the new table goes — mirrors `Table.resize` on the server.
+			this.seats = ids.map((id, i) => ({
+				id,
+				side: isOffice(size) ? 'red' : seatFaction(id),
+				occupant: sitting[i]?.occupant ?? ({ kind: 'open' } as Occupant),
+				klassKey: null
+			}));
+			const you = sitting.findIndex((s) => s.id === (wasYou >= 0 ? this.youSeatId : ''));
+			this.youSeatId = you >= 0 && you < ids.length ? ids[you] : '';
+			return;
+		}
 		// Somebody sitting in a chair that just stopped existing is standing up.
-		if (this.youSeatId && !wanted.has(this.youSeatId)) this.youSeatId = '';
+		if (this.youSeatId && !ids.includes(this.youSeatId)) this.youSeatId = '';
+	}
+
+	/** Whether this is an office table — Insider Threat's neutral chairs. */
+	get office(): boolean {
+		return isOffice(this.size);
 	}
 
 	toggleReady() {
@@ -425,18 +584,17 @@ export class BreachLobby {
 			return;
 		}
 
-		// By lot. Each side's characters are shuffled into that side's seats, then
-		// turned over one at a time — the stagger is the whole ceremony.
+		// By lot. Every character is shuffled across every chair — any of them may
+		// land on either side — then turned over one at a time; the stagger is the
+		// whole ceremony.
 		this.phase = 'issuing';
 		const assignment = new Map<string, string>();
-		for (const side of ['red', 'blue'] as Faction[]) {
-			const pool = shuffle(rosterFor(side).map((k) => k.key));
-			const seats = this.seats.filter((s) => s.side === side);
-			seats.forEach((seat, i) => assignment.set(seat.id, pool[i]));
-		}
-		for (const seatId of SEAT_ORDER) {
+		const pool = shuffle(ROSTER.map((k) => k.key));
+		// `% length`: an office of eight shares the four characters.
+		this.seats.forEach((seat, i) => assignment.set(seat.id, pool[i % pool.length]));
+		for (const seat of this.seats) {
 			await sleep(this.#stagger);
-			this.#assign(seatId, assignment.get(seatId)!);
+			this.#assign(seat.id, assignment.get(seat.id)!);
 		}
 		this.phase = 'ready';
 	}
@@ -447,8 +605,8 @@ export class BreachLobby {
 		if (!seatId || (this.phase !== 'drafting' && this.phase !== 'issuing')) return;
 		const seat = this.seats.find((s) => s.id === seatId);
 		const klass = ROSTER.find((k) => k.key === klassKey);
-		if (!seat || !klass || klass.faction !== seat.side) return;
-		if (this.seats.some((s) => s.klassKey === klassKey)) return;
+		if (!seat || !klass) return;
+		if (!isOffice(this.size) && this.seats.some((s) => s.klassKey === klassKey)) return;
 		this.#assign(seatId, klassKey);
 
 		if (this.mode === 'pick') {
@@ -478,8 +636,10 @@ export class BreachLobby {
 		this.seats = this.seats.map((s) => (s.id === seatId ? { ...s, klassKey } : s));
 	}
 
+	/** The seats are kept in turn order at every size, so the next drafter is
+	 *  simply the first without a character. */
 	#nextDrafter(): string | null {
-		return SEAT_ORDER.find((id) => !this.seats.find((s) => s.id === id)?.klassKey) ?? null;
+		return this.seats.find((s) => !s.klassKey)?.id ?? null;
 	}
 
 	/** An AI on the clock takes the first thing on its side and moves on. Runs
@@ -488,7 +648,10 @@ export class BreachLobby {
 		while (this.draftSeatId) {
 			const seat = this.seats.find((s) => s.id === this.draftSeatId);
 			if (!seat || seat.occupant.kind === 'human') return;
-			const pick = this.poolFor(seat.side)[0];
+			// At random: a demonstrator taking the top of an office's pool every
+			// time would put eight Maintainers in the building.
+			const pool = this.poolFor(seat.side);
+			const pick = pool[Math.floor(Math.random() * pool.length)];
 			if (!pick) return;
 			this.#assign(seat.id, pick.key);
 			this.draftSeatId = this.#nextDrafter();

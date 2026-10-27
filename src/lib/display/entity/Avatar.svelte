@@ -2,13 +2,21 @@
 	interface AvatarProps {
 		initials: string;
 		size?: number;
+		/**
+		 * `round` is for a PERSON — a byline, an author card. The hairline square is
+		 * for an entity: a service, an org, a node. Same component because the
+		 * construction is identical; the shape is the only thing that says which
+		 * kind of thing this is, so it is a prop rather than a second component.
+		 */
+		shape?: 'square' | 'round';
 	}
 
-	let { initials, size = 32 }: AvatarProps = $props();
+	let { initials, size = 32, shape = 'square' }: AvatarProps = $props();
 </script>
 
 <div
 	class="avatar"
+	data-shape={shape}
 	style:width="{size}px"
 	style:height="{size}px"
 	style:font-size="{Math.round(size * 0.34)}px"
@@ -31,5 +39,9 @@
 		user-select: none;
 		flex-shrink: 0;
 		line-height: 1;
+	}
+
+	.avatar[data-shape='round'] {
+		border-radius: 999px;
 	}
 </style>

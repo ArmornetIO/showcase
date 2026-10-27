@@ -77,6 +77,20 @@ ended up with four of them.
 - **`const state = ...` in a `.svelte` file is a hard compile error.** Svelte
   reads a bare `state` identifier as a store and SSR 500s rather than degrading.
   Name it `consoleState`.
+- **The console also runs where no host mounted it.** `standalone.ts` is what
+  compose injects into every app in development, inside a shadow root. So
+  anything you add must work there too: no assumption that the page has the
+  showcase tokens (they come in rescoped to `:host`), no portal to
+  `document.body` (it would land outside the shadow root and lose every style),
+  and no stylesheet import (the bundle is built with `css: 'injected'` and has
+  no CSS file). Check with `npx vite build` in `showcase/compose/devcog`.
+- **Do not make BROWSE's list smarter on the client.** `/_compose/apps.json` is
+  compose's `Resolve` asked for every app at once, per caller and per hostname.
+  Filtering or adding entries here puts a second opinion about what is reachable
+  next to the engine's.
+- **Console state is a cookie, not storage.** It has to follow you across dev
+  servers on different ports, and cookies ignore the port. Do not move it back
+  to localStorage to "simplify".
 - **Localhost gating is the host's job, not this package's.** `MeshDevControls`
   gates its fixture on localhost itself; devcog does not know what environment
   it is in and should not learn.
@@ -100,9 +114,7 @@ locally.** Every one carries a CI-ONLY header saying so.
 
 The split to keep: logic in a `.spec.ts` that runs in node, and only what needs
 a real layout or a real key event in a `.svelte.spec.ts`. For anything visual,
-take a Playwright screenshot against a running app instead, or run
-`specs/018-devcog-console/measure.mjs`, which drives the real console in a real
-browser and grades it against the spec's criteria.
+take a Playwright screenshot against a running app instead.
 
 Before declaring done:
 
@@ -110,12 +122,12 @@ Before declaring done:
 cd showcase && npx svelte-check --tsconfig ./tsconfig.json --output human
 ```
 
-`npm run check` also fails on a pre-existing `breach-locker/ItemGrid.svelte`
-Tailwind problem unrelated to this package, which is why the check is run
-directly.
+`svelte-check` is run directly rather than through `npm run check` so an
+unrelated mockup's Tailwind-source problem cannot mask this package's errors.
 
-Changing `<DevCog>`'s prop signature means changing **three** call sites in the
+Changing `<DevCog>`'s prop signature means changing **four** call sites in the
 same edit — `showcase/src/routes/+layout.svelte`,
-`showcase/src/routes/dev/+page.svelte`, and
-`app-ui/src/lib/components/dev/DevTools.svelte`. Missing one degrades quietly:
-the console renders empty rather than failing.
+`showcase/src/routes/dev/+page.svelte`,
+`app-ui/src/lib/components/dev/DevTools.svelte`, and `standalone.ts` (the
+framework's own mount). Missing one degrades quietly: the console renders empty
+rather than failing.

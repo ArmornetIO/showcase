@@ -1,4 +1,4 @@
-import type { ThemeKey } from '$lib/theme/themes.js';
+import type { ThemeKey } from '../../theme/themes.js';
 import type { TokenMap } from './types.js';
 
 /**

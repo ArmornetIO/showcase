@@ -1,5 +1,6 @@
 <script module lang="ts">
-	import { MODE_ICON_GLYPHS } from './mode-tool-icons.js';
+	import { MODE_ICON_GLYPHS, TOOL_ICON_GLYPHS } from './mode-tool-icons.js';
+	import { LOGO_MARKUP } from './ArmornetLogo.svelte';
 
 	const BASE_ICONS = {
 		// ── Navigation & actions ───────────────────────────────────────────────
@@ -47,8 +48,8 @@
 			'<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
 		network:
 			'<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
-		crestlink:
-			'<path d="M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="11" r="1.3" fill="currentColor" stroke="none"/><path d="M12 11 8 8M12 11 16 8M12 11 8 14M12 11 16 14M12 11 12 16.5"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="8" cy="14" r="1"/><circle cx="16" cy="14" r="1"/><circle cx="12" cy="16.5" r="1"/>',
+		// The logo itself, from its one definition — not a hand-copied look-alike.
+		armornet: LOGO_MARKUP,
 		radio:
 			'<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/>',
 		radar:
@@ -69,12 +70,6 @@
 			'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
 
 		// ── Security & identity ────────────────────────────────────────────────
-		// The Armornet mark, cut down to one stroke weight so it reads at 16px.
-		// The full two-tone crest (bloom + mesh footprint) is ArmornetCrest.svelte.
-		// The right bar joint is lifted and both legs kick outward below their
-		// joint — same deliberate imperfection as the full crest.
-		armornet:
-			'<path d="M12 2.4 20 5.6v7c0 4.3-3.4 7.2-8 8.6-4.6-1.4-8-4.3-8-8.6v-7z"/><path d="M12 7.4 9.87 12.8 8.35 16"/><path d="M12 7.4 14 12.45 15.62 16"/><path d="M9.87 12.8 14 12.45"/><circle cx="12" cy="7.4" r=".95" fill="currentColor" stroke="none"/><circle cx="8.35" cy="16" r=".95" fill="currentColor" stroke="none"/><circle cx="15.62" cy="16" r=".95" fill="currentColor" stroke="none"/><circle cx="9.87" cy="12.8" r=".72" fill="currentColor" stroke="none"/><circle cx="14" cy="12.45" r=".72" fill="currentColor" stroke="none"/>',
 		shield:
 			'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
 		'shield-check':
@@ -188,7 +183,9 @@
 	// mode-tool-icons.ts and shared with the mesh, which samples them into node
 	// silhouettes. Merging them here is what lets a button say name="mode-posture"
 	// instead of hand-rolling an <svg> around the raw markup.
-	export const ICONS = { ...BASE_ICONS, ...MODE_ICON_GLYPHS } as const;
+	// Tools ride in on the same grounds as modes: one 24×24 stroke grammar, drawn
+	// once, addressable by name.
+	export const ICONS = { ...BASE_ICONS, ...MODE_ICON_GLYPHS, ...TOOL_ICON_GLYPHS } as const;
 
 	export type IconName = keyof typeof ICONS;
 </script>

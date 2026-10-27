@@ -1,0 +1,13 @@
+{
+  "name": "roadmap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Armornet's product roadmap as a Gantt. Reads roadmap.gen.json, which cmd/roadmapgen writes from docs/roadmap/.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  }
+}

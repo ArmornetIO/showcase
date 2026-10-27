@@ -167,10 +167,10 @@
 		if (!caps) return '';
 		if (!caps.database) return 'No database configured — start with --db-url or DATABASE_URL.';
 		if ((view === 'overview' || view === 'compare') && !caps.shadow) {
-			return 'No shadow database configured — drift and ledger comparison replay the migration corpus into a throwaway database. Start with --shadow-url or DBMGR_SHADOW_URL.';
+			return 'No shadow database configured — drift and ledger comparison replay the migration set into a throwaway database. Start with --shadow-url or DBMGR_SHADOW_URL.';
 		}
 		if ((view === 'overview' || view === 'ledger' || view === 'environments') && !caps.registry) {
-			return 'No migration corpus loaded — start with --migrations or DBMGR_MIGRATIONS.';
+			return 'No migrations loaded — start with --migrations or DBMGR_MIGRATIONS.';
 		}
 		if (view === 'environments' && (caps.environments?.length ?? 0) === 0) {
 			return 'No environments configured — set DBMGR_ENV_<NAME>=<url> for each.';

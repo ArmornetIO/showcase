@@ -11,9 +11,12 @@
 	const STATE_COLOR: Record<string, 'success' | 'accent' | 'warn' | 'error' | 'default'> = {
 		applied: 'success',
 		pending: 'accent',
+		adoptable: 'accent',
 		reverted: 'error',
+		behind: 'error',
 		checksum_drift: 'warn',
-		orphan_applied: 'warn'
+		orphan_applied: 'warn',
+		superseded: 'default'
 	};
 
 	function shortSum(s: string): string {
@@ -31,7 +34,7 @@
 		<span class="lh">by</span>
 	</div>
 	{#each entries as e (e.sequence + e.name)}
-		<div class="ledger-row" class:muted={e.state === 'pending'}>
+		<div class="ledger-row" class:muted={e.state === 'pending' || e.state === 'superseded'}>
 			<span class="seq mono">{String(e.sequence).padStart(4, '0')}</span>
 			<span class="nm mono">{e.name}</span>
 			<span><Chip look="filled" color={STATE_COLOR[e.state] ?? 'default'}>{e.state}</Chip></span>

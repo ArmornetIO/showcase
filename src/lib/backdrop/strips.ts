@@ -105,7 +105,7 @@ export interface StripSpec {
 	 * A second, offset, hue-shifted copy of this strip — CMYK misregistration.
 	 *
 	 * Printing plates that do not line up leave coloured fringes on every edge,
-	 * and that misalignment is the whole visual signature of the Spider-Verse
+	 * and that misalignment is the whole visual signature of the misregistered
 	 * look. Faking it needs the art drawn TWICE at a small offset with the
 	 * copies in different hues; one pass, however colourful, only ever reads as
 	 * "colourful". Costs a second render of the strip, so it is opt-in.
@@ -655,7 +655,7 @@ export function siliconValleyStrips(): BackdropPreset {
 }
 
 /**
- * MISREGISTERED CHORUS — Into the Spider-Verse.
+ * MISREGISTERED CHORUS.
  *
  * The image fighting itself: colour, line and motion each landing a half-beat
  * apart, like a comic panel shot through a prism.
@@ -670,7 +670,7 @@ export function siliconValleyStrips(): BackdropPreset {
  * flatness with abrupt scale changes, the way a comic page cuts between a
  * splash panel and an inset.
  */
-export function spiderVerseStrips(): BackdropPreset {
+export function misregisteredStrips(): BackdropPreset {
 	const base = {
 		...VIBE_BASE,
 		belt: 3,

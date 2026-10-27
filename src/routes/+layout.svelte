@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
 	import { theme } from '$lib/theme/store.svelte.js';
+	import { appearance } from '$lib/theme/appearance.svelte.js';
 	import { advancedSettings } from '$lib/settings/store.svelte.js';
 	import DevCog from '$lib/devcog/DevCog.svelte';
 	import FrameDevControls from '$lib/frames/FrameDevControls.svelte';
@@ -30,8 +31,18 @@
 		// import anywhere, and the only code that touches storage runs in a
 		// mounted component. `theme.start()` hands back its own teardown.
 		const stopTheme = theme.start();
+		const stopAppearance = appearance.start();
 		advancedSettings.hydrate();
-		return stopTheme;
+		return () => {
+			stopTheme();
+			stopAppearance();
+		};
+	});
+
+	// Without this every surface here renders glass while the app defaults to
+	// flat, so mockups stop showing what ships.
+	$effect(() => {
+		document.documentElement.setAttribute('data-appearance', appearance.mode);
 	});
 
 	// Painting the theme is the app's job — the store owns the preference, not the
@@ -60,12 +71,11 @@
 			// whatever we do, so rendering one underneath only leaves a sidebar
 			// nobody can see still sitting in the tab order.
 			page.url.pathname.endsWith('/auth-split') ||
-			// The board's chrome is pinned to the window's edges. Give it the
-			// shell's and every reading moves inward by a sidebar.
-			page.url.pathname.endsWith('/mockups/breach-hud') ||
 			// A cinematic. It is a shot, not a screen — a sidebar beside it is a
 			// sidebar in the frame.
-			page.url.pathname.endsWith('/mockups/logo-nanotech')
+			page.url.pathname.endsWith('/mockups/logo-nanotech') ||
+			// The timeline is the content; a sidebar is width it does not get.
+			page.url.pathname.endsWith('/mockups/product-roadmap')
 	);
 
 	// The flags UI left the cog for the host's admin page (spec 018). The showcase
@@ -180,6 +190,7 @@
 				{ label: 'Docs', href: `${base}/docs`, icon: 'file-text' },
 				{ label: 'Icons', href: `${base}/icons`, icon: 'star' },
 				{ label: 'Theme', href: `${base}/theme`, icon: 'sun' },
+				{ label: 'buildWatch', href: `${base}/build-watch`, icon: 'refresh-cw' },
 				{ label: 'Dev', href: `${base}/dev`, icon: 'code' }
 			]
 		},

@@ -9,6 +9,7 @@
 	// same evaluator with a hovered number instead of a clock value. There is no
 	// preview-specific rendering path.
 	import { vocabularyFor, EASES, type Channel, type Burst } from './vocabulary.js';
+	import Select from '../primitives/forms/Select.svelte';
 	import type { ObjectKind } from './types.js';
 
 	let {
@@ -188,9 +189,13 @@
 						<label class="f">
 							<span>to</span>
 							{#if active.item.options}
-								<select bind:value={toValue} onchange={() => preview(active)}>
-									{#each active.item.options as o (o)}<option value={o}>{o}</option>{/each}
-								</select>
+								<Select
+									size="sm"
+									width="100%"
+									bind:value={toValue}
+									options={active.item.options.map((o) => ({ value: o, label: o }))}
+									onchange={() => preview(active)}
+								/>
 							{:else if active.item.type === 'lerp'}
 								<input
 									type="number"
@@ -210,9 +215,12 @@
 						<label class="f f--n"><span>dur</span><input type="number" step="50" bind:value={dur} /></label>
 						<label class="f f--n">
 							<span>ease</span>
-							<select bind:value={easeId}>
-								{#each EASES as e (e.id)}<option value={e.id}>{e.label}</option>{/each}
-							</select>
+							<Select
+								size="sm"
+								width="100%"
+								bind:value={easeId}
+								options={EASES.map((e) => ({ value: e.id, label: e.label }))}
+							/>
 						</label>
 					</div>
 
@@ -380,8 +388,7 @@
 		gap: 0.4rem;
 	}
 	input[type='number'],
-	input[type='text'],
-	select {
+	input[type='text'] {
 		width: 100%;
 		padding: 0.26rem 0.3rem;
 		border: 1px solid rgba(255, 255, 255, 0.16);

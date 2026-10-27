@@ -26,7 +26,7 @@
 		{@const isSelected = value === opt.value}
 		<button
 			type="button"
-			class="px-4 py-[0.4rem] font-[var(--mono)] text-[0.78rem] border border-[var(--border)] bg-[var(--bg)] text-[var(--fg-muted)] transition-[background,color,border-color] duration-[0.12s]
+			class="px-4 py-[0.4rem] font-(family-name:--mono) text-[0.78rem] border border-[var(--border)] bg-[var(--bg)] text-[var(--fg-muted)] transition-[background,color,border-color] duration-[0.12s]
 				{isFirst ? 'rounded-l-[5px]' : ''}
 				{isLast ? 'rounded-r-[5px]' : '-mr-px'}
 				{disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}

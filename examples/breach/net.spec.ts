@@ -18,7 +18,8 @@ vi.stubGlobal('location', { protocol: 'http:', host: 'localhost:8080' });
 
 const { TableSocket } = await import('./net.svelte.js');
 type Socket = InstanceType<typeof TableSocket>;
-type TableView = import('./net.svelte.js').TableView;
+const { decodeIntentFrame, encodeSeatViewFrame, newTableView } = await import('./wire.gen.js');
+type WireTable = import('./wire.gen.js').TableView;
 type ArmornetAgent = import('showcase').ArmornetAgent;
 
 /** A source that connects, and hands back the agent so a test can answer — or
@@ -48,10 +49,10 @@ function liveSource() {
 	 *  suite exercised a frame type that does not exist and passed — which is how
 	 *  a protocol mismatch that broke every table survived a file of tests about
 	 *  frames. A fake is only evidence while it lies the same way the wire does. */
-	const answer = (view: Partial<TableView>) =>
+	const answer = (view: Partial<WireTable>) =>
 		deliver?.(
 			'seat_view',
-			new TextEncoder().encode(JSON.stringify({ view: { epoch: 'e1', version: 1, ...view } }))
+			encodeSeatViewFrame({ tableId: 'T1', view: newTableView({ epoch: 'e1', version: 1, ...view }) })
 		);
 	// The same signature `subscribe` has, so the socket hands its frame handler
 	// straight in and `answer` can drive it — exactly as the module would.
@@ -317,9 +318,9 @@ describe('TableSocket reconnection', () => {
 
 /** The parsed envelopes a source has been handed. */
 const envelopes = (sent: Uint8Array[]) =>
-	sent.map((p) => JSON.parse(new TextDecoder().decode(p)) as {
-		intent: { op: string };
-		attempt?: string;
+	sent.map((p) => {
+		const f = decodeIntentFrame(p);
+		return { intent: { op: f.intent?.op ?? 'unspecified' }, attempt: f.attempt || undefined };
 	});
 
 describe('TableSocket attempt tokens', () => {

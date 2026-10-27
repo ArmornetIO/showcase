@@ -2,7 +2,12 @@
 <html lang="en" data-theme="dark">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!-- `viewport-fit=cover` is what puts the notch and the home indicator INSIDE
+		     the viewport, which is the only way `env(safe-area-inset-*)` reports
+		     anything but zero. The HUD pins its two most important surfaces — the
+		     score bar and the battle centre — to the frame edges, so without this
+		     they sit under the hardware. -->
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<title>BREACH</title>
 		<meta
 			name="description"

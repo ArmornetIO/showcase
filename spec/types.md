@@ -45,7 +45,7 @@ Four representations of the library, each deriving from the one before:
 
 ```
    source                     the truth for everything derivable
-     │  gen:api
+     │  propsgen
      ▼
    generated contract         props, types, defaults, slots, regions,
      │                        signatures, root element  ── DERIVED
@@ -184,7 +184,7 @@ block, and **MUST** be demoed at every axis value it supports per
 ## 4. Generated contract
 
 The **generated contract** is the library's public description of itself: one
-machine-readable record per component, emitted by `gen:api` from source. It is
+machine-readable record per component, emitted by `propsgen` from source. It is
 what the builder reads, what the API-diff gate compares, and what documentation
 renders.
 

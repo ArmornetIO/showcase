@@ -258,13 +258,24 @@ const AssetNamespace = "/_apps/"
 // collide, and there is no path to derive it from when two apps share "/".
 func AssetPrefix(name string) string { return AssetNamespace + name }
 
+// DevPortVar is the environment variable that overrides an app's dev port.
+//
+// Derived here, beside the other name-derived fact, because it is read by three
+// parties that must agree exactly: the dev runner that sets it, the generated
+// table that defaults it, and a person moving a taken port on the command line.
+// Two of them spelled it out in-line and a third would have made it three —
+// which is a port the proxy aims at and nothing listens on, reported as a 502
+// naming no port.
+func DevPortVar(name string) string {
+	return strings.ToUpper(strings.ReplaceAll(name, "-", "_")) + "_DEV_PORT"
+}
+
 // AppsDir is where the generated per-app packages live.
 //
 // Under server/ui because serving a user interface is that package's domain,
 // and because nothing prevents it: server/installer can import server/ui (no
 // cycle — checked, not assumed), and the installer is a SUBCOMMAND of the same
-// binary, which already links both. An earlier draft put these in internal/ on
-// the belief that an import cycle forced it. There is no such cycle.
+// binary, which already links both.
 const AppsDir = "server/ui/apps"
 
 // EmbedDir is the generated Go package directory holding an app's bundle.

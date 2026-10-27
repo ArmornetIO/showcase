@@ -34,10 +34,29 @@
 		match: BreachMatch;
 		/** Reopen the end screen. The rail reports the result; it does not own it. */
 		onresult?: () => void;
+		/**
+		 * The objective as a READOUT rather than as a sentence.
+		 *
+		 * In the rail this line is prose because a 268px column beside the board
+		 * has room to teach: "take 2 more links, in any order, to open the
+		 * payload" is the rule, spelled out, and it costs nothing to stand there.
+		 * Across the top of a phone the same words are three wrapped lines of
+		 * 0.78rem mono — a paragraph occupying the top eighth of the screen,
+		 * re-read on every single turn, saying what the pips beside it already
+		 * say. It is the clearest "web page, shrunk" tell on the narrow layout.
+		 *
+		 * Terse keeps the two facts a player acts on between taps — how many
+		 * links, how many rounds — and lets the pips carry the shape. The prose
+		 * is not deleted, it is in the drawer, where reading belongs.
+		 *
+		 * An ANNOUNCEMENT is exempt on purpose: a building changing hands is the
+		 * biggest event in a match and it gets its words on every screen size.
+		 */
+		terse?: boolean;
 		class?: string;
 	}
 
-	let { match, onresult = () => {}, class: cls = '' }: Props = $props();
+	let { match, onresult = () => {}, terse = false, class: cls = '' }: Props = $props();
 
 	// The end of the match, as one record every surface quotes — see `outcome.ts`
 	// for the verdict/event split this rail is the reason for.
@@ -171,18 +190,41 @@
 		</span>
 		{@render pips()}
 		<span class="flex-1"></span>
-		<span class="font-mono text-[0.62rem] tabular-nums text-[var(--fg-dim)]">
-			{red
-				? linksLeft > 0
-					? `${linksLeft} more before the payload`
-					: 'the payload is open'
-				: `${left} rounds to hold`}
-		</span>
+		{#if !terse}
+			<span class="font-mono text-[0.62rem] tabular-nums text-[var(--fg-dim)]">
+				{red
+					? linksLeft > 0
+						? `${linksLeft} more before the payload`
+						: 'the payload is open'
+					: `${left} rounds to hold`}
+			</span>
+		{/if}
 	{:else}
 		{@render chip(red ? 'payload chain' : 'the horizon', tone)}
 		{@render pips()}
 
-		{#if red}
+		{#if terse}
+			<!-- Two numerals and a unit each, on one line: what is left to take,
+			     and how long there is to take it in. Red leads with the count
+			     because red's objective is a set; blue leads with the clock
+			     because blue's is a deadline. Same two facts, opposite emphasis —
+			     which is the one thing the prose was carrying that pips cannot. -->
+			<span class="ml-auto flex shrink-0 items-baseline gap-2 font-mono tabular-nums">
+				<b class="text-[0.86rem] leading-none font-black" style:color={tone}>
+					{red ? `${held}/${CHAIN.length}` : left}
+				</b>
+				<span class="text-[0.56rem] tracking-[0.16em] uppercase text-[var(--fg-dim)]">
+					{red ? 'held' : 'rounds'}
+				</span>
+				<span class="h-3 w-px bg-[var(--border)]"></span>
+				<b class="text-[0.86rem] leading-none font-black text-[var(--fg-muted)]">
+					{red ? left : `${held}/${CHAIN.length}`}
+				</b>
+				<span class="text-[0.56rem] tracking-[0.16em] uppercase text-[var(--fg-dim)]">
+					{red ? 'rounds' : 'seen'}
+				</span>
+			</span>
+		{:else if red}
 			<!-- The objective as a SET and a gate, which is what the rules actually
 			     are. No "next": there isn't one. -->
 			<span class="min-w-0 font-mono text-[0.78rem]">
@@ -224,9 +266,14 @@
 		     narrower window the deadline — the number blue is playing toward — was
 		     the one thing that ran off the panel. `w-full` in a wrapping row costs
 		     a line and can never be cut. -->
-		<span class="w-full font-mono text-[0.62rem] tabular-nums text-[var(--fg-muted)]">
-			{left} rounds to horizon
-		</span>
+		<!-- Terse already carries the horizon as a numeral in the row above; a
+		     second copy of it is a whole line of a phone screen spent restating
+		     what is two inches to the left. -->
+		{#if !terse}
+			<span class="w-full font-mono text-[0.62rem] tabular-nums text-[var(--fg-muted)]">
+				{left} rounds to horizon
+			</span>
+		{/if}
 	{/if}
 </div>
 

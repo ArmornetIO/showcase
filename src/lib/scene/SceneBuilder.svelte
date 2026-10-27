@@ -20,6 +20,7 @@
 	import SceneCaptions from './SceneCaptions.svelte';
 	import { REGISTRY } from '../builder/registry.js';
 	import { MESH_LAYOUTS } from '../mesh-studio/layout/mesh-layout.js';
+	import Select from '../primitives/forms/Select.svelte';
 	import type { CanvasCamera } from '../primitives/canvas/canvas-camera.js';
 
 	let {
@@ -464,14 +465,15 @@
 				</div>
 
 				<div class="sec">ARRANGEMENT</div>
-				<select
+				<!-- MESH_LAYOUTS is the single source of truth for this menu — the
+				     same five options every other mesh canvas offers, globe included. -->
+				<Select
+					size="sm"
+					width="100%"
 					value={scene.layout}
-					onchange={(e) => (scene = { ...scene, layout: e.currentTarget.value as Scene['layout'] })}
-				>
-					<!-- MESH_LAYOUTS is the single source of truth for this menu — the
-					     same five options every other mesh canvas offers, globe included. -->
-					{#each MESH_LAYOUTS as l (l.id)}<option value={l.id}>{l.label}</option>{/each}
-				</select>
+					options={MESH_LAYOUTS.map((l) => ({ value: l.id, label: l.label }))}
+					onchange={(v) => (scene = { ...scene, layout: v as Scene['layout'] })}
+				/>
 				<div class="cap">{MESH_LAYOUTS.find((l) => l.id === scene.layout)?.hint}</div>
 			</div>
 
@@ -672,16 +674,6 @@
 		margin-left: auto;
 		font-size: 0.55rem;
 		color: var(--fg-dim);
-	}
-	select {
-		width: 100%;
-		padding: 0.26rem 0.3rem;
-		border: 1px solid rgba(255, 255, 255, 0.16);
-		border-radius: 0.25rem;
-		background: rgba(255, 255, 255, 0.04);
-		color: inherit;
-		font: inherit;
-		font-size: 0.68rem;
 	}
 	.cap {
 		font-size: 0.56rem;

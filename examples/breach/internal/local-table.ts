@@ -36,6 +36,9 @@ export interface LocalTableOptions {
 	 *  keeps watching from THEIR chair while the machine plays, exactly as they
 	 *  would on a networked table. */
 	seat?: string;
+	/** Who sits where, in initiative order. Omitted, every character sits in
+	 *  its own chair. */
+	seating?: Array<{ klass: string; side: 'red' | 'blue' }>;
 }
 
 /** Opens a match in the rules module and returns the port that drives it.
@@ -50,7 +53,7 @@ export async function openLocalTable(
 	const human = opts.human ?? [];
 	let seed = opts.seed ?? Date.now() & 0x7fffffff;
 
-	let engine = await RulesEngine.open(size, seed);
+	let engine = await RulesEngine.open(size, seed, opts.seating);
 
 	/** Hand the board to whoever is sitting at it.
 	 *
@@ -116,7 +119,7 @@ export async function openLocalTable(
 				// is dropped rather than reset: the module holds one match, and
 				// opening another is what starting over means.
 				seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-				engine = await RulesEngine.open(size, seed);
+				engine = await RulesEngine.open(size, seed, opts.seating);
 				sync();
 				await runBots();
 			})();

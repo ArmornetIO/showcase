@@ -14,9 +14,14 @@
   // fixed point of every planar layout and the centre of the globe — never placed,
   // never spun.
   import Canvas from "../../primitives/canvas/Canvas.svelte";
+  import MeshSky from "./MeshSky.svelte";
   import type { CanvasCamera } from "../../primitives/canvas/canvas-camera.js";
   import MeshStudio from "../MeshStudio.svelte";
-  import type { StudioNode, StudioEdge } from "../studio.types.js";
+  import type {
+    StudioNode,
+    StudioEdge,
+    LandOcclusion,
+  } from "../studio.types.js";
   import type { ShapeConcept } from "../node-shapes.js";
   import GlobeShell from "../globe/GlobeShell.svelte";
   import Icon from "../../icons/Icon.svelte";
@@ -30,6 +35,8 @@
     tangentFrame,
     faceYawPitch,
     shortestAngle,
+    subViewerDir,
+    alignZ,
     type Cap,
     type TangentFrame,
     type Vec3,
@@ -39,7 +46,7 @@
     maskTerrain,
     type Terrain,
   } from "../../physics/terrain.js";
-  import { PIECE_REACH } from "../layout/mesh-metrics.js";
+  import { PIECE_REACH, silhouetteR } from "../layout/mesh-metrics.js";
   import TerritoryCaps, {
     type Territory,
     type TerritoryStyle,
@@ -79,6 +86,7 @@
     onSelect?: (id: string | null) => void;
     onLink?: (edge: StudioEdge) => void;
     onFacetSelect?: (nodeId: string, mode: string, index: number) => void;
+    onFoldToggle?: (id: string) => void;
     /** MeshStudio passthroughs. */
     concept?: ShapeConcept;
     edgeCurve?: "line" | "bezier" | "bow";
@@ -129,11 +137,29 @@
     /** Draw ringed leaf nodes with a smaller glyph and the label + value stacked
      *  inside the disc (passed through to MeshStudio). */
     insetLeafLabels?: boolean;
+    /** Scale the node NAME relative to everything else — passed through to
+     *  MeshStudio, whose prop this is. A caption that has been moved OUT of the
+     *  disc has the room to be legible and nothing to be legible against unless
+     *  it is allowed to grow. */
+    labelScale?: number;
     /** Print the node's TYPE as an eyebrow above its name (passed through to
      *  MeshStudio). On a mesh of infrastructure the kind of node is half the
      *  story; on a mesh whose labels are already real names it is the same word
      *  stamped on everything. Defaults on, matching MeshStudio. */
     typeLabels?: boolean;
+    /** What kind of place this canvas is.
+     *
+     *  `'sky'` — a composed shot. Screen-fixed stars behind a scene that carries
+     *  its own structure, which is what an overview wants: one frame, looked at.
+     *
+     *  `'world'` — somewhere to go. The canvas's grid comes back as ground, so a
+     *  pan moves you across something instead of dragging a fixed backdrop's
+     *  contents around. Only honoured on a FLAT layout; a globe is a shot by
+     *  construction and puts its own graticule in the frame.
+     *
+     *  Defaults to `'sky'`, since sharing one backdrop is what the overview is
+     *  for and a screen that wants roaming knows that about itself. */
+    scene?: "sky" | "world";
     /** Per-canvas overrides on the studio's draw knobs, merged over DEFAULT_TUNING.
      *  For a caller that has to change what the canvas DRAWS from its own controls
      *  — a mesh big enough that per-link rings or per-link labels stop being
@@ -268,6 +294,7 @@
     onSelect,
     onLink,
     onFacetSelect,
+    onFoldToggle,
     concept = "instrument",
     edgeCurve = "bow",
     nodeR = 44,
@@ -290,6 +317,7 @@
     autoRotate = $bindable(false),
     axialTilt = 0,
     insetLeafLabels = false,
+    labelScale = 1,
     typeLabels = true,
     tuning,
     globeIntro = false,
@@ -328,6 +356,7 @@
     relief = $bindable(0.055),
     pieceSink = 0.2,
     globeSurface = $bindable("relief"),
+    scene = "sky",
   }: Props = $props();
 
   // What the surface mode actually costs each feature. Read these, never the raw
@@ -341,6 +370,11 @@
   // them there is no floor, no contour and no elevation — not sea, absence. A
   // globe with no territories keeps the raw field, since there is nothing to cut
   // it to and every node is then standing on the same continent.
+  /** How far in from a region's rim the land takes to rise to full height, as a
+   *  fraction of the region's half-angle. Named because two things must agree on
+   *  it — the ground itself, and the mask that buries lines under that ground. */
+  const TERRAIN_SHORE = 0.22;
+
   const effTerrain = $derived.by(() => {
     if (!terrain) return undefined;
     if (!globeCaps?.size) return terrain;
@@ -350,7 +384,7 @@
     return maskTerrain(
       terrain,
       entries.map(([, cap]) => cap),
-      0.22,
+      TERRAIN_SHORE,
       entries.map(([key]) => territoryOf?.(key)?.biome ?? "rolling"),
     );
   });
@@ -363,8 +397,14 @@
   const CY = 360;
 
   /** Clear angle left between two neighbouring territories, radians. The empty
-   *  border is what makes a region read as a region rather than as a crowd. */
-  const TERRITORY_BORDER = 0.14;
+   *  border is what makes a region read as a region rather than as a crowd.
+   *
+   *  Kept narrow because the regions are no longer discs: `capAlpha` gives each
+   *  one a coastline that runs in and out by about a fifth of its radius, so the
+   *  gap a viewer actually sees varies along the border and reads as water
+   *  between two landmasses. A border wide enough to be obvious at every bearing
+   *  is one that leaves the globe mostly empty. */
+  const TERRITORY_BORDER = 0.07;
 
   // The placed copy MeshStudio renders and drags mutate. Kept separate from the
   // caller's logical `nodes` so a drag never fights a poll. Edges, by contrast,
@@ -403,6 +443,10 @@
   // selected. Selection outranks it (see `focusedTerritory`) — a node is a more
   // specific answer to "what am I looking at" than the region it stands in.
   let territoryFocus = $state<string | null>(null);
+  /** Which node the pointer is over. Held here, not in MeshStudio, because the
+   *  bodies moved to a GL layer that is MeshStudio's SIBLING: the hover that
+   *  used to light a node's own halo now has to cross between the two. */
+  let hoveredId = $state<string | null>(null);
 
   function hubNode(): StudioNode | undefined {
     return placed.find((n) => n.id === hubId);
@@ -475,6 +519,105 @@
     });
   }
 
+  /** Where the crest is buried, and how wide the shore it fades across is. Both
+   *  in the masked field's own units, where 0 is water and land starts at about
+   *  0.5 of its cap mask — so a shore of 0.35 means the core is gone by the time
+   *  the sightline is properly over a region, and 0.05 leaves it as a suggestion
+   *  rather than nothing at all. A core that vanishes completely reads as a bug. */
+  const CORE_SHORE = 0.35;
+  const CORE_BURIED = 0.05;
+
+
+  /**
+   * How much of the crest at the globe's CENTRE the viewer can see, 0..1.
+   *
+   * It is inside the sphere, so what stands between it and the eye is the near
+   * surface — and that surface is not uniform. The territories are raised land
+   * and the space between them is empty, so the core shows through the gaps and
+   * is buried by the ground. That occlusion is the only treatment that makes a
+   * thing at the centre read as being AT the centre rather than pasted over the
+   * front of it.
+   *
+   * Sampled at the SUB-VIEWER point, because that is the single point the
+   * sightline to the centre crosses. The ground is asked on the UNSPUN direction
+   * for the same reason every other sample here is: spinning moves where a hill
+   * is drawn, never how high it is.
+   */
+  function coreSightline(): number {
+    if (!effTerrain || !effRelief) return 1;
+    const land = effTerrain.heightAt(
+      subViewerDir(meshYaw, meshPitch + axialTilt),
+    );
+    return Math.max(CORE_BURIED, 1 - Math.min(1, land / CORE_SHORE));
+  }
+
+  /** Vertices per region outline. Enough that a region reads as round at the size
+   *  the globe is drawn; the mask is rebuilt every frame the globe turns. */
+  const OCCLUSION_RIM = 40;
+  /** Where the shore's two mask steps sit, as fractions of a region's half-angle:
+   *  halfway down the shore, and where the land is full height. Stepped rather
+   *  than blurred — a blur filter over the whole line layer, recomputed every
+   *  frame of a spin, is a cost the stepped edge does not pay. */
+  const OCCLUSION_OUTER = 1 - TERRAIN_SHORE / 2;
+  const OCCLUSION_INNER = 1 - TERRAIN_SHORE;
+
+  /** The line layer's clearance round a front-facing node, in node radii — the
+   *  piece standing there reaches further than its disc. */
+  const OCCLUSION_CLEAR_R = 2;
+
+  let occlusion = $state<LandOcclusion | undefined>();
+
+  /**
+   * The near-side land, as world-space polygons — what stands between the eye and
+   * every line through the sphere's interior.
+   *
+   * A point on a region's rim that has turned past the horizon is pushed OUT to
+   * the limb rather than dropped: the part of that region still facing the eye
+   * is then bounded by the rim where the rim is visible and by the horizon where
+   * it is not, which is what the visible land actually is.
+   */
+  function nearLand(cx: number, cy: number, frac: number): [number, number][][] {
+    if (!globeCaps) return [];
+    const pitch = meshPitch + axialTilt;
+    const d = Math.max(1.2, meshViewDistance);
+    // The eye sees the sphere down to where its sightline grazes it, which from d
+    // radii away is z = 1/d, not z = 0.
+    const horizon = 1 / d;
+    const limb = project(
+      { x: Math.sqrt(1 - horizon * horizon), y: 0, z: horizon },
+      globeRadius,
+      meshViewDistance,
+    ).x;
+    const out: [number, number][][] = [];
+    for (const cap of globeCaps.values()) {
+      const a = cap.alpha * frac;
+      const ring: [number, number][] = [];
+      let faces = false;
+      for (let i = 0; i < OCCLUSION_RIM; i++) {
+        const t = (2 * Math.PI * i) / OCCLUSION_RIM;
+        const s = spin(
+          alignZ(cap.center, {
+            x: Math.sin(a) * Math.cos(t),
+            y: Math.sin(a) * Math.sin(t),
+            z: Math.cos(a),
+          }),
+          meshYaw,
+          pitch,
+        );
+        let { x, y } = project(s, globeRadius, meshViewDistance);
+        if (s.z < horizon) {
+          const m = Math.hypot(x, y) || 1;
+          x = (x / m) * limb;
+          y = (y / m) * limb;
+        } else faces = true;
+        ring.push([cx + x, cy + y]);
+      }
+      // A region entirely round the back occludes nothing in front of it.
+      if (faces) out.push(ring);
+    }
+    return out;
+  }
+
   /** Turn the sphere into canvas positions: spin each direction, project it, and
    *  paint back to front. */
   function applyGlobe() {
@@ -482,13 +625,24 @@
     const hub = hubNode();
     const cx = hub?.x ?? CX;
     const cy = hub?.y ?? CY;
+    const coreVis = coreSightline();
     const depth = new Map<string, number>();
+    const clear: LandOcclusion["clear"] = [];
     for (const n of placed) {
       const dir = globeDirs.get(n.id);
       // The crest is the CENTRE of the globe, not a point on it — depth 0 puts the
-      // far half behind it and the near half in front.
+      // far half behind it and the near half in front. It is seen THROUGH the near
+      // surface, so the ground on the sightline is what decides whether it is
+      // there: bright over open water, all but gone with a territory in the way.
+      // Blurred as it goes, because fading alone reads as a styling choice while
+      // fade + blur reads as something being in front of it. Buried, it stops
+      // taking clicks too — a 5%-opacity node that can still be selected is a
+      // trap.
       if (!dir) {
         depth.set(n.id, 0);
+        n.opacity = coreVis;
+        n.blur = (1 - coreVis) * globeBackBlur;
+        n.inert = coreVis < 0.25;
         continue;
       }
       // axialTilt tips the whole spin axis toward the viewer: advancing yaw then
@@ -538,6 +692,10 @@
       // The far side is visible through the surface but not reachable — spin it
       // round to click it.
       n.inert = !p.front;
+      // Only the near side: a node round the back is itself behind the land in
+      // front of it, and so are the ends of its lines.
+      if (p.front)
+        clear.push({ x: n.x, y: n.y, r: (n.r ?? nodeR) * OCCLUSION_CLEAR_R });
       // ── Depth is a gradient, not a switch ──────────────────────────────
       // The front hemisphere used to be a flat 1: every node from the closest
       // point to the horizon drawn at identical strength, with all the falloff
@@ -569,6 +727,16 @@
     // source it has already seen five times in one flush, so the reorder paid
     // for `new Error().stack` at `stackTraceLimit = Infinity` per node per
     // frame. That was a third of the frame budget on a globe nobody touched.
+    // Only where there is ground to be buried under — a flat-surfaced globe has
+    // no land, and its lines have nothing in front of them.
+    occlusion =
+      isRelief && globeCaps?.size
+        ? {
+            outer: nearLand(cx, cy, OCCLUSION_OUTER),
+            inner: nearLand(cx, cy, OCCLUSION_INNER),
+            clear,
+          }
+        : undefined;
     const sorted = [...placed].sort((a, b) => depth.get(a.id)! - depth.get(b.id)!);
     for (let i = 0; i < sorted.length; i++) {
       if (sorted[i] !== placed[i]) {
@@ -702,7 +870,7 @@
     pitch: number;
   } | null>(null);
   function globeDown(e: PointerEvent) {
-    if (layout !== "globe") return;
+    if (layout !== "globe" || pinch) return;
     stopGlobeIntro(); // grabbing takes over from the fly-in
     // …and from a flight to a node. A tween still writing yaw while the operator
     // drags is two hands on the globe, and the tween always wins because it
@@ -711,16 +879,172 @@
     globeDrag = { x: e.clientX, y: e.clientY, yaw: meshYaw, pitch: meshPitch };
   }
   function globeMove(e: PointerEvent) {
+    trackPointer(e);
+    if (pinch) return pinchMove();
     if (!globeDrag) return;
     meshYaw = globeDrag.yaw + (e.clientX - globeDrag.x) * globeSensitivity;
-    const p = globeDrag.pitch + (e.clientY - globeDrag.y) * globeSensitivity;
+    // MINUS on the vertical. A grab has to carry the surface with the finger, and
+    // the two axes do not agree on sign for free: screen y grows downward while
+    // `project` maps world +y downward too, so advancing pitch draws the surface
+    // UP. Added, a downward drag pushed the globe away from the hand.
+    const p = globeDrag.pitch - (e.clientY - globeDrag.y) * globeSensitivity;
     meshPitch = Math.max(-globeMaxPitch, Math.min(globeMaxPitch, p));
   }
   // Never preventDefault: a drag that never moved is a click, and a click still
   // has to select the node under it.
-  function globeUp() {
-    globeDrag = null;
+  function globeUp(e?: PointerEvent) {
+    if (e) pointers.delete(e.pointerId);
+    // A finger lifting out of a pinch leaves the OTHER one still on the glass, so
+    // the spin has to be re-seeded from where that finger is NOW. Carrying the
+    // origin it went down with would replay the whole width of the pinch as yaw
+    // the instant the second finger leaves — the globe snapping sideways is the
+    // single most reported way a two-finger gesture goes wrong.
+    const resume = pinch && pointers.size === 1 ? [...pointers.values()][0] : null;
+    if (pinch && pointers.size < 2) pinch = null;
+    globeDrag =
+      resume && layout === "globe"
+        ? { x: resume.x, y: resume.y, yaw: meshYaw, pitch: meshPitch }
+        : null;
+    if (e) resolveTap(e);
   }
+
+  // ── Touch: two fingers zoom, one finger still spins ─────────────────────────
+  // Everything below is additive and only ever engages with a SECOND pointer down
+  // (or on a coarse-pointer device). One pointer takes exactly the path it always
+  // did, which is what keeps every desktop consumer of this component unchanged.
+
+  /** Live pointers on the surface, in client px, oldest first — a Map because the
+   *  gesture is defined by WHICH fingers are down, and a touch stream identifies
+   *  them only by `pointerId`. Plain, not `$state`: nothing rendered reads it. */
+  let pointers = new Map<number, { x: number; y: number }>();
+  /** The pinch in progress, holding the finger separation the CURRENT zoom level
+   *  was reached at — a moving baseline rather than the distance the gesture
+   *  started at, so the ratio below can never accumulate rounding. */
+  let pinch: { dist: number } | null = null;
+  /** Steps the camera's own zoom takes, mirrored here because `CanvasCamera`
+   *  exposes zoom as `zoomIn`/`zoomOut` and nothing continuous. Quantising the
+   *  pinch ratio against them is deliberate: pinch and the caller's zoom buttons
+   *  then drive the ONE zoom state at the one granularity, instead of a second,
+   *  finer zoom that the buttons would snap out of the moment they were used. */
+  const PINCH_IN = 1.2;
+  const PINCH_OUT = 0.83;
+
+  const spread = () => {
+    const [a, b] = [...pointers.values()];
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+  };
+
+  function trackPointer(e: PointerEvent) {
+    if (pointers.has(e.pointerId))
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  }
+
+  /** Recorded in the CAPTURE phase. MeshStudio stops propagation on a press that
+   *  lands on a node, so a second finger placed on a building would otherwise
+   *  never be counted — and the pinch it is half of would never begin. */
+  function globeDownCapture(e: PointerEvent) {
+    if (layout !== "globe") return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size !== 2) return;
+    // Two fingers are a zoom, not a spin. Dropping the drag rather than running
+    // both means the globe does not also turn by whatever the first finger does
+    // while the two of them are moving apart.
+    globeDrag = null;
+    tap = null;
+    stopGlobeIntro();
+    stopFlyTo();
+    pinch = { dist: spread() };
+  }
+
+  function pinchMove() {
+    const d = spread();
+    if (!pinch || !d || pinch.dist <= 0) return;
+    // Guarded by advancing the baseline whether or not the camera actually moved:
+    // at the zoom clamp `zoomIn` is a no-op, and a loop that only exited on a
+    // changed scale would never exit at all.
+    while (d / pinch.dist >= PINCH_IN) {
+      camera?.zoomIn();
+      pinch.dist *= PINCH_IN;
+    }
+    while (d / pinch.dist <= PINCH_OUT) {
+      camera?.zoomOut();
+      pinch.dist *= PINCH_OUT;
+    }
+  }
+
+  // ── Touch: hit areas a finger can actually land on ──────────────────────────
+  // A body on this globe draws at 20–45px across, and the near half of it is
+  // sky — a building is tall and thin. That is under the 44px minimum for most
+  // of the board, and growing the drawn piece is not the fix: the globe's whole
+  // read is small marks on a world.
+  //
+  // So the target and the drawing are separated. Two layers of invisible circles
+  // ride OVER the scene at the size a finger needs, and the piece underneath is
+  // untouched — same geometry, same pixels, on every device.
+  //
+  // Coarse pointers only, and only on the globe. A mouse already hits a 20px
+  // disc, node drag is off in this layout (so nothing here can swallow one), and
+  // an overlay is a behaviour change no existing consumer asked for.
+  /** WCAG 2.5.8 / iOS HIG minimum, in CSS px. */
+  const TOUCH_TARGET = 44;
+  /** How far a finger may travel and still have meant a tap. Fingers roll; a
+   *  press that never intended to move still moves a few px. */
+  const TAP_SLOP = 8;
+
+  let coarse = $state(false);
+  $effect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const read = () => (coarse = mq.matches);
+    read();
+    mq.addEventListener("change", read);
+    return () => mq.removeEventListener("change", read);
+  });
+
+  /** The node a finger went down on, held until the pointer lifts. */
+  let tap: { id: string; x: number; y: number; pointerId: number } | null = null;
+
+  /** Selection is committed on RELEASE here, where MeshStudio commits it on
+   *  press. It has to be: these targets are wide enough to sit under most of a
+   *  drag, and the press is deliberately left to bubble so the same finger can
+   *  still spin the globe. Committing on press would fly the camera to a
+   *  building every time somebody turned the world. */
+  function resolveTap(e: PointerEvent) {
+    const t = tap;
+    tap = null;
+    if (!t || t.pointerId !== e.pointerId) return;
+    if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > TAP_SLOP) return;
+    selectedId = selectedId === t.id ? null : t.id;
+    onSelect?.(selectedId);
+  }
+
+  /** Screen-space targets, one entry per reachable node.
+   *
+   *  Screen px rather than world px: 44 is a promise about the operator's finger,
+   *  and a radius carried through the camera's scale is only 44 at one zoom. The
+   *  camera transform is read here instead so the ring is the same size at every
+   *  one of them. */
+  const touchTargets = $derived.by(() => {
+    if (!coarse || !isGlobe) return [];
+    const t = camera?.transform;
+    if (!t) return [];
+    return placed
+      .filter((n) => !n.inert)
+      .map((n) => {
+        // The same radius MeshStudio gives the node's own hit proxy, so the inner
+        // layer is that proxy re-stated at the top of the stack rather than a
+        // second, differently-sized idea of where the body is.
+        const body =
+          silhouetteR(n, { radiusScale: studioTuning.radiusScale, solids: true }) *
+          t.scale;
+        return {
+          id: n.id,
+          x: t.tx + n.x * t.scale,
+          y: t.ty + n.y * t.scale,
+          body,
+          halo: Math.max(TOUCH_TARGET / 2, body),
+        };
+      });
+  });
 
   // ── Globe controls ──────────────────────────────────────────────────────────
   // Button-driven equivalents of the drag, plus auto-rotate. They only ever touch
@@ -1438,6 +1762,12 @@
         fanSpread,
         groupKeys: groupKeyOf ? spokes.map(groupKeyOf) : undefined,
         pinned: bodies.map((b) => Number.isFinite(b.x)),
+        seedAt: relayout
+          ? undefined
+          : spokes.map((s) => {
+              const parent = s.bornFrom ? prev.get(s.bornFrom) : undefined;
+              return parent ? { x: parent.x, y: parent.y } : undefined;
+            }),
         lanes: layout === "radial" && spokes.length <= maxLaneNodes,
         laneClearance,
       });
@@ -1475,6 +1805,16 @@
   const WORLD_HUE = "#7FE3F0";
 
   const isGlobe = $derived(layout === "globe");
+
+  /** Whether this canvas is a place you travel ACROSS rather than a shot you
+   *  look at. Never under a globe: the graticule is already the structure there,
+   *  and a flat grid outside its limb is a second one at a different scale.
+   *
+   *  `MeshSky` is screen-fixed — it is the sky, and sky does not slide past you
+   *  — so a flat layout drawn on it has nothing to measure a pan against, and a
+   *  canvas you can drag forever with nothing moving is one nobody explores.
+   *  The grid is what makes the travelling read as travelling. */
+  const onGround = $derived(scene === "world" && !isGlobe);
   // Globe nodes never settle — applyGlobe re-sorts `placed` by depth every spin
   // frame for paint order, which repeatedly reorders the keyed {#each} in
   // MeshStudio. The per-node pop-in ties its animation to that same array, so
@@ -1558,12 +1898,20 @@
   class="absolute inset-0"
   class:cursor-grab={isGlobe && !globeDrag}
   class:cursor-grabbing={!!globeDrag}
+  onpointerdowncapture={globeDownCapture}
   onpointerdown={globeDown}
   onpointermove={globeMove}
   onpointerup={globeUp}
   onpointerleave={globeUp}
+  onpointercancel={globeUp}
 >
-  <Canvas fitOnLoad bind:camera allowPan={!isGlobe}>
+  <!-- The backdrop, and which one is a decision about what the screen IS.
+       `scene='sky'` is a composed shot you orbit — the overview. `scene='world'`
+       is a place you move across, and it gets the canvas's own grid so the
+       movement has something to happen against. A globe is always a shot,
+       whatever the caller asked for. FIRST child, so everything paints over it. -->
+  <Canvas fitOnLoad bind:camera allowPan={!isGlobe} ground={onGround}>
+    {#if !onGround}<MeshSky />{/if}
     {#if isGlobe}
       <!-- Same pose and same camera as the nodes, tilt included: the wireframe is
 			     only worth drawing if it is the sphere the nodes are actually on. Left
@@ -1608,6 +1956,7 @@
         <GlobePieces
           nodes={placed}
           {selectedId}
+          {hoveredId}
           styleOf={(n) => ({
             // The SAME precedence MeshStudio uses — state outranks identity, and
             // the world hue only ever replaces the healthy branch. Duplicated
@@ -1618,7 +1967,9 @@
                 ? studioTuning.degradedColor
                 : n.state === "offline"
                   ? studioTuning.offlineColor
-                  : studioTuning.worldHue || n.strokeColor || WORLD_HUE,
+                  : n.state === "dormant"
+                    ? studioTuning.dormantColor
+                    : studioTuning.worldHue || n.strokeColor || WORLD_HUE,
             ),
             // Already themed where it was assigned; the fallback is not.
             land: n.groundColor ?? meshInk(studioTuning.worldHue || WORLD_HUE),
@@ -1626,6 +1977,8 @@
         />
       {/if}
     {/if}
+    <!-- `showGrid` is MeshStudio's 40px pattern painted OVER the whole SVG — it
+         would hide the sky, so it stays off in every layout. -->
     <MeshStudio
       {concept}
       {edgeCurve}
@@ -1634,16 +1987,66 @@
       bind:selectedId
       {raisedEdgeIds}
       allowNodeDrag={!isGlobe}
+      allowLinkDraw={!!onLink}
+      showGrid={false}
+      occlusion={isGlobe ? occlusion : undefined}
       {insetLeafLabels}
+      {labelScale}
       {typeLabels}
       depthSortedParticles={isGlobe}
       glBodies={isGlobe && isRelief && glPieces}
+      onNodeHover={(id) => (hoveredId = id)}
       tuning={studioTuning}
       {onSelect}
       {onLink}
       {onFacetSelect}
+      {onFoldToggle}
     />
   </Canvas>
+
+  <!-- Finger-sized targets, over the scene and inside the drag surface.
+       Two layers, and the order is the whole trick:
+
+       The halos are wide enough to overlap each other where the globe crowds its
+       bodies together near the limb. Left alone, the nearest node's halo would
+       cover a neighbour's roof and that neighbour would become untappable — a
+       bigger target that TAKES targets. So every body is re-stated at its own
+       exact size on top: a finger inside a building always gets that building,
+       and only the space between them is arbitrated by the halos.
+
+       No `data-node`, and no keyboard affordance either. Both already exist on
+       MeshStudio's own group underneath — duplicating the attribute would hand
+       every overlay that measures a node's live box the wrong element, and a
+       second tab stop per node would double the board's focus order. -->
+  {#if touchTargets.length}
+    <svg class="mc-touch" aria-hidden="true">
+      <g>
+        {#each touchTargets as t (t.id)}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <circle
+            data-touch-node={t.id}
+            cx={t.x}
+            cy={t.y}
+            r={t.halo}
+            onpointerdown={(e) =>
+              (tap = { id: t.id, x: e.clientX, y: e.clientY, pointerId: e.pointerId })}
+          />
+        {/each}
+      </g>
+      <g>
+        {#each touchTargets as t (t.id)}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <circle
+            cx={t.x}
+            cy={t.y}
+            r={t.body}
+            onpointerdown={(e) =>
+              (tap = { id: t.id, x: e.clientX, y: e.clientY, pointerId: e.pointerId })}
+          />
+        {/each}
+      </g>
+    </svg>
+  {/if}
 </div>
 
 <!-- On-canvas controls — a sibling of the drag surface (not a child), so pressing
@@ -1655,7 +2058,7 @@
       <div class="gc-dpad">
         <button
           class="gc-btn gc-up"
-          onclick={() => spinGlobe(0, -SPIN_STEP)}
+          onclick={() => spinGlobe(0, SPIN_STEP)}
           aria-label="Tilt up"
         >
           <Icon name="chevron-up" size={14} />
@@ -1683,7 +2086,7 @@
         </button>
         <button
           class="gc-btn gc-down"
-          onclick={() => spinGlobe(0, SPIN_STEP)}
+          onclick={() => spinGlobe(0, -SPIN_STEP)}
           aria-label="Tilt down"
         >
           <Icon name="chevron-down" size={14} />
@@ -1837,6 +2240,30 @@
   .gc-btn:focus-visible {
     outline: 1px solid var(--accent);
     outline-offset: 1px;
+  }
+  /* Coarse pointers get the same controls at a size a finger resolves. Only the
+     box grows — the glyph inside is already centred, so nothing is redrawn. */
+  @media (pointer: coarse) {
+    .gc-btn {
+      width: 44px;
+      height: 44px;
+    }
+  }
+  /* The layer itself never takes a pointer — it spans the whole canvas, and a
+     transparent sheet over a globe you can no longer spin is worse than a small
+     target. Only the circles do, and `transparent` is load-bearing: `fill: none`
+     paints nothing AND hit-tests nothing. */
+  .mc-touch {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .mc-touch circle {
+    fill: transparent;
+    pointer-events: auto;
   }
   .gc-on {
     color: var(--accent);

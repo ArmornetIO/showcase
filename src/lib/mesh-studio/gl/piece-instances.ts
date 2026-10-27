@@ -38,7 +38,8 @@ export function hexRgb(hex: string): [number, number, number] {
 	}
 	if (s.length === 6) {
 		const n = parseInt(s, 16);
-		if (Number.isFinite(n)) return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+		if (Number.isFinite(n))
+			return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 	}
 	return [0.5, 0.5, 0.5];
 }
@@ -76,7 +77,7 @@ export function packInstance(
 	style: InstanceStyle,
 	/** Passed in, not derived: selection is a property of the SCENE, and a node
 	 *  does not know it is the one being looked at. */
-	state: number
+	state: number,
 ): number {
 	const f = n.frame;
 	let i = offset;
@@ -141,7 +142,11 @@ export function packInstances(
 	nodes: StudioNode[],
 	styleOf: (n: StudioNode) => InstanceStyle,
 	selectedId?: string | null,
-	reuse?: Float32Array
+	reuse?: Float32Array,
+	/** Drawn exactly as selected, which is what the SVG layer did too: one halo
+	 *  answered both. Here because the pieces moved to the GPU and the hover a
+	 *  node knows about lives in the SVG layer beside it. */
+	hoveredId?: string | null,
 ): PackResult {
 	const order: (StudioNode & { piece: string })[] = [];
 	for (const n of nodes) if (isSolid(n)) order.push(n);
@@ -152,7 +157,7 @@ export function packInstances(
 	let off = 0;
 	for (const n of order) {
 		const state =
-			n.id === selectedId
+			n.id === selectedId || n.id === hoveredId
 				? STATE_SELECTED
 				: n.state === 'offline'
 					? STATE_OFFLINE

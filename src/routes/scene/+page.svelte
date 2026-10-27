@@ -18,15 +18,14 @@
 </svelte:head>
 
 <div class="px-3 sm:px-6 py-4 sm:py-5">
-	<ShowcaseBlock component="SceneBuilder SceneViewport SceneStage SceneDock SceneInspector ScenePalette SceneCuePicker SceneConversation">
+	<ShowcaseBlock component="SceneBuilder SceneViewport SceneStage SceneDock SceneInspector ScenePalette SceneCuePicker">
 		<h3 class="component-name">SceneBuilder</h3>
 		<p class="component-desc">
 			The authoring tool for a scene: a timeline of beats, cues on nodes and edges, and a canvas
 			that solves placement rather than storing coordinates. Mounts the whole editing set —
 			<code class="demo-code">SceneViewport</code> (which hosts
 			<code class="demo-code">SceneStage</code>), <code class="demo-code">SceneDock</code>,
-			<code class="demo-code">SceneInspector</code> (which hosts
-			<code class="demo-code">SceneConversation</code>), <code class="demo-code">ScenePalette</code>
+			<code class="demo-code">SceneInspector</code>, <code class="demo-code">ScenePalette</code>
 			and <code class="demo-code">SceneCuePicker</code>. Loaded with
 			<code class="demo-code">SAMPLE_SCENE</code>: six agents, one goes dark, the mesh reroutes.
 		</p>

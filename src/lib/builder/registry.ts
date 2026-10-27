@@ -3,6 +3,8 @@
 // cannot drift from the ids that actually resolve.
 import { BACKDROP_IDS, BLEND_MODES, DEFAULT_BLEND } from '../backdrop/backdrops.js';
 import { ALL_PIECES } from '../mesh-studio/pieces/piece-catalogue.js';
+import { SCENE_IDS } from '../scene/catalogue.js';
+import { OBJECT3D, SUBJECTS } from './scene3d.js';
 
 /** Every building the piece catalogue can draw, for `PieceCrest`'s menu. Derived
  *  for the same reason `BACKDROP_IDS` is imported above: a hand-typed copy is a
@@ -30,7 +32,7 @@ export interface PropDef {
 	 * you read the palette instead of seeing it. A hint rather than a new `kind`
 	 * so opting in is one word per prop and opting out is deleting it.
 	 *
-	 *   select   — native dropdown (the default; right past ~8 options)
+	 *   select   — the house `Select` dropdown (the default; right past ~8 options)
 	 *   chips    — pressed-state buttons in a row
 	 *   swatches — colour squares; `options` must be colours the CSS can paint
 	 *   icons    — glyph grid; `options` must be `ICONS` keys
@@ -45,11 +47,19 @@ export interface PropDef {
 	 * satisfies "default is one of options". Only the chip's click handler and
 	 * its pressed test change.
 	 *
-	 * `chips` is the only presentation that honours it — a native `<select>` and
-	 * a swatch grid have no multi-select affordance, and inventing one would be
-	 * a worse control than the chips already are.
+	 * `chips` is the only presentation that honours it — the editor's `Select`
+	 * and a swatch grid are drawn single-valued, and chips are already the
+	 * better multi-pick control.
 	 */
 	multi?: boolean;
+	/**
+	 * This `text` prop is written into an anchor's href. Embed hydration
+	 * (docs/embeds.ts) refuses schemes that execute — a document fence saying
+	 * `ctaHref: "javascript:…"` must not become a clickable script on the
+	 * public reader. Unflagged text props are rendered as text by Svelte and
+	 * need no such filter.
+	 */
+	href?: boolean;
 	/** Only show this prop when another prop matches one of the given values. */
 	showWhen?: { key: string; values: readonly string[] };
 	/** Renders a named section divider immediately before this prop row. */
@@ -78,6 +88,16 @@ export interface ComponentMeta {
 	resizable: boolean;
 	/** If false, component is an overlay/trigger target — not shown in the drag palette. */
 	placeable: boolean;
+	/**
+	 * May a document mount this component via a ```component fence?
+	 *
+	 * Opt-in and deliberately narrower than the palette: fence props come from
+	 * repo markdown that other people write, and the public docs reader hydrates
+	 * too, so this flag is a security allowlist, not a menu preference. Leave it
+	 * off anything interactive, stateful, or canvas-bound — a doc has no
+	 * business mounting MeshStudio, and a Button that does nothing is a lie.
+	 */
+	embeddable?: boolean;
 	props: Record<string, PropDef>;
 }
 
@@ -265,6 +285,7 @@ export const REGISTRY: ComponentMeta[] = [
 		// use it; the card renders the same "no source" placeholder it would on
 		// the canvas, so the palette is not promising anything it won't deliver.
 		id: 'Image',
+		embeddable: true,
 		label: 'Image',
 		category: 'Display',
 		defaultW: 320,
@@ -423,6 +444,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Chip',
+		embeddable: true,
 		label: 'Chip',
 		category: 'Primitives',
 		defaultW: 0,
@@ -452,6 +474,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Icon',
+		embeddable: true,
 		label: 'Icon',
 		category: 'Primitives',
 		defaultW: 0,
@@ -481,6 +504,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'StatusDot',
+		embeddable: true,
 		label: 'Status Dot',
 		category: 'Primitives',
 		defaultW: 0,
@@ -499,6 +523,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'StatusBadge',
+		embeddable: true,
 		label: 'Status Badge',
 		category: 'Primitives',
 		defaultW: 0,
@@ -555,6 +580,24 @@ export const REGISTRY: ComponentMeta[] = [
 		}
 	},
 	{
+		id: 'DateSelect',
+		label: 'Date Select',
+		category: 'Primitives',
+		defaultW: 280,
+		defaultH: 0,
+		resizable: true,
+		placeable: true,
+		props: {
+			variant: {
+				kind: 'enum',
+				label: 'Variant',
+				default: 'input',
+				options: ['input', 'picker', 'calendar', 'range']
+			},
+			disabled: { kind: 'boolean', label: 'Disabled', default: false }
+		}
+	},
+	{
 		id: 'SearchInput',
 		label: 'Search Input',
 		category: 'Primitives',
@@ -603,6 +646,7 @@ export const REGISTRY: ComponentMeta[] = [
 		props: {
 			value: { kind: 'textarea', label: 'Chips (JSON)', default: '["prod", "api"]' },
 			placeholder: { kind: 'text', label: 'Placeholder', default: 'Add tag…' },
+			sortable: { kind: 'boolean', label: 'Sortable', default: false },
 			disabled: { kind: 'boolean', label: 'Disabled', default: false }
 		}
 	},
@@ -646,6 +690,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'UserBlock',
+		embeddable: true,
 		label: 'User Block',
 		category: 'Primitives',
 		defaultW: 260,
@@ -661,6 +706,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'DangerBanner',
+		embeddable: true,
 		label: 'Danger Banner',
 		category: 'Primitives',
 		defaultW: 440,
@@ -678,6 +724,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'EmptyState',
+		embeddable: true,
 		label: 'Empty State',
 		category: 'Primitives',
 		defaultW: 320,
@@ -734,6 +781,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Avatar',
+		embeddable: true,
 		label: 'Avatar',
 		category: 'Primitives',
 		defaultW: 0,
@@ -764,6 +812,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Card',
+		embeddable: true,
 		label: 'Card',
 		category: 'Primitives',
 		defaultW: 320,
@@ -912,6 +961,7 @@ export const REGISTRY: ComponentMeta[] = [
 				kind: 'text',
 				label: 'CTA href',
 				default: '',
+				href: true,
 				showWhen: { key: 'type', values: ['hud', 'pricing'] }
 			},
 			featured: {
@@ -1159,7 +1209,7 @@ export const REGISTRY: ComponentMeta[] = [
 		 * `mr robot` is the default deliberately: the palette mounts every
 		 * placeable entry live, so the default is a per-frame cost in the toolbox
 		 * as well as on the canvas. It is the cheapest preset — 3 strips, 1
-		 * traveller, no hue flow, no ghost pass. `spider-verse` is roughly 10×
+		 * traveller, no hue flow, no ghost pass. `misregistered` is roughly 10×
 		 * that (every strip drawn twice for its misregistration ghost), so think
 		 * before making it anyone's default.
 		 */
@@ -1247,6 +1297,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'StatStrip',
+		embeddable: true,
 		label: 'Stat Strip',
 		category: 'Display',
 		defaultW: 420,
@@ -1264,6 +1315,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'StatTile',
+		embeddable: true,
 		label: 'Stat Tile',
 		category: 'Display',
 		defaultW: 0,
@@ -1285,6 +1337,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'CountUp',
+		embeddable: true,
 		label: 'Count Up',
 		category: 'Display',
 		defaultW: 0,
@@ -1303,6 +1356,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'PostureVerdict',
+		embeddable: true,
 		label: 'Posture Verdict',
 		category: 'Display',
 		defaultW: 0,
@@ -1318,6 +1372,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'ProgressBar',
+		embeddable: true,
 		label: 'Progress Bar',
 		category: 'Display',
 		defaultW: 300,
@@ -1347,6 +1402,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'RadialProgress',
+		embeddable: true,
 		label: 'Radial Progress',
 		category: 'Display',
 		defaultW: 0,
@@ -1369,6 +1425,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'SteppedProgress',
+		embeddable: true,
 		label: 'Stepped Progress',
 		category: 'Display',
 		defaultW: 320,
@@ -1400,6 +1457,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'StackedBar',
+		embeddable: true,
 		label: 'Stacked Bar',
 		category: 'Display',
 		defaultW: 320,
@@ -1430,6 +1488,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Ticker',
+		embeddable: true,
 		label: 'Ticker',
 		category: 'Display',
 		defaultW: 480,
@@ -1450,6 +1509,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'ConsensusBar',
+		embeddable: true,
 		label: 'Consensus Bar',
 		category: 'Display',
 		defaultW: 280,
@@ -1463,6 +1523,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'FileTree',
+		embeddable: true,
 		label: 'File Tree',
 		category: 'Display',
 		defaultW: 320,
@@ -1503,6 +1564,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'LogRow',
+		embeddable: true,
 		label: 'Log Row',
 		category: 'Display',
 		defaultW: 500,
@@ -1517,6 +1579,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'CodeBlock',
+		embeddable: true,
 		label: 'Code Block',
 		category: 'Display',
 		defaultW: 480,
@@ -1534,6 +1597,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'ConfigBlock',
+		embeddable: true,
 		label: 'Config Block',
 		category: 'Display',
 		defaultW: 340,
@@ -1551,6 +1615,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Sparkline',
+		embeddable: true,
 		label: 'Sparkline',
 		category: 'Display',
 		defaultW: 180,
@@ -1570,6 +1635,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'PeerCard',
+		embeddable: true,
 		label: 'Peer Card',
 		category: 'Display',
 		defaultW: 280,
@@ -1594,6 +1660,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Timeline',
+		embeddable: true,
 		label: 'Timeline',
 		category: 'Display',
 		defaultW: 300,
@@ -1612,6 +1679,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'DataTable',
+		embeddable: true,
 		label: 'Data Table',
 		category: 'Display',
 		defaultW: 380,
@@ -1645,6 +1713,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'Chart',
+		embeddable: true,
 		label: 'Chart',
 		category: 'Display',
 		defaultW: 480,
@@ -1662,6 +1731,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'DonutChart',
+		embeddable: true,
 		label: 'Donut Chart',
 		category: 'Display',
 		defaultW: 320,
@@ -1677,6 +1747,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'TerminalBlock',
+		embeddable: true,
 		label: 'Terminal Block',
 		category: 'Display',
 		defaultW: 480,
@@ -1694,6 +1765,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'CollapsibleStack',
+		embeddable: true,
 		label: 'Collapsible Stack',
 		category: 'Display',
 		defaultW: 520,
@@ -1711,6 +1783,7 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 	{
 		id: 'FaqAccordion',
+		embeddable: true,
 		label: 'FAQ Accordion',
 		category: 'Display',
 		defaultW: 560,
@@ -1800,11 +1873,14 @@ export const REGISTRY: ComponentMeta[] = [
 			},
 			value: { kind: 'text', label: 'Selected value', default: 'medium' },
 			label: { kind: 'text', label: 'Accessible label', default: 'Impact' },
-			wrap: { kind: 'boolean', label: 'Wrap at the ends', default: false }
+			wrap: { kind: 'boolean', label: 'Wrap at the ends', default: false },
+			variant: { kind: 'enum', label: 'Variant', default: 'inline', options: ['inline', 'tile'] },
+			caption: { kind: 'text', label: 'Caption (tile)', default: '' }
 		}
 	},
 	{
 		id: 'HexShield',
+		embeddable: true,
 		label: 'Hex Shield',
 		category: 'Display',
 		defaultW: 320,
@@ -1823,6 +1899,7 @@ export const REGISTRY: ComponentMeta[] = [
 	// are not resizable — dragging the frame would leave the art behind.
 	{
 		id: 'ArmornetLogo',
+		embeddable: true,
 		label: 'Armornet Logo',
 		category: 'Display',
 		defaultW: 120,
@@ -1835,94 +1912,6 @@ export const REGISTRY: ComponentMeta[] = [
 			variant: { kind: 'enum', label: 'Variant', default: 'outline', options: ['outline', 'filled'] },
 			innerWall: { kind: 'boolean', label: 'Inner wall', default: true },
 			glow: { kind: 'boolean', label: 'Glow', default: true }
-		}
-	},
-	{
-		id: 'ArmornetCrest',
-		label: 'Armornet Crest',
-		category: 'Display',
-		defaultW: 120,
-		defaultH: 120,
-		resizable: false,
-		placeable: true,
-		props: {
-			size: { kind: 'number', label: 'Size', default: 96, min: 16, max: 320, step: 4 },
-			color: { kind: 'text', label: 'Colour', default: 'var(--accent)' },
-			glow: { kind: 'boolean', label: 'Halo', default: true },
-			mesh: { kind: 'boolean', label: 'Mesh', default: true }
-		}
-	},
-	{
-		id: 'ArmornetCrestHub',
-		label: 'Armornet Crest — Hub',
-		category: 'Display',
-		defaultW: 120,
-		defaultH: 120,
-		resizable: false,
-		placeable: true,
-		props: {
-			size: { kind: 'number', label: 'Size', default: 96, min: 16, max: 320, step: 4 },
-			look: {
-				kind: 'enum',
-				label: 'Look',
-				default: 'hollow',
-				options: ['hollow', 'weight', 'plated']
-			},
-			spokes: { kind: 'enum', label: 'Spokes', default: 'full', options: ['full', 'stem', 'bar'] },
-			tethers: { kind: 'boolean', label: 'Tethers', default: true },
-			glow: { kind: 'boolean', label: 'Halo', default: true }
-		}
-	},
-	{
-		id: 'ArmornetCrestMesh',
-		label: 'Armornet Crest — Mesh',
-		category: 'Display',
-		defaultW: 120,
-		defaultH: 120,
-		resizable: false,
-		placeable: true,
-		props: {
-			size: { kind: 'number', label: 'Size', default: 96, min: 16, max: 320, step: 4 },
-			color: { kind: 'text', label: 'Colour', default: 'var(--accent)' },
-			shape: {
-				kind: 'enum',
-				label: 'Shield',
-				default: 'crest',
-				options: [
-					'crest',
-					'crestwide',
-					'crestsharp',
-					'crestnotch',
-					'crestkey',
-					'merlon',
-					'bastille',
-					'crestear',
-					'crestspur',
-					'heater',
-					'keel',
-					'flared',
-					'peaked',
-					'notched',
-					'bouche',
-					'keyed',
-					'notchspur',
-					'clipped',
-					'keyclip',
-					'notchclip',
-					'bevel',
-					'octant',
-					'slab',
-					'eared',
-					'crowned',
-					'blade',
-					'wedge',
-					'spiked',
-					'spurred'
-				]
-			},
-			variant: { kind: 'enum', label: 'Variant', default: 'outline', options: ['outline', 'filled'] },
-			innerWall: { kind: 'boolean', label: 'Inner wall', default: true },
-			glow: { kind: 'boolean', label: 'Halo', default: true }
 		}
 	},
 	{
@@ -2192,76 +2181,64 @@ export const REGISTRY: ComponentMeta[] = [
 	},
 
 	// ── Storyboard ──────────────────────────────────────────────────────────────
+	// The hand-drawn storyboard pieces (StoryboardFrame, SwimLane, …) are not
+	// here: a builder storyboard is real frames in the filmstrip
+	// (`storyboard.svelte.ts`), and a drawn picture of a screen next to the
+	// screen itself is the duplicate it replaced.
 	{
-		id: 'StoryboardCanvas',
-		label: 'Storyboard Canvas',
+		// The one registry entry whose prop is a NAME rather than content: a
+		// document cannot carry a scene, so it names one from `scene/catalogue.ts`.
+		// Embeddable despite being canvas-bound — it takes no input, and the fence
+		// chooses among compiled-in scenes rather than describing one.
+		id: 'ScenePlayer',
+		label: 'Scene Replay',
 		category: 'Storyboard',
+		defaultW: 640,
+		defaultH: 360,
+		resizable: true,
+		placeable: true,
+		embeddable: true,
+		props: {
+			scene: {
+				kind: 'enum',
+				label: 'Scene',
+				default: SCENE_IDS[0],
+				options: SCENE_IDS,
+				animate: 'none'
+			},
+			// Loop off: an animation cycling forever beside prose is a reading
+			// problem. Autoplay on because ScenePlayer has no play control — off
+			// would leave a first frame with no way to start it.
+			autoplay: { kind: 'boolean', label: 'Autoplay', default: true },
+			loop: { kind: 'boolean', label: 'Loop', default: false }
+		}
+	},
+
+	// A 3D page's item (`scene3d.ts`). Not placeable: it is dropped from the 3D
+	// palette onto the scene stage, never onto the 2D canvas. Its props are the
+	// transform the inspector edits, in metres and degrees.
+	{
+		id: OBJECT3D,
+		label: '3D Object',
+		category: 'Display',
 		defaultW: 0,
 		defaultH: 0,
 		resizable: false,
-		placeable: true,
+		placeable: false,
 		props: {
-			title: { kind: 'text', label: 'Title', default: '' },
-			__children: { kind: 'text', label: 'Body', default: 'Drop swim lanes here.' }
-		}
-	},
-	{
-		id: 'SwimLane',
-		label: 'Swim Lane',
-		category: 'Storyboard',
-		defaultW: 0,
-		defaultH: 0,
-		resizable: false,
-		placeable: true,
-		props: {
-			pill: { kind: 'text', label: 'Pill', default: 'LANE' },
-			label: { kind: 'text', label: 'Label', default: '' },
-			sub: { kind: 'text', label: 'Subtitle', default: '' },
-			__children: { kind: 'text', label: 'Body', default: 'Drop storyboard frames here.' }
-		}
-	},
-	{
-		id: 'StoryboardFrame',
-		label: 'Storyboard Frame',
-		category: 'Storyboard',
-		defaultW: 260,
-		defaultH: 180,
-		resizable: false,
-		placeable: true,
-		props: {
-			step: { kind: 'number', label: 'Step', default: 1, min: 1, max: 9, step: 1 },
-			route: { kind: 'text', label: 'Route', default: '/ path' },
-			badge: { kind: 'text', label: 'Badge', default: '' },
-			badgeVariant: { kind: 'enum', label: 'Badge variant', default: 'default', options: ['default', 'red'] },
-			dashed: { kind: 'boolean', label: 'Dashed', default: false },
-			__children: { kind: 'text', label: 'Body', default: 'Frame content.' }
-		}
-	},
-	{
-		id: 'StoryboardArrow',
-		label: 'Storyboard Arrow',
-		category: 'Storyboard',
-		defaultW: 0,
-		defaultH: 0,
-		resizable: false,
-		placeable: true,
-		props: {
-			label: { kind: 'text', label: 'Label', default: '' },
-			tall: { kind: 'boolean', label: 'Tall offset', default: false }
-		}
-	},
-	{
-		id: 'StoryboardBranch',
-		label: 'Storyboard Branch',
-		category: 'Storyboard',
-		defaultW: 0,
-		defaultH: 0,
-		resizable: false,
-		placeable: true,
-		props: {
-			connector: { kind: 'text', label: 'Connector', default: '↓' },
-			label: { kind: 'text', label: 'Label', default: '' },
-			__children: { kind: 'text', label: 'Body', default: 'Branch content.' }
+			subject: {
+				kind: 'enum',
+				label: 'Subject',
+				default: 'piece:house',
+				// A model under two tags is listed twice.
+				options: [...new Set(SUBJECTS.map((s) => s.id))]
+			},
+			// Millimetre steps: a printed figure is 15 cm tall in a scene.
+			x: { kind: 'number', label: 'X (m)', default: 0, min: -60, max: 60, step: 0.001, section: 'TRANSFORM', animate: 'none' },
+			z: { kind: 'number', label: 'Z (m)', default: 0, min: -60, max: 60, step: 0.001, animate: 'none' },
+			lift: { kind: 'number', label: 'Lift (m)', default: 0, min: 0, max: 50, step: 0.001, animate: 'none' },
+			yaw: { kind: 'number', label: 'Turn (°)', default: 0, min: -180, max: 180, step: 15, animate: 'none' },
+			scale: { kind: 'number', label: 'Scale', default: 1, min: 0.05, max: 20, step: 0.05, animate: 'none' }
 		}
 	}
 ];

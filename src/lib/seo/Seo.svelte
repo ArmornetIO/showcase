@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SeoProps } from './types.js';
+	import BrowserTab from '../primitives/chrome/BrowserTab.svelte';
 
 	let {
 		title,
@@ -17,8 +18,11 @@
 	const ogDescription = $derived(og?.description ?? description);
 </script>
 
+<!-- The tab title goes through BrowserTab so a page's own title, or a layout's
+     unread count, layers over it instead of racing it. -->
+<BrowserTab {title} />
+
 <svelte:head>
-	<title>{title}</title>
 	{#if description}<meta name="description" content={description} />{/if}
 	{#if canonical}<link rel="canonical" href={canonical} />{/if}
 	<meta name="robots" content={robots} />

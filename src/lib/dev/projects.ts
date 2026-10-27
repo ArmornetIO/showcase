@@ -27,8 +27,8 @@ const PROJECT_ICON: IconName = 'package';
 const STORYBOARD_ICON: IconName = 'layers';
 
 interface MockupMeta {
-	label: string;
-	icon: IconName;
+	label?: string;
+	icon?: IconName;
 	/** Which project it belongs to. `section` is the pre-Projects spelling and is
 	 *  still honoured, so an existing local nav.ts keeps working untouched. */
 	project?: string;

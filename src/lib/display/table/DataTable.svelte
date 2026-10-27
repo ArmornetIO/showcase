@@ -43,6 +43,8 @@
 		columns?: TableColumn<Row>[];
 		rows?: Row[];
 		onRowClick?: (row: Row) => void;
+		/** The row a click opened, kept highlighted while its detail is showing. */
+		selected?: Row | null;
 		/**
 		 * Component-level cell renderer — receives (colKey, row).
 		 * Takes priority over per-column `col.cell` when provided.
@@ -65,6 +67,7 @@
 		columns = [],
 		rows = [],
 		onRowClick,
+		selected = null,
 		cell,
 		footer,
 		empty = 'No records.',
@@ -162,6 +165,8 @@
 					{#each rows as row}
 						<tr
 							class:dt-clickable={!!onRowClick}
+							class:dt-selected={selected != null && selected === row}
+							aria-selected={selected != null ? selected === row : undefined}
 							onclick={onRowClick ? () => onRowClick(row) : undefined}
 						>
 							{#each columns as col}
@@ -346,5 +351,11 @@
 	}
 	.dt-clickable {
 		cursor: pointer;
+	}
+	.dt-selected td {
+		background: var(--accent-faint);
+	}
+	.dt-selected td:first-child {
+		box-shadow: inset 2px 0 0 var(--accent);
 	}
 </style>

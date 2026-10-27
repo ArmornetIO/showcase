@@ -155,6 +155,31 @@ export function capDir(i: number, n: number, alpha: number): Vec3 {
 	return { x: Math.cos(t) * r, y: Math.sin(t) * r, z };
 }
 
+/** Pull a cap-local direction in so it lands inside the cap's COASTLINE.
+ *
+ *  `capDir` spreads members evenly through a circle, which is the shape a `Cap`
+ *  is and no longer the shape a region has. On a bearing where the coast runs
+ *  inward, the outermost members of that circle are past it — and a node past
+ *  the shore stands on no ground at all, at sea level, in open water.
+ *
+ *  Scaling the polar angle rather than clamping it: a clamp piles every stranded
+ *  member onto the shoreline in a visible arc, where a scale keeps the even
+ *  spread `capDir` solved for and just narrows it where the land narrows. The
+ *  bearing is untouched, so who neighbours whom does not change. */
+function toCoast(p: Vec3, cap: Cap): Vec3 {
+	// Cap-local, so the bearing is the angle in the xy-plane and needs no basis.
+	const bearing = Math.atan2(p.y, p.x);
+	// `capAlpha` is zero-mean about `cap.alpha`, so this is under 1 on the
+	// bearings that need it and over 1 on the ones with room to spare.
+	const k = capAlpha(cap, bearing) / cap.alpha;
+	if (!(k > 0) || Math.abs(k - 1) < 1e-9) return p;
+	const r = Math.hypot(p.x, p.y);
+	if (r < 1e-12) return p;
+	const a = Math.atan2(r, p.z) * k;
+	const s = Math.sin(a);
+	return { x: (p.x / r) * s, y: (p.y / r) * s, z: Math.cos(a) };
+}
+
 /** Rotate a point as if `+z` had been turned to point along `center`.
  *
  *  Rodrigues about the axis `+z × center`. Used to carry a cap built about `+z`
@@ -183,6 +208,77 @@ export function alignZ(center: Vec3, p: Vec3): Vec3 {
 		y: p.y + c1y + c2y * k,
 		z: p.z + c1z + c2z * k,
 	};
+}
+
+/** The cap's own tangent frame — the two directions `alignZ` carries x̂ and ŷ
+ *  onto. Memoised on the centre because a cap is a stable object for the life of
+ *  a packing, and `capBearing` is called per sample per cap.
+ *
+ *  It has to be THIS frame and not a convenient one: `TerritoryCaps` sweeps its
+ *  rim as `alignZ(center, …cos t, sin t…)`, so a bearing measured in any other
+ *  basis would turn the coastline relative to the land it is supposed to bound. */
+const CAP_BASIS = new WeakMap<Vec3, [Vec3, Vec3]>();
+function capBasis(c: Vec3): [Vec3, Vec3] {
+	let b = CAP_BASIS.get(c);
+	if (!b) {
+		b = [alignZ(c, { x: 1, y: 0, z: 0 }), alignZ(c, { x: 0, y: 1, z: 0 })];
+		CAP_BASIS.set(c, b);
+	}
+	return b;
+}
+
+/** Which way `d` lies from the cap's centre, in the cap's own frame. */
+export function capBearing(cap: Cap, d: Vec3): number {
+	const [e1, e2] = capBasis(cap.center);
+	return Math.atan2(
+		d.x * e2.x + d.y * e2.y + d.z * e2.z,
+		d.x * e1.x + d.y * e1.y + d.z * e1.z,
+	);
+}
+
+/** The cap's half-angle at a BEARING — its coastline, rather than its radius.
+ *
+ *  A `Cap` is a circle, and a globe of circles reads as a diagram of a globe:
+ *  the one shape terrain never makes is the one every region was wearing. Three
+ *  harmonics of the bearing are enough to fix that — the low one gives the
+ *  landmass its lopsided character, the higher two the bays and headlands — and
+ *  being a closed form of `t` it costs no field, no cache and no seam.
+ *
+ *  The coast only ever runs INWARD from `cap.alpha`, never past it, and that is
+ *  a contract rather than a taste: `cap.alpha` is what the packer sized the
+ *  empty border between two regions against, and what it placed the members
+ *  inside. A coast allowed to bulge beyond it overruns the border — two
+ *  landmasses merge along a seam, their walls cross, and the tints stack into a
+ *  visible wedge where they overlap. So the harmonics are offset to peak at
+ *  exactly 1 and the radius runs 0.64…1.00 of the packed half-angle: headlands
+ *  reach the rim the packer drew, bays cut in from it.
+ *
+ *  The phase is seeded from the centre, so no two regions wear the same coast
+ *  and a given region wears the same one every reload.
+ *
+ *  It lives HERE and not in `terrain` because it is the shape of a `Cap`, and
+ *  everything that has to agree about where a region ENDS needs it — the land
+ *  mask and the drawn rim, but also the packer, which places a region's members
+ *  and would otherwise strand them in open water on a bearing where the coast
+ *  runs in. */
+/** The smallest `capAlpha` can return, as a fraction of `cap.alpha` — the
+ *  deepest a bay ever cuts.
+ *
+ *  Exported so callers can bound a region WITHOUT evaluating the coast: between
+ *  this and 1 they have a cheap ring test, and `capMaskAt` leans on it to skip
+ *  the trigonometry for every point that is obviously in open water or obviously
+ *  inland. Held in step with the harmonics below by hand; `sphere.spec.ts` pins
+ *  the two together. */
+export const COAST_MIN = 0.64;
+
+export function capAlpha(cap: Cap, bearing: number): number {
+	const s = cap.center.x * 12.9898 + cap.center.y * 78.233 + cap.center.z * 37.719;
+	// |w| <= 0.18, so `0.82 + w` tops out at exactly 1 and never overruns.
+	const w =
+		0.09 * Math.sin(3 * bearing + s) +
+		0.055 * Math.sin(5 * bearing - 1.7 * s) +
+		0.035 * Math.sin(7 * bearing + 2.3 * s);
+	return cap.alpha * (0.82 + w);
 }
 
 /** `count` centres spaced evenly around the equator.
@@ -248,9 +344,10 @@ export function packSphereClusters(
 		const raw = Math.acos(Math.max(-1, Math.min(1, 1 - 2 * share)));
 		const alpha = Math.max(minAlpha, Math.min(maxAlpha, raw));
 		const center = centers?.[g] ?? ring[k];
-		caps.set(g, { center, alpha });
+		const cap = { center, alpha };
+		caps.set(g, cap);
 		idx.forEach((bodyIndex, j) => {
-			dirs[bodyIndex] = alignZ(center, capDir(j, idx.length, alpha));
+			dirs[bodyIndex] = alignZ(center, toCoast(capDir(j, idx.length, alpha), cap));
 		});
 	});
 
@@ -485,6 +582,22 @@ export function spin(d: Vec3, yaw: number, pitch: number): Vec3 {
 	const cp = Math.cos(pitch);
 	const sp = Math.sin(pitch);
 	return { x: x1, y: d.y * cp - z1 * sp, z: d.y * sp + z1 * cp };
+}
+
+/** The UNSPUN direction that `spin` sends straight at the viewer — the point of
+ *  the sphere nearest the eye, named in the globe's own frame.
+ *
+ *  `spin` inverted for +z, and it lives here rather than at the call site because
+ *  a hand-inverted rotation is the classic silent mirror: get one sign wrong and
+ *  it samples the FAR side, which on a turning globe looks like a plausible lag
+ *  rather than like a bug. `sphere.spec.ts` asserts the round trip.
+ *
+ *  For anything that has to know what the surface is doing on the sightline to
+ *  the centre — how much ground stands between the eye and something inside the
+ *  sphere. */
+export function subViewerDir(yaw: number, pitch: number): Vec3 {
+	const cp = Math.cos(pitch);
+	return { x: -cp * Math.sin(yaw), y: Math.sin(pitch), z: cp * Math.cos(yaw) };
 }
 
 export interface Projection {

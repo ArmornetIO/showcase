@@ -31,6 +31,19 @@
 		active?: number;
 		labelTone?: StepLabelTone;
 		labelSize?: StepLabelSize;
+		/**
+		 * Fill the `active` step's block with the brand emphasis hue rather than
+		 * ringing it in the variant colour, so "where you are" reads as a different
+		 * KIND of state from "what is done" instead of a brighter shade of it.
+		 * A fill and not a ring: at 6px tall an outline is most of the block, so
+		 * the ring reads as a colour change anyway — just a muddier one.
+		 *
+		 * Opt-in, and not a `ProgressVariant`: the variant vocabulary is shared by
+		 * the whole progress family and is semantic (success/warn/error), while
+		 * this is one stepper's emphasis. Adding a colour to that enum for a single
+		 * caller would have meant touching eight maps across five components.
+		 */
+		emphasizeActive?: boolean;
 	}
 
 	let {
@@ -45,7 +58,8 @@
 		onstep,
 		active,
 		labelTone = 'dim',
-		labelSize = 'xs'
+		labelSize = 'xs',
+		emphasizeActive = false
 	}: SteppedProgressProps = $props();
 
 	const interactive = $derived(!!onstep);
@@ -115,12 +129,17 @@
 		warn:    'rgba(252, 211, 77, 0.5)',
 		error:   'rgba(252, 165, 165, 0.5)'
 	};
+
+	// The active step's hue, resolved in one place so its block fill and its
+	// label cannot drift apart. Declared after the maps because it reads them.
+	const activeHue = (i: number) =>
+		emphasizeActive ? 'var(--palette-orange)' : DOT_BG[variantAt(i)];
 </script>
 
 <div class="w-full">
 	{#if label || showCount}
 		<div
-			class="flex justify-between mb-[7px] font-[var(--mono)] text-[0.625rem] tracking-[0.12em] uppercase"
+			class="flex justify-between mb-[7px] font-(family-name:--mono) text-[0.625rem] tracking-[0.12em] uppercase"
 		>
 			{#if label}<span class="text-[var(--fg-muted)]">{label}</span>{/if}
 			{#if showCount}<span class="text-[var(--fg-dim)]">{current} / {total}</span>{/if}
@@ -146,22 +165,33 @@
 				>
 					<span
 						class="block w-full h-[6px] r-hairline border border-[var(--border)] motion-reduce:transition-none!"
-						style:background={i < current ? BLOCK_BG[variantAt(i)] : 'rgba(15, 23, 42, 0.5)'}
-						style:border-color={i < current ? BLOCK_BORDER[variantAt(i)] : undefined}
-						style:box-shadow={active === i
-							? `0 0 0 1px ${DOT_BG[variantAt(i)]}, 0 0 8px ${DOT_BG[variantAt(i)]}99`
-							: i === current - 1
-								? `0 0 6px ${DOT_BG[variantAt(i)]}66`
+						style:background={active === i && emphasizeActive
+							? activeHue(i)
+							: i < current
+								? BLOCK_BG[variantAt(i)]
+								: 'rgba(15, 23, 42, 0.5)'}
+						style:border-color={active === i && emphasizeActive
+							? activeHue(i)
+							: i < current
+								? BLOCK_BORDER[variantAt(i)]
 								: undefined}
+						style:box-shadow={active === i && emphasizeActive
+							? undefined
+							: active === i
+								? `0 0 0 1px ${activeHue(i)}, 0 0 8px color-mix(in srgb, ${activeHue(i)} 60%, transparent)`
+								: i === current - 1
+									? `0 0 6px color-mix(in srgb, ${DOT_BG[variantAt(i)]} 40%, transparent)`
+									: undefined}
 						style:transition={animate ? 'background 0.25s ease, border-color 0.25s ease' : 'none'}
 						style:transition-delay={animate && mounted ? `${i * 40}ms` : '0ms'}
 					></span>
 					{#if hasLabels}
 						<span
-							class="text-center font-[var(--mono)] {LABEL_SIZE[labelSize]} tracking-[0.08em] uppercase {active ===
+							class="text-center font-(family-name:--mono) {LABEL_SIZE[labelSize]} tracking-[0.08em] uppercase {active ===
 							i
 								? 'text-[var(--fg)]'
 								: LABEL_TONE[labelTone]}"
+							style:color={active === i && emphasizeActive ? activeHue(i) : undefined}
 							style:opacity={active !== undefined && active !== i ? 0.75 : 1}>{step.label}</span
 						>
 					{/if}
@@ -199,7 +229,7 @@
 					     directive: the utility's name contains a `/`, which that
 					     directive's syntax cannot carry. -->
 					<span
-						class="absolute font-[var(--mono)] text-[0.5rem] tracking-[0.08em] text-[var(--fg-dim)] uppercase whitespace-nowrap {first ||
+						class="absolute font-(family-name:--mono) text-[0.5rem] tracking-[0.08em] text-[var(--fg-dim)] uppercase whitespace-nowrap {first ||
 						end
 							? ''
 							: '-translate-x-1/2'}"
@@ -234,7 +264,7 @@
 					></div>
 					{#if step.label && isNaN(Number(step.label))}
 						<span
-							class="font-[var(--mono)] text-[0.5rem] tracking-[0.08em] text-[var(--fg-dim)] uppercase whitespace-nowrap"
+							class="font-(family-name:--mono) text-[0.5rem] tracking-[0.08em] text-[var(--fg-dim)] uppercase whitespace-nowrap"
 							>{step.label}</span
 						>
 					{/if}

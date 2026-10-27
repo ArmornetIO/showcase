@@ -15,6 +15,9 @@
 	const HANDOFF_MS = 80;
 	let liveSheets = 0;
 	let lastClosedAt = -Infinity;
+	// Open sheets, oldest first. A sheet can open another on top of itself (a
+	// settings sheet opening a person editor); Escape belongs to the top one.
+	const stack: symbol[] = [];
 </script>
 
 <script lang="ts">
@@ -78,10 +81,13 @@
 		if (open) handoff = liveSheets > 0 || performance.now() - lastClosedAt < HANDOFF_MS;
 	});
 
+	const me = Symbol();
 	$effect(() => {
 		if (!open) return;
 		liveSheets += 1;
+		stack.push(me);
 		return () => {
+			stack.splice(stack.indexOf(me), 1);
 			liveSheets -= 1;
 			lastClosedAt = performance.now();
 		};
@@ -90,7 +96,7 @@
 
 <svelte:window
 	onkeydown={(e) => {
-		if (e.key !== 'Escape' || !open || !dismissible) return;
+		if (e.key !== 'Escape' || !open || !dismissible || stack.at(-1) !== me) return;
 		// A sheet is a working panel, so it routinely opens a <dialog> on top of
 		// itself (an editor, a confirm). Those live in the top layer and handle
 		// their own Escape — but the keydown still reaches window, which would

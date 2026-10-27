@@ -3,11 +3,13 @@
 	// The whole app. It owns three things and nothing else: a match, the layout
 	// the HUD is arranged in, and which overlay is open. Every rule lives behind
 	// `internal/`; every pixel lives in a component. This file is the wiring.
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { BreachMatch } from './internal/match.svelte.js';
 	import BoardStage from './BoardStage.svelte';
 	import CardFan from './CardFan.svelte';
 	import Lobby from './Lobby.svelte';
+	import InsiderThreat from './InsiderThreat.svelte';
+	import type { Refusal } from './insider/OfficeHud.svelte';
 	import { BreachLobby } from './internal/lobby.svelte.js';
 	import type { Seated } from './internal/presence.js';
 	import RulesOverlay from './RulesOverlay.svelte';
@@ -17,7 +19,12 @@
 	import BuildingStack from './hud/BuildingStack.svelte';
 	import GameEventsOverlay from './hud/GameEventsOverlay.svelte';
 	import { TableSocket } from './net.svelte.js';
+	import { stampTableLink } from './api.js';
+	import { resolve } from './internal/appearance.js';
 	import { openLocalTable } from './internal/local-table.js';
+	import { LocalOffice } from './internal/local-office.svelte.js';
+	import { Simulation, recordDressed, recordReactions, simRecord } from './internal/sim.svelte.js';
+	import { klassByKey, seatOrder } from './internal/rules.js';
 	// ── The HUD ──────────────────────────────────────────────────────────────
 	// One state ladder, derived once here and passed down. Three surfaces each
 	// calling the pure function would agree; passing it makes "they cannot
@@ -29,6 +36,8 @@
 	import LeadChange from './hud/LeadChange.svelte';
 	import TurnVignette from './hud/TurnVignette.svelte';
 	import TextScale from './hud/TextScale.svelte';
+	import GameMenu from './hud/GameMenu.svelte';
+	import { Button } from 'showcase';
 	import { hudScale } from './hud/hud-scale.svelte.js';
 
 	interface Props {
@@ -39,17 +48,9 @@
 		 *  session's real occupants; left alone it is a local table you fill
 		 *  yourself. */
 		lobby?: BreachLobby;
-		/** Let a player get up mid-match and take a demonstrator's chair. A match
-		 *  setting, so it is decided out here and never mid-game; ignored when a
-		 *  `match` is supplied, which brought its own answer with it. */
-		takeover?: boolean;
 	}
 
-	let {
-		takeover = false,
-		match = new BreachMatch({ takeover }),
-		lobby = new BreachLobby()
-	}: Props = $props();
+	let { match = new BreachMatch(), lobby = new BreachLobby() }: Props = $props();
 
 	// ── The live table ───────────────────────────────────────────────────────
 	// Owned here rather than in the lobby, because the BOARD needs it too. Null
@@ -61,6 +62,22 @@
 	 *  socket: `lastError` is a latch that keeps its value until the next one,
 	 *  and a refusal is worth saying once. */
 	let refusal = $state<string | null>(null);
+	/** The same, stamped, for the office: it says each refusal under the
+	 *  crosshair, so two identical ones in a row are two. */
+	let officeRefusal = $state<Refusal | null>(null);
+
+	// The HUD draws the person in each chair, not the role's stock build — and
+	// only the lobby knows who that is and what they are wearing.
+	// Assigned once, on purpose: figureOf is a plain field the HUD reads while
+	// rendering, so it must exist before the first frame — an $effect would set
+	// it after. `match` is never swapped for another instance.
+	// svelte-ignore state_referenced_locally
+	match.figureOf = (klassKey) => {
+		const seat = lobby.seats.find((s) => s.klassKey === klassKey);
+		if (!seat) return null;
+		const name = seat.occupant.kind === 'open' ? 'Open' : seat.occupant.name;
+		return resolve(lobby.lookAt(seat.id), { key: seat.id, name }, seat.klassKey, seat.side);
+	};
 
 	function join(tableID: string) {
 		const s = new TableSocket(tableID, {
@@ -76,9 +93,11 @@
 			onError: (code, message) => {
 				if (code === 'unreachable' || code === 'evicted') return;
 				refusal = message;
+				officeRefusal = { text: message, at: performance.now() };
 			}
 		});
 		s.connect();
+		stampTableLink(tableID);
 		// From here the server decides. `remote` turns the three methods that
 		// change the board into requests; the answers arrive as snapshots.
 		match.remote = {
@@ -94,6 +113,19 @@
 		const view = socket?.view;
 		if (view) lobby.applyRemote(view);
 	});
+
+	// A scripted table's autopilot, in a dev session only (internal/sim.svelte.ts).
+	let sim = $state<Simulation | null>(null);
+	$effect(() => {
+		const s = socket;
+		if (!s || !simRecord) return;
+		const run = new Simulation(s);
+		sim = run;
+		void run.find();
+		const beat = setInterval(() => run.step(match.isMyTurn && match.stage === 'play' && !match.winner), 500);
+		return () => clearInterval(beat);
+	});
+	$effect(() => recordReactions(socket?.reactions ?? []));
 
 	// Connecting is NOT sitting down any more.
 	//
@@ -159,7 +191,9 @@
 		const view = socket?.view;
 		if (!view || view.phase !== 'playing' || match.stage !== 'select') return;
 		const klassKey = view.lobby.seats.find((s) => s.id === view.your_seat)?.klass_key;
-		if (klassKey) void match.takeSeat(klassKey);
+		if (!klassKey) return;
+		if (view.config.variant === 'insider_threat') match.enterOffice(klassKey);
+		else void match.takeSeat(klassKey);
 	});
 
 	// And LEAVING one is the server's decision too, which is what `new_match`
@@ -223,6 +257,31 @@
 	/** Card fan, in px. Matches the `h-[16.5rem]` the felt is drawn at. */
 	const FELT_H = 264;
 
+	// ── The hand, on a hand-sized screen ─────────────────────────────────────
+	// A card is a fixed 136×188 and the fan spaces them 132 apart, so the hand is
+	// 556px wide at EVERY window width — measured identical on a 1440 desktop and
+	// a 375 phone, where it ran from x=-90 to x=465 and threw two of four cards
+	// off the edges. The fan cannot reflow (it is an arc, not a row), so on a
+	// narrow window it is scaled and tightened instead.
+	//
+	// `zoom` rather than `transform: scale`, and that is load-bearing: `CardFan`
+	// places its drag ghost through `cssZoom()`, which reads `currentCSSZoom`.
+	// A transform is invisible to it and the dragged card would fly off toward
+	// the corner instead of following the finger.
+	const COMPACT_ZOOM = 0.78;
+	/** Centre-to-centre, compact. Tighter than `spread`'s 132 so a seven-card
+	 *  hand still lands inside 375px once the zoom is applied: 6×54+136 = 460,
+	 *  scaled to 359. The cards overlap, which is what a held hand looks like —
+	 *  the lifted one comes forward and is read on its own. */
+	const COMPACT_SPREAD = 54;
+	const COMPACT_FELT_H = Math.round(FELT_H * COMPACT_ZOOM);
+
+	/** Nothing stands in the top-left any more: the tactical rail is two buttons
+	 *  lying flat above the hand when compact, not a nine-item column running the
+	 *  height of the board. Kept as a named zero so the reason the clock and the
+	 *  objective span the full width is written down rather than inferred. */
+	const RAIL_GUTTER = 8;
+
 	// ── The floor scrim ──────────────────────────────────────────────────────
 	// It has to reach the bottom EDGE of the window, and its stops are derived
 	// rather than typed, for the same reason: the gradient was a child of the
@@ -243,7 +302,52 @@
 	let leftW = $state(0);
 	let rightW = $state(0);
 	let topH = $state(0);
-	let floating = $state(true);
+	/** How tall the objective strip is on a narrow window. Measured for the same
+	 *  reason `topH` is: it wraps to a second line when a link is announced, and
+	 *  the globe is fitted under whatever it actually turned out to be. */
+	let objH = $state(0);
+	/** The reading matter, on a window with no room to stand it beside the board. */
+	let railsOpen = $state(false);
+
+	/** The battle centre's height. A CONSTANT on the wide HUD by design (see
+	 *  `PLAY_H`) — but that card is `min(94vw, 54rem)`, so on a phone it is a
+	 *  third of the width it was tuned at and its contents wrap to two and three
+	 *  lines. Measured only where it is allowed to vary. */
+	let playH = $state(PLAY_H);
+
+	/** How much of the bottom edge the phone's own hardware has taken.
+	 *
+	 *  `env()` resolves in CSS and nowhere else, so it cannot be read into the
+	 *  px arithmetic the canvas insets are made of. A zero-width probe styled
+	 *  `height: var(--safe-b)` is the value made measurable — without it the
+	 *  bottom inset under-counts by the home indicator, and the globe puts
+	 *  buildings back under the exact strip we just lifted them out of. */
+	let safeB = $state(0);
+
+	/** Everything welded to the floor on a narrow window: the hand, the battle
+	 *  centre under it, the gaps either side, and the hardware below that. */
+	const COMPACT_FLOOR_H = $derived(
+		// `playH` is a LAYOUT height and the card it measures sits under the HUD's
+		// `zoom`, so at any text scale but 1 the two disagree — and the number is
+		// spent fitting the globe above it, where disagreeing means buildings back
+		// under the card.
+		COMPACT_FELT_H + Math.round(playH * hudScale.value) + PLAY_GAP * 2 + safeB
+	);
+
+	/** The one place the wide/compact line is drawn. The `xl:` utilities below are
+	 *  the same number written in Tailwind's dialect; they have to agree, so
+	 *  neither is allowed to move on its own. */
+	const WIDE = '(min-width: 1280px)';
+	const isWide = () => typeof window !== 'undefined' && window.matchMedia(WIDE).matches;
+
+	/** Read at INIT and not only in the effect below. `$effect` runs after the
+	 *  first paint, so starting this `true` draws one frame of the desktop
+	 *  three-column HUD on a phone before correcting itself — and that frame is
+	 *  the whole layout moving, which reads as the game booting broken. */
+	let floating = $state(isWide());
+	/** The narrow HUD is not "the wide one, smaller". It is a different
+	 *  arrangement, so it gets a name rather than `!floating` at nine call sites. */
+	const compact = $derived(!floating);
 
 	/**
 	 * Sitting down.
@@ -262,9 +366,21 @@
 	 * while the module is what you get when it is there.
 	 */
 	async function enter(key: string) {
+		// The street plays no cards: no rules engine and no deal, or the card
+		// match's demonstrators play a game underneath that nobody can see.
+		if (lobby.variant === 'insider_threat') {
+			match.enterOffice(key);
+			return;
+		}
 		if (!socket && !match.remote) {
 			try {
-				const { port } = await openLocalTable(match, { human: [key], seat: key });
+				// Who the lobby actually seated where, so a character dealt to the
+				// other side's chair plays that side here as it would on a server.
+				const seating = seatOrder(lobby.size).flatMap((home) => {
+					const chair = lobby.seats.find((s) => s.id === klassByKey(home).seat);
+					return chair?.klassKey ? [{ klass: chair.klassKey, side: chair.side }] : [];
+				});
+				const { port } = await openLocalTable(match, { human: [key], seat: key, seating });
 				match.remote = port;
 			} catch (err) {
 				console.warn('breach: rules module unavailable, using the local resolver', err);
@@ -273,13 +389,120 @@
 		await match.takeSeat(key);
 	}
 
+	/** Out of the street, back to the lobby. A hosted table asks the server
+	 *  (host only), and the reset reaches every screen through the `setup`
+	 *  effect above. An offline one resets itself, and stands its demonstrators
+	 *  up: a full table would be dealt again and walk straight back in. */
+	function leaveStreet() {
+		if (socket) {
+			match.newMatch();
+			return;
+		}
+		match.reset();
+		lobby.reset();
+		for (const s of lobby.seats) if (s.occupant.kind === 'ai') lobby.leave(s.id);
+	}
+
+	/** An offline street's office: the rules module hosting the match, so its
+	 *  bots do their real jobs (internal/local-office.svelte.ts). */
+	let localOffice = $state<LocalOffice | null>(null);
+	/** The office this screen is in, hosted or local. */
+	const office = $derived(socket?.view?.office ?? localOffice?.view ?? undefined);
+
+	/** Everybody else in the street, where the office has them: a person as
+	 *  their client relays them, a bot as the office relays its walk. A bot
+	 *  standing still sends nothing, so it carries no `at` and never goes
+	 *  stale; before its first step it stands where the view put it. */
+	const streetOthers = $derived.by(() => {
+		const mine = socket?.view?.your_seat;
+		const bot = new Set((office?.players ?? []).filter((p) => p.bot).map((p) => p.seatId));
+		const people = lobby.seats.flatMap((s) => {
+			const p = socket?.poses[s.id];
+			return p && s.id !== mine && !bot.has(s.id) ? [{ ...p, seat: s.id }] : [];
+		});
+		const bots = (office?.players ?? []).flatMap((p) => {
+			if (!p.bot || p.escorted) return [];
+			const walked = socket?.poses[p.seatId] ?? localOffice?.poses[p.seatId];
+			if (walked) return [{ x: walked.x, y: walked.y, z: walked.z, yaw: walked.yaw, seat: p.seatId }];
+			return p.at ? [{ x: p.at.x, y: 0, z: p.at.z, yaw: 0, seat: p.seatId }] : [];
+		});
+		return [...people, ...bots];
+	});
+
+	/** Each seat as the lobby dressed it, for the street to draw. Bare — no
+	 *  character, no side — because in the office who is what is the game, and
+	 *  a role badge on a body would hand it out. */
+	const streetFigures = $derived(
+		Object.fromEntries(
+			lobby.seats.flatMap((s) =>
+				s.occupant.kind === 'open' ? [] : [[s.id, resolve(lobby.lookAt(s.id), { key: s.id, name: s.occupant.name })]]
+			)
+		)
+	);
+	$effect(() => recordDressed(Object.keys(streetFigures), (seat) => lobby.lookAt(seat)));
+
+	/** The office's moves, routed to whichever host holds the match. */
+	const officeActions = $derived.by(() => {
+		const s = socket;
+		if (!s) return localOffice?.actions;
+		return {
+			channel: (st: string, a: string) => s.channel(st, a),
+			lift: (seat: string) => s.lift(seat),
+			cancel: () => s.cancel(),
+			sweep: () => s.sweep(),
+			signature: (site?: string, seat?: string) => s.signature(site, seat),
+			callMeeting: () => s.callMeeting(),
+			vote: (seat: string) => s.vote(seat)
+		};
+	});
+	/** A hosted office walks in when the server starts the match; an offline
+	 *  street when the local lobby deals. */
+	const inStreet = $derived(
+		lobby.variant === 'insider_threat' && (socket ? !!socket.view?.office : match.stage !== 'select')
+	);
+
+	// An offline street deals its office on the way in and drops it on the way
+	// out. The seating is read untracked: the lobby is settled by now, and a
+	// lobby write must not deal the match again.
+	$effect(() => {
+		if (!inStreet || socket) return;
+		let gone = false;
+		let opened: LocalOffice | null = null;
+		const seated = untrack(() => lobby.seats.filter((s) => s.occupant.kind !== 'open'));
+		const me = untrack(() => lobby.youSeatId || seated.find((s) => s.occupant.kind === 'human')?.id || '');
+		const seats = seated.map((s) => ({
+			ID: s.id,
+			Handle: s.occupant.kind === 'open' ? '' : s.occupant.name,
+			KlassKey: s.klassKey ?? '',
+			Bot: s.occupant.kind === 'ai'
+		}));
+		// A fresh clone without `make build-breach-rules-wasm` has no module: the
+		// street is then a walk with nobody in it, as it was before there was one.
+		LocalOffice.open(seats, me).then(
+			(o) => {
+				if (gone) o.close();
+				else localOffice = opened = o;
+			},
+			(err) => console.warn('breach: rules module unavailable, the office is empty', err)
+		);
+		return () => {
+			gone = true;
+			opened?.close();
+			localOffice = null;
+		};
+	});
+
 	onMount(() => match.start());
 
 	$effect(() => {
-		const mq = window.matchMedia('(min-width: 1280px)');
+		const mq = window.matchMedia(WIDE);
 		floating = mq.matches;
 		const on = (e: MediaQueryListEvent) => (floating = e.matches);
 		mq.addEventListener('change', on);
+		// A rotate into landscape can widen past the breakpoint with the drawer
+		// still open, which would leave it pinned over a HUD that has its rails
+		// back. It is a narrow-window control; it closes with the window.
+		if (mq.matches) railsOpen = false;
 		return () => mq.removeEventListener('change', on);
 	});
 
@@ -293,7 +516,16 @@
 					bottom: EDGE + FELT_H + PLAY_H + PLAY_GAP * 2,
 					left: leftW > 0 ? EDGE + leftW + GAP : 0
 				}
-			: { top: TOP_EDGE + GAP }
+			: {
+					// The narrow HUD keeps the same promise as the wide one — no building
+					// is ever laid under a panel — and it is the promise this branch used
+					// to break. Returning only `top` fitted the globe to the full height
+					// of the window while 368px of hand and battle centre sat welded over
+					// the bottom of it, so on a 375px screen 14 of 19 buildings were
+					// under the cards and the landscape board was ENTIRELY under them.
+					top: TOP_EDGE + topH + (objH > 0 ? objH + GAP : 0) + GAP,
+					bottom: COMPACT_FLOOR_H + PLAY_GAP
+				}
 	);
 
 	// ── The "your turn" moment ───────────────────────────────────────────────
@@ -398,20 +630,45 @@
 	}}
 />
 
+<!-- Insider Threat is a different game, not a different board: past the lobby it
+     replaces the whole stage. Before then the lobby sits over the board as it
+     does for every table. -->
+{#if inStreet}
+	<InsiderThreat
+		others={streetOthers}
+		figures={streetFigures}
+		pilot={!!sim?.seat}
+		onpose={socket ? (p) => socket?.pose(p) : localOffice ? (p) => localOffice?.pose(p) : undefined}
+		onleave={!socket || socket.isHost ? leaveStreet : undefined}
+		{office}
+		reactions={socket?.reactions ?? localOffice?.reactions}
+		act={officeActions}
+		refusal={socket ? officeRefusal : localOffice?.refusal}
+	/>
+{:else}
 <!-- `--play-h` is published here rather than written into two class strings: the
      felt sits exactly on top of the battle centre, and a pair of hard-coded rems
      that drift leave either a gap under the cards or a card drawn over them. -->
 <div
-	class="hud-type relative flex flex-col h-screen overflow-hidden text-[var(--fg)]"
+	class="hud-type relative flex h-[100dvh] flex-col overflow-hidden text-[var(--fg)]"
 	style:--hud-zoom={hudScale.value}
 	style:--play-h="{PLAY_H}px"
 	style:--play-gap="{PLAY_GAP}px"
-	style:--play-block="{PLAY_H + PLAY_GAP * 2}px"
+	style:--play-block="{(compact ? playH : PLAY_H) + PLAY_GAP * 2 + (compact ? safeB : 0)}px"
+	style:--rail-gutter="{RAIL_GUTTER}px"
 >
+	<!-- The safe-area probe. Zero-width, inert, and the only way the home
+	     indicator's height becomes a number JavaScript can add up. -->
+	<div
+		aria-hidden="true"
+		class="pointer-events-none absolute w-0"
+		style:height="var(--safe-b)"
+		bind:clientHeight={safeB}
+	></div>
 	<TurnVignette color={match.seat.color} level={vignette} />
 
 	<div class="relative flex-1 min-h-0">
-		<BoardStage {match} {insets} top={TOP_EDGE} />
+		<BoardStage {match} {insets} {compact} top={TOP_EDGE} />
 
 		<!-- ── The scoreboard ────────────────────────────────────────────────────
 		     Round, score and clock top centre, with the two sides either side of
@@ -421,16 +678,43 @@
 
 		     Measured rather than constant: the strips grow a hover card, so the
 		     cluster is as tall as the taller of the two. -->
+		<!-- Absolute at EVERY width, not just `xl:`. Below the breakpoint this used
+		     to fall back to a static block, and a static block is painted BEFORE a
+		     positioned sibling — so the board, which is absolute, covered the whole
+		     HUD. On a phone the centre of the screen resolved to a row of the
+		     building ladder and the globe was not visible at all. -->
+		<!-- Bounded by its own left and right edges when compact, rather than centred
+		     on the whole viewport: the tactical rail holds the left gutter, and a
+		     cluster centred on `100vw` runs its last 38px underneath it — the seconds
+		     numeral goes half-hidden behind an opaque column.
+
+		     `--hud-zoom` is pinned at 1 or less here for a reason worth writing down:
+		     `zoom` multiplies computed lengths, so ANY viewport-relative ceiling on a
+		     `hud-scaled` element is a lie — at 1.4 the box resolves 100vw and then
+		     paints at 140vw. On a phone the clock is already at the width of the
+		     screen, so there is nothing to grow into; the text scale still grows
+		     everything in the drawer, which is where the reading is. -->
 		<div
 			bind:clientHeight={topH}
-			class="hud-scaled flex flex-col items-center gap-2
-			       xl:absolute xl:top-4 xl:left-1/2 xl:-translate-x-1/2 xl:z-[3]
-			       xl:max-w-[min(96vw,62rem)]"
+			class="hud-scaled absolute z-[3] flex flex-col items-center gap-2 top-[calc(var(--safe-t)+0.5rem)]
+			       xl:top-4 {compact
+				? 'right-2 left-[var(--rail-gutter)]'
+				: 'left-1/2 max-w-[min(96vw,62rem)] -translate-x-1/2'}"
+			style:--hud-zoom={compact ? Math.min(hudScale.value, 1) : undefined}
 		>
 			<div class="flex items-start gap-2">
-				<TableStrip {match} faction="red" />
+				<!-- The two seat rosters are 168px each beside a clock that already
+				     fills a 375px screen — the row measured 1038px wide at every window
+				     width, clipped off BOTH edges of every phone. They are reference,
+				     and reference is what the drawer is for; the clock stays, because
+				     round, score and time are what you read between taps. -->
+				{#if floating}
+					<TableStrip {match} faction="red" />
+				{/if}
 				<TopClock {match} state={hud} />
-				<TableStrip {match} faction="blue" />
+				{#if floating}
+					<TableStrip {match} faction="blue" />
+				{/if}
 			</div>
 		</div>
 
@@ -441,11 +725,12 @@
 		     chips at the top of the screen, and two rails of different widths read
 		     as a page that could not decide where its margins were. Same clamp
 		     both sides; change it in both places or not at all. -->
+		{#if floating}
 		<!-- Left column: what has happened. -->
 		<div
 			bind:clientWidth={leftW}
-			class="hud-scaled flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:left-4 xl:z-[3]
-			       xl:w-[clamp(220px,19vw,268px)] xl:pointer-events-none"
+			class="hud-scaled pointer-events-none absolute top-4 bottom-7 left-4 z-[3] flex
+			       w-[clamp(220px,19vw,268px)] flex-col gap-3"
 		>
 			<!-- Above the feed rather than inside it: the log is fogged and derived
 			     from rows this viewer can prove, and a lead is a fact about the board
@@ -454,7 +739,7 @@
 			<LeadChange {match} />
 			<!-- The feed takes what is left of the column and scrolls inside it, so a
 			     long match cannot push the lead card off the top. -->
-			<LogFeed {match} class="max-h-[40vh] xl:max-h-none flex-1 min-h-0" />
+			<LogFeed {match} class="min-h-0 flex-1" />
 		</div>
 
 		<!-- Right column: the objective ladder, and under it whatever just
@@ -463,14 +748,14 @@
 		     and any child that leans a pixel right grows a horizontal scrollbar. -->
 		<div
 			bind:clientWidth={rightW}
-			class="hud-scaled flex flex-col gap-3 xl:absolute xl:top-4 xl:bottom-7 xl:right-4 xl:z-[3]
-			       xl:w-[clamp(220px,19vw,268px)] xl:pointer-events-none"
+			class="hud-scaled pointer-events-none absolute top-4 right-4 bottom-7 z-[3] flex
+			       w-[clamp(220px,19vw,268px)] flex-col gap-3"
 		>
 			<!-- Not `flex-1`: that made the ladder eat the column and pushed the two
 			     strips below it to the floor, a screen away from what they are about.
 			     It sizes to content and scrolls only if it outgrows the space, and the
 			     spacer at the end takes whatever is left. -->
-			<div class="flex min-h-0 shrink flex-col gap-3 xl:overflow-y-auto xl:overflow-x-clip">
+			<div class="flex min-h-0 shrink flex-col gap-3 overflow-x-clip overflow-y-auto">
 				<BuildingStack {match} />
 			</div>
 
@@ -508,6 +793,144 @@
 
 			<span class="flex-1"></span>
 		</div>
+		{:else}
+			<!-- ── The narrow HUD ────────────────────────────────────────────────
+			     Not the wide one shrunk. Each rail is 220px of reading matter and a
+			     phone is 375px across, so they do not stand beside the board — they
+			     leave it. What stays on the glass is what a player acts on between
+			     taps: the clock above, the objective (which names the thing you are
+			     trying to do), and the hand. The feed, the ladder and the dice are
+			     what you CONSULT, and consulting is what the drawer is for. -->
+			<div
+				bind:clientHeight={objH}
+				class="hud-scaled pointer-events-auto absolute right-2 left-[var(--rail-gutter)] z-[3] overflow-x-clip rounded-lg
+				       border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_86%,transparent)]
+				       px-2.5 py-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.4)] backdrop-blur-md"
+				style:top="calc(var(--safe-t) + {topH + 20}px)"
+			>
+				<ObjectiveLine {match} terse onresult={() => (resultOpen = true)} />
+			</div>
+
+			<!-- 44px square, which is the floor a finger reliably hits — and the
+			     reason this is not one of the 26px icon buttons the HUD uses where
+			     there is a mouse to aim with. -->
+			<button
+				type="button"
+				class="pointer-events-auto absolute right-2 z-[8] grid h-11 w-11 place-items-center rounded-full
+				       border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_92%,transparent)]
+				       text-[var(--fg-muted)] shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md"
+				style:top="calc(var(--safe-t) + {topH + objH + 32}px)"
+				aria-expanded={railsOpen}
+				aria-label={railsOpen ? 'Close the intel drawer' : 'Open the intel drawer'}
+				onclick={() => (railsOpen = !railsOpen)}
+			>
+				<svg viewBox="0 0 20 20" class="h-5 w-5" aria-hidden="true" fill="none">
+					{#if railsOpen}
+						<path
+							d="M5 5l10 10M15 5L5 15"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+						/>
+					{:else}
+						<path
+							d="M3 5.5h14M3 10h14M3 14.5h14"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+						/>
+					{/if}
+				</svg>
+			</button>
+
+			{#if railsOpen}
+				<!-- Bounded top AND bottom by the same two numbers the globe is fitted
+				     to, so the drawer can never reach over the hand it was opened
+				     instead of. It scrolls inside that box; a long match grows the feed,
+				     not the panel. -->
+				<div
+					class="hud-scaled pointer-events-auto absolute right-2 z-[7] flex w-[min(88vw,320px)] flex-col
+					       gap-3 overflow-x-clip overflow-y-auto rounded-lg border border-[var(--border)]
+					       bg-[color-mix(in_srgb,var(--bg-elev,#0b0f16)_94%,transparent)] p-2
+					       shadow-[0_18px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
+					style:top="calc(var(--safe-t) + {topH + objH + 84}px)"
+					style:bottom="{COMPACT_FLOOR_H + PLAY_GAP}px"
+				>
+					<!-- The seat rosters, evicted from the top row where the two of them
+					     plus the clock measured 1038px. -->
+					<!-- Stacked, not side by side. Two 168px chips in a 320px drawer get
+					     flex-shrunk to ~73px each and every name turns into an ellipsis —
+					     and the strip's hover card, which is 248px and centred on the
+					     chip, is then cut by the drawer's own `overflow-x-clip`. -->
+					<!-- Who you are, and the rule that is always on. The plate carries
+					     both when there is a rail's worth of width; compact it drops
+					     them, because they were settled in the lobby and never move
+					     again — and a fact you cannot get back to is a fact that was
+					     deleted. This is where it got to. -->
+					<div class="shrink-0 rounded-lg border border-[var(--border)] px-2.5 py-2">
+						<b
+							class="font-mono text-[0.68rem] leading-none font-black tracking-[0.06em] uppercase"
+							style:color={match.seat.color}
+						>
+							{match.seat.name}
+						</b>
+						<div class="mt-1.5 font-mono text-[0.56rem] tracking-[0.14em] uppercase text-[var(--fg-dim)]">
+							passive · {match.seat.passive.name}
+						</div>
+						<div class="mt-1 text-[0.68rem] leading-snug text-[var(--fg-muted)]">
+							{match.seat.passive.text}
+						</div>
+					</div>
+					<div class="flex shrink-0 flex-col items-stretch gap-2">
+						<TableStrip {match} faction="red" />
+						<TableStrip {match} faction="blue" />
+					</div>
+					<LeadChange {match} />
+					<!-- The objective in full sentences, which the strip on the glass
+					     no longer has room to be. The strip is the readout you glance
+					     at mid-turn; this is the rule, spelled out, in the panel a
+					     player opens BECAUSE they want it spelled out. -->
+					<div
+						class="shrink-0 rounded-lg border border-[var(--border)] px-2.5 py-1.5"
+					>
+						<ObjectiveLine {match} onresult={() => (resultOpen = true)} />
+					</div>
+					<div class="shrink-0"><BuildingStack {match} /></div>
+					<LogFeed {match} class="min-h-[8rem] flex-1" />
+					<div class="flex shrink-0 justify-center pt-1">
+						<TextScale />
+					</div>
+				</div>
+			{/if}
+
+			<!-- ── The moment, centre stage ──────────────────────────────────────
+			     The dice were in the drawer. They are the loudest three seconds the
+			     game has and they were playing behind a tap nobody had a reason to
+			     make on the beat they happened — the drawer is reference, and
+			     reference is consulted BETWEEN moves, not during one.
+
+			     So on a narrow window the roll is not a panel entry. It is thrown
+			     onto the table and gone again on its own clock, with nothing to
+			     dismiss.
+
+			     Bottom RIGHT, at the corner of the board rather than over the
+			     middle of it. Centred, the chip is exactly the panel it replaced
+			     wearing a different costume — it covers the globe on the one beat
+			     the globe is doing the interesting part, and a player ends up
+			     waiting it out instead of watching it. Bottom-left is the tactical
+			     rail's corner when compact, so this takes the other one, sitting
+			     directly on the floor the hand is measured to.
+
+			     `max-w` rather than a width: a chip that is the same size whatever
+			     is in it has to be sized for the longest verb, and then a two-word
+			     result rattles around inside a box built for `exfiltrated`. -->
+			<div
+				class="pointer-events-none absolute right-2 z-[7] flex max-w-[min(52vw,13rem)] justify-end"
+				style:bottom="{COMPACT_FLOOR_H + PLAY_GAP}px"
+			>
+				<GameEventsOverlay {match} bubble />
+			</div>
+		{/if}
 
 		<!-- ── The felt ──────────────────────────────────────────────────────────
 		     The hand, and nothing else. Lifted off the floor by exactly the battle
@@ -525,12 +948,20 @@
 		     sibling of the hand instead of a child of it. -->
 		<div
 			class="absolute inset-x-0 bottom-0 z-[4] pointer-events-none"
-			style:height="{SCRIM_H}px"
+			style:height="{compact ? COMPACT_FLOOR_H : SCRIM_H}px"
 			style:background={SCRIM}
 		></div>
 
-		<div class="absolute inset-x-0 bottom-[var(--play-block)] z-[5] h-[16.5rem] pointer-events-none">
-			<CardFan {match} class="h-full" />
+		<div
+			class="pointer-events-none absolute inset-x-0 bottom-[var(--play-block)] z-[5]"
+			style:height="{compact ? COMPACT_FELT_H : FELT_H}px"
+		>
+			<CardFan
+				{match}
+				scale={compact ? COMPACT_ZOOM : 1}
+				spread={compact ? COMPACT_SPREAD : 132}
+				class="h-full"
+			/>
 		</div>
 
 		<!-- ── The battle centre ─────────────────────────────────────────────────
@@ -547,22 +978,45 @@
 		     anywhere. It is already the "what is happening right now" surface, so
 		     a dropped table is the same kind of sentence as whose turn it is —
 		     which is why the two floating notices above the board are gone. -->
-		<BattleCentre
-			{match}
-			state={hud}
-			takeover={arriving}
-			{socket}
-			{refusal}
-			onrules={() => (rulesOpen = true)}
-			class="hud-scaled absolute bottom-[var(--play-gap)] left-1/2 z-[6]
-			       w-[min(94vw,54rem)] -translate-x-1/2"
-		/>
+		<!-- Wrapped so the height can be MEASURED. `PLAY_H` is a deliberate constant
+		     on the wide HUD and stays one there — but the card is `min(94vw, 54rem)`,
+		     so on a phone it is a third of the width it was tuned at and its contents
+		     wrap to two and three lines. The globe is fitted above whatever it
+		     actually became; assuming 76px there is how the buildings end up back
+		     under it. Lifted clear of the home indicator by `--safe-b`. -->
+		<div
+			bind:clientHeight={playH}
+			class="hud-scaled absolute left-1/2 z-[6] w-[min(94vw,54rem)] -translate-x-1/2"
+			style:bottom="calc(var(--safe-b) + {PLAY_GAP}px)"
+		>
+			<BattleCentre
+				{match}
+				state={hud}
+				takeover={arriving}
+				{compact}
+				{socket}
+				{refusal}
+				onrules={() => (rulesOpen = true)}
+				class="w-full"
+			/>
+		</div>
 
 		<!-- Outside every `hud-scaled` subtree on purpose — a control that scales
-		     itself is a control you cannot find your way back from. -->
-		<TextScale class="pointer-events-auto absolute bottom-6 left-4 z-[7]" />
+		     itself is a control you cannot find your way back from.
+
+		     Bottom-left only where there is a bottom-left to be in. On a narrow
+		     window the battle centre is the full width of the screen and this sat on
+		     top of the seat plate; it is a preference, so it goes where the other
+		     things you consult went. -->
+		{#if floating}
+			<GameMenu title="Breach" class="pointer-events-auto absolute bottom-6 left-4 z-[7]">
+				<TextScale class="justify-self-start" />
+				<Button onclick={() => (rulesOpen = true)}>Rules</Button>
+			</GameMenu>
+		{/if}
 	</div>
 </div>
+{/if}
 
 {#if rulesOpen}
 	<RulesOverlay seat={match.seat} onclose={() => (rulesOpen = false)} />
@@ -590,8 +1044,6 @@
 		{socket}
 		onjoin={join}
 		onenter={(key) => void enter(key)}
-		takeover={match.takeover}
-		ontakeover={(v) => (match.takeover = v)}
 	/>
 {/if}
 

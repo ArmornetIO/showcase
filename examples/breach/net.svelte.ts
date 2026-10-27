@@ -20,16 +20,19 @@
 // transport in it, which is the property that lets the rules run in Node under a
 // test with no server anywhere.
 
-import { INVITE_PARAM, describeTable } from './api.js';
+import { INVITE_PARAM, describeTable, type TableVariant } from './api.js';
+import type { Appearance } from './internal/appearance.js';
 import type { RemoteMatchView, RemoteResolution } from './internal/match.svelte.js';
 import { CAP_BREACH } from './wasm.js';
+import { decodeError, decodeEvent, decodePose, decodeReaction, decodeSeatView, encodeIntent } from './wire.js';
+import type { OfficeView, ReactionFrame } from './wire.gen.js';
+import type { MatchSize } from './internal/rules.js';
 // Aliased back to the short names this file has always used. The library
 // namespaces them because its barrel is shared with app-ui, where a bare
 // `subscribe` says nothing about what is being subscribed to.
 import {
 	subscribeCapability as subscribe,
 	unsubscribeCapability as unsubscribe,
-	decodeAgentPayload as decodePayload,
 	type ArmornetAgent,
 	type LostCause
 } from 'showcase';
@@ -50,13 +53,39 @@ export interface Intent {
 		| 'end_turn'
 		| 'new_match'
 		| 'watch'
-		| 'sync';
+		| 'sync'
+		| 'dress'
+		| 'set_variant'
+		| 'pose'
+		| 'channel'
+		| 'cancel'
+		| 'sweep'
+		| 'signature'
+		| 'call_meeting'
+		| 'vote'
+		| 'cue';
 	seat_id?: string;
 	klass_key?: string;
 	card_key?: string;
 	site_id?: string;
 	mode?: 'lot' | 'draft' | 'pick';
-	size?: '1v1' | '2v2';
+	size?: MatchSize;
+	/** `dress` only. A CLAIM: the server resolves it against the account's
+	 *  entitlements and what comes back is what everybody sees. */
+	appearance?: Appearance;
+	variant?: TableVariant;
+	pose?: Pose;
+	/** `channel` only: a task, or the insider's next milestone. */
+	act_key?: string;
+}
+
+/** Where a player stands in the Insider Threat street: feet in metres, facing
+ *  in radians. */
+export interface Pose {
+	x: number;
+	y: number;
+	z: number;
+	yaw: number;
 }
 
 /** What the server sends. One envelope with a discriminator — a switch on
@@ -69,7 +98,7 @@ export interface Intent {
  *  through `#frame`'s default and was dropped in silence — a live socket, a
  *  granted capability, frames arriving, and a board that never moved. */
 export interface Frame {
-	type: 'seat_view' | 'event' | 'error';
+	type: 'seat_view' | 'event' | 'error' | 'pose' | 'reaction';
 	view?: TableView;
 	res?: Resolution;
 	code?: string;
@@ -95,14 +124,20 @@ export interface TableView {
 	 *  lobby with every control mysteriously dead. */
 	spectating?: boolean;
 	members: Array<{ user_id: string; name: string; present: boolean }>;
+	/** What the table was opened as. Fixed at open; `variant` is the game. */
+	config: { variant: TableVariant };
 	lobby: {
 		phase: string;
 		mode: 'lot' | 'draft' | 'pick';
-		size: '1v1' | '2v2';
+		size: MatchSize;
 		seats: Array<{
 			id: string;
 			side: 'red' | 'blue';
 			klass_key?: string;
+			/** What this seat is wearing, server-resolved. Absent means this view
+			 *  is not describing it — the lobby leaves such a seat dressed as it
+			 *  was, so a partial view cannot undress somebody. */
+			appearance?: Appearance;
 			occupant: { kind: 'open' | 'human' | 'ai'; user_id?: string; name?: string; ready?: boolean };
 		}>;
 		draft_seat_id?: string;
@@ -115,7 +150,13 @@ export interface TableView {
 	};
 	/** The board, fogged for this recipient. Absent until the match starts. */
 	match?: SpectatableMatchView;
+	/** The office match, fogged for this recipient. Its shape is the wire's. */
+	office?: OfficeView;
 }
+
+/** Something in the office this player perceived, stamped with when it
+ *  arrived. Never says who did it. */
+export type Perceived = ReactionFrame & { seen: number };
 
 /** The board as it arrives, which for a spectator has no fog in it.
  *
@@ -214,8 +255,6 @@ const QUEUE_MAX = 24;
  *  five-second outage into a thirty-second one. */
 const REFUSALS_BEFORE_HINT = 3;
 
-const encoder = new TextEncoder();
-
 /** Names each socket on the page's share of the connection. */
 let tableSeq = 0;
 
@@ -273,6 +312,14 @@ export type TableDiagnosis = (id: string) => Promise<unknown>;
 export class TableSocket {
 	/** Everything the UI renders. Null until the first snapshot. */
 	view = $state<TableView | null>(null);
+	/** The other players in the street, by seat, stamped with when each was
+	 *  heard from. Relayed and never in a view, so a seat that goes quiet is
+	 *  only detectable by its age. */
+	poses = $state<Record<string, Pose & { at: number }>>({});
+	/** What this player perceived in the office, newest last. A reaction is
+	 *  an event rather than state — it comes once, to its audience — so the
+	 *  scene plays each as it arrives and the list only keeps the recent few. */
+	reactions = $state<Perceived[]>([]);
 	status = $state<Status>('idle');
 	/** The last refusal, for the UI to show and then forget. */
 	lastError = $state<{ code: string; message: string } | null>(null);
@@ -513,7 +560,7 @@ export class TableSocket {
 			// reconnect — it re-announces the member and re-subscribes the
 			// connection — so deduplicating it would leave a resumed socket
 			// unsubscribed and staring at a board nobody is sending it.
-			void this.#write({ op: this.#spectate ? 'watch' : 'sync' }, '');
+			void this.#write(this.#spectate ? { op: 'watch', seat_id: this.following } : { op: 'sync' }, '');
 			for (const q of this.#drainQueue()) void this.#write(q.intent, q.attempt);
 		} catch (err) {
 			this.#agent = null;
@@ -532,10 +579,10 @@ export class TableSocket {
 	#frame(type: string, payload: Uint8Array): void {
 		switch (type) {
 			case 'seat_view':
-				this.#apply(decodePayload<{ view: TableView }>(payload).view);
+				this.#apply(decodeSeatView(payload));
 				return;
 			case 'event': {
-				const frame = decodePayload<{ view: TableView; res: Resolution }>(payload);
+				const frame = decodeEvent(payload);
 				// State first, then the beat — the board animates FROM the new
 				// truth, and a client that ignores the animation is still correct.
 				//
@@ -546,8 +593,16 @@ export class TableSocket {
 				if (frame.res) this.#events.onEvent?.(frame.res);
 				return;
 			}
+			case 'pose': {
+				const f = decodePose(payload);
+				if (f) this.poses[f.seatID] = { ...f.pose, at: performance.now() };
+				return;
+			}
+			case 'reaction':
+				this.reactions = [...this.reactions.slice(-15), { ...decodeReaction(payload), seen: performance.now() }];
+				return;
 			case 'error': {
-				const { code, message } = decodePayload<{ code: string; message: string }>(payload);
+				const { code, message } = decodeError(payload);
 				// A refusal is an answer. The watchdog asks whether anybody is on
 				// the other end, and "no" is a reply from somebody — and it
 				// finishes the move, so the next click is a new one.
@@ -624,15 +679,23 @@ export class TableSocket {
 		if (view.epoch !== this.#epoch) {
 			this.#epoch = view.epoch;
 			this.#version = view.version;
-			this.view = view;
+			this.#take(view);
 			return true;
 		}
 		// Not `<`: a repeat of the version we already hold is the same state, so
 		// re-rendering it is work with no answer attached.
 		if (view.version <= this.#version) return false;
 		this.#version = view.version;
-		this.view = view;
+		this.#take(view);
 		return true;
+	}
+
+	/** A spectator of an office is always watching through somebody: the first
+	 *  player, until they pick another. */
+	#take(view: TableView) {
+		this.view = view;
+		const first = view.office?.players[0]?.seatId;
+		if (this.#spectate && !this.following && first) this.follow(first);
 	}
 
 	/** A connection that never opened may have been refused, or the server may
@@ -872,6 +935,30 @@ export class TableSocket {
 	fillAI() {
 		this.send({ op: 'fill_ai' });
 	}
+	/**
+	 * Put a new appearance on the table.
+	 *
+	 * The payload carries NO seat: the seat is read off the verified connection
+	 * exactly as it is for every other op here. What comes back is not
+	 * necessarily what was sent — the server resolves the claimed loadout
+	 * against the account's entitlements and an unowned item falls back to its
+	 * slot's default, so the authority on what this player looks like is the
+	 * seat view, never this argument.
+	 *
+	 * Sent on every committed change and never on a preview: browsing is
+	 * private, and a hat tried on is not a hat chosen. A colour, though, is a
+	 * drag, and this is called at pointer frequency while one is happening —
+	 * the server coalesces it per seat, which is where that has to be bounded,
+	 * since a commit edge here would only slow the honest client down.
+	 *
+	 * Returns whether it went anywhere: false means the socket is down and the
+	 * intent is queued behind the reconnect, not that the change was refused.
+	 */
+	dress(appearance: Appearance): boolean {
+		this.send({ op: 'dress', appearance });
+		return this.status === 'live';
+	}
+
 	choose(klassKey: string) {
 		this.send({ op: 'choose', klass_key: klassKey });
 	}
@@ -887,6 +974,74 @@ export class TableSocket {
 	newMatch() {
 		this.send({ op: 'new_match' });
 	}
+	/** Host only, and only before the characters are out. */
+	setVariant(variant: TableVariant) {
+		this.send({ op: 'set_variant', variant });
+	}
+	// ── The office ─────────────────────────────────────────────────────────
+	// Names only, like every other intent: which station, which piece of work,
+	// which player. Whether any of it works is the server's answer.
+
+	/** Start work at a station: a task, or the insider's next milestone. */
+	channel(stationID: string, actKey: string) {
+		this.send({ op: 'channel', site_id: stationID, act_key: actKey });
+	}
+	/** Reach for another player's badge. A channel with no station: it is
+	 *  over in the moment it is tried. */
+	lift(seat: string) {
+		this.send({ op: 'channel', act_key: 'lift_badge', seat_id: seat });
+	}
+	cancel() {
+		this.send({ op: 'cancel' });
+	}
+	/** Sweep the zone this player stands in. */
+	sweep() {
+		this.send({ op: 'sweep' });
+	}
+	/** The character's own move. `site` is a zone for Segment and
+	 *  Break-Glass; `seat` is who Attribution names. */
+	signature(site?: string, seat?: string) {
+		this.send({ op: 'signature', site_id: site, seat_id: seat });
+	}
+	callMeeting() {
+		this.send({ op: 'call_meeting' });
+	}
+	/** An empty seat is a skip. */
+	vote(seat: string) {
+		this.send({ op: 'vote', seat_id: seat });
+	}
+
+	// ── God mode: watching an office through one player ──────────────────────
+	/** The seat a spectator is watching the office through. */
+	following = $state('');
+	/** Watch through `seat` instead: their view, and only the reactions they
+	 *  perceive from here on. The last player's are dropped with them. */
+	follow(seat: string) {
+		if (!this.#spectate || seat === this.following) return;
+		this.following = seat;
+		this.reactions = [];
+		// The answer is the same table at the same version, seen through
+		// somebody else: without this it is refused as a repeat.
+		this.#version = -1;
+		void this.#write({ op: 'watch', seat_id: seat }, '');
+	}
+	/** Send the player at `seat` the lighting cue `key`. God admin only; the
+	 *  server refuses anybody else, a seat not in the building, and a key
+	 *  office.yaml does not declare. */
+	cue(seat: string, key: string) {
+		if (!this.#spectate) return;
+		void this.#write({ op: 'cue', seat_id: seat, act_key: key }, '');
+	}
+
+	/** Where this player stands. Fire-and-forget: the server relays it and
+	 *  answers nothing, so it skips the queue, the attempt token and the answer
+	 *  watchdog — and a pose that misses is overtaken by the next one. */
+	pose(p: Pose): void {
+		if (!this.#agent || this.status !== 'live') return;
+		this.#agent
+			.send(CAP_BREACH, 'intent', encodeIntent(this.tableID, { op: 'pose', pose: p }, ''))
+			.catch(() => {});
+	}
 
 	async #write(intent: Intent, attempt: string): Promise<void> {
 		try {
@@ -896,7 +1051,7 @@ export class TableSocket {
 				// `attempt` rides the envelope beside `table_id`, never inside the
 				// intent: whether a delivery is a repeat is a fact about this
 				// socket, and the rules have no field for it.
-				encoder.encode(JSON.stringify({ table_id: this.tableID, intent, attempt }))
+				encodeIntent(this.tableID, intent, attempt)
 			);
 			// Sent is not answered. `send` resolves when the transport has the
 			// frame, so this is the only place that can notice a server which

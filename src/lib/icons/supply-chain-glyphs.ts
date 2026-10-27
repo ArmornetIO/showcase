@@ -21,7 +21,7 @@ export interface Ecosystem {
 }
 
 /** The five ecosystems armornet actually proxies today. Keep this list in step
- *  with `agent/supply-chain/listener/` — the demo's whole claim is that these
+ *  with `relay/internal/ecosystems/` — the demo's whole claim is that these
  *  are real intercepts, not an illustration. */
 export const ECOSYSTEMS: Ecosystem[] = [
 	{
@@ -75,8 +75,3 @@ export const COMPROMISED_GLYPH = `<path d="M12 2.6 3.6 7v10l8.4 4.4L20.4 17V7z"/
 
 /** The interception point — one per ecosystem proxy. */
 export const PROXY_GLYPH = `<path d="M12 2.9 19.8 6v5.4c0 4.7-3.3 8-7.8 9.5-4.5-1.5-7.8-4.8-7.8-9.5V6z"/><path d="M8.6 12.1 11 14.6l4.7-4.9"/>`;
-
-/** The crest at the centre. Kept in step with `icons/Icon.svelte`'s `crestlink`
- *  so the hub reads as the same mark it is everywhere else in the product —
- *  copied rather than imported because library `.ts` never imports `.svelte`. */
-export const HUB_GLYPH = `<path d="M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="11" r="1.3" fill="currentColor" stroke="none"/><path d="M12 11 8 8M12 11 16 8M12 11 8 14M12 11 16 14M12 11 12 16.5"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="8" cy="14" r="1"/><circle cx="16" cy="14" r="1"/><circle cx="12" cy="16.5" r="1"/>`;

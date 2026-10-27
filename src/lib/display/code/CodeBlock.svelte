@@ -10,6 +10,15 @@
 		code: string;
 		/** Label in the header strip. Omit for a bare block. */
 		title?: string;
+		/**
+		 * Language chip shown beside the title.
+		 *
+		 * Separate from `title` because a fence carries two facts a reader uses
+		 * differently: ```go tool/dnsproxy/proxy.go is a language AND a path. One
+		 * title slot forced the caller to pick, so the path won and the language
+		 * went missing from every block that named a file.
+		 */
+		lang?: string;
 		/** Strip the common leading indent so the block starts at column 0. */
 		dedent?: boolean;
 		/** CSS length capping the body height; overflow scrolls. */
@@ -24,6 +33,7 @@
 	let {
 		code,
 		title,
+		lang,
 		dedent = true,
 		maxHeight,
 		copy = false,
@@ -95,9 +105,12 @@
 </script>
 
 <div class="code-block {cls}">
-	{#if title || copy}
+	{#if title || lang || copy}
 		<div class="code-title">
-			<span>{title ?? ''}</span>
+			{#if lang}
+				<span class="code-lang">{lang}</span>
+			{/if}
+			<span class="code-name">{title ?? ''}</span>
 			{#if copy}
 				<button class="copy-btn" onclick={copyCode} aria-label="Copy code">
 					<Icon name={copied ? 'check' : 'copy'} size={11} />
@@ -134,6 +147,25 @@
 		padding: 0.4rem 0.75rem;
 		border-bottom: 1px solid var(--border);
 		background: var(--surface-raised);
+	}
+
+	/* The language is a chip, the filename is the label, and the copy button is
+	   pushed to the far edge by the name's auto margin — `space-between` alone put
+	   the filename in the middle of the strip once a third child appeared. */
+	.code-lang {
+		flex-shrink: 0;
+		padding: 0.05rem 0.3rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		background: var(--surface-strong);
+		color: var(--accent);
+	}
+
+	.code-name {
+		margin-right: auto;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.copy-btn {

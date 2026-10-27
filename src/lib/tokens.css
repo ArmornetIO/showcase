@@ -341,7 +341,225 @@
 		radial-gradient(760px 460px at 18% 6%, rgba(38, 92, 88, 0.22), rgba(38, 92, 88, 0) 70%),
 		radial-gradient(900px 520px at 55% 96%, rgba(44, 68, 58, 0.2), rgba(44, 68, 58, 0) 70%),
 		radial-gradient(680px 520px at 86% 88%, rgba(34, 86, 98, 0.12), rgba(34, 86, 98, 0) 72%);
+}
 
+/*
+ * NOT IN `:root`, and that is measured rather than tidiness.
+ *
+ * Custom properties inherit, so a field of 67 gradients declared on the root
+ * element is carried by every element on every page — including a marketing page
+ * that never draws a star. Sitting in `:root` these cost about 180ms on the
+ * landing page's first globe paint (1.48–1.56s → 1.68–1.79s over three runs
+ * each). Scoped to the four elements that actually read them, that goes away.
+ *
+ * The art still lives in this file rather than in the component, because the
+ * palette is themed here and the light themes have to be able to turn it off.
+ */
+.mesh-sky {
+	/* ── The ruling ─────────────────────────────────────────────────────────
+	   A grid for TOOTH, not for architecture. Three things keep it on the right
+	   side of that line, and all three matter:
+
+	    · PITCH. At 64px a grid is a floor and the eye reads the cells; at 22px it
+	      is a texture and the eye reads a surface. The globe already owns the
+	      structure in this frame — it has a graticule — so a second legible floor
+	      plan is the thing to avoid.
+	    · FEATHERED, and widely — an eased bell across 8 of the 22px rather than a
+	      hard 1px rule, so more than a third of every cell is ramp. That is
+	      `--glass-grid-deep`'s shape taken further, for the same reason: a crisp
+	      hairline is a DRAWN line and announces itself as one, while a line with no
+	      edge is something the surface is doing. It also stops the 1px rule
+	      shimmering as it lands on and off the pixel grid at fractional zoom. The
+	      consumer adds a sub-pixel blur on top, which is the part a gradient cannot
+	      do — a ramp is still a hard-edged ramp at its ends.
+	    · LIT, NOT PAINTED. Masked by the aurora, so the ruling exists only where
+	      the light pools and is simply absent in the dark — which is why the alpha
+	      here looks far too high to read on its own. The mask peaks at the aurora's
+	      own 0.22, so the visible peak is about a fifth of this number, and the
+	      grid fades out on the aurora's falloff rather than on an edge of its own.
+
+	   Its own colour rather than `--glass-grid-line`: that token is tuned to be
+	   read directly at 64px, and this one is tuned to survive being multiplied by a
+	   mask. Sharing it would make one of the two wrong. */
+	--glass-grid-fine-size: 22px;
+	--glass-grid-fine-line: rgba(126, 150, 142, 0.2);
+	/* The shoulders. Two straight ramps meeting at the peak is a TRIANGLE, and the
+	   kink where they meet is itself a hard edge the eye finds — a feathered line
+	   with a crisp spine. A half-strength stop either side rounds that into a bell,
+	   which is the shape a genuinely soft line has. */
+	--glass-grid-fine-soft: rgba(126, 150, 142, 0.09);
+	--glass-grid-fine-fade: rgba(126, 150, 142, 0);
+	--glass-grid-fine:
+		repeating-linear-gradient(
+			0deg,
+			var(--glass-grid-fine-fade) 0,
+			var(--glass-grid-fine-soft) 2.5px,
+			var(--glass-grid-fine-line) 4px,
+			var(--glass-grid-fine-soft) 5.5px,
+			var(--glass-grid-fine-fade) 8px,
+			var(--glass-grid-fine-fade) var(--glass-grid-fine-size)
+		),
+		repeating-linear-gradient(
+			90deg,
+			var(--glass-grid-fine-fade) 0,
+			var(--glass-grid-fine-soft) 2.5px,
+			var(--glass-grid-fine-line) 4px,
+			var(--glass-grid-fine-soft) 5.5px,
+			var(--glass-grid-fine-fade) 8px,
+			var(--glass-grid-fine-fade) var(--glass-grid-fine-size)
+		);
+
+	/* WHERE THE RULING IS ALLOWED TO EXIST AT ALL, over and above where the light
+	   puts it. Three soft blobs that deliberately do NOT line up with the aurora's
+	   three, unioned (the default `add`) into one patchy blanket.
+	   Two things fall out of that, both asked for: the ruling dissolves in PARTS
+	   rather than dimming evenly, because two unrelated irregular fields multiplied
+	   together have gaps neither one has alone; and it is gone well before the frame
+	   edge, because every blob's falloff ends inside the box. A grid that runs to
+	   the edge of a panel is a grid that belongs to the PANEL; this one has to
+	   belong to the scene.
+	   Black is just opacity here — a mask reads alpha, and the colour is discarded. */
+	--glass-grid-veil:
+		radial-gradient(78% 70% at 34% 42%, #000 0%, transparent 74%),
+		radial-gradient(64% 58% at 76% 68%, #000 0%, transparent 78%),
+		radial-gradient(52% 46% at 62% 16%, #000 0%, transparent 72%);
+
+	/* ── Stars ──────────────────────────────────────────────────────────────
+	   A field for a scene whose subject is a SPHERE. The grid is a floor, and a
+	   floor behind a planet is the wrong picture — worse, it is a second grid at
+	   another scale next to the globe's own graticule. Points have nothing to
+	   duplicate: the globe owns every line in the frame and the ground owns none.
+
+	   NOT TILED, and that is the whole reason this is a long list rather than a
+	   `repeating-radial-gradient` with a `background-size`. A tile repeats, and a
+	   repeated star is a LATTICE — the eye finds the period in about a second and
+	   the field turns back into the grid it replaced. Positions in percent also
+	   mean the composition survives a resize instead of cropping.
+
+	   COUNT IS THE WHOLE EFFECT. The first cut was seventeen stars and it was
+	   invisible — not subtle, invisible: seventeen 1px dots over a 1300px panel is
+	   one per 50,000px², which the eye reads as nothing. A field needs enough
+	   members to be a field before its alphas are worth arguing about.
+
+	   DEPTH IS FOUR CHANNELS, NOT ONE, and getting this wrong is what made the
+	   second cut read as a dusting rather than as a sky. Sixty stars in three
+	   discrete weights of one hue is a TEXTURE: every member announces it came
+	   from the same rubber stamp, and a stamped pattern has no distance in it. All
+	   four of these vary, and they vary TOGETHER:
+
+	    · SIZE, as a continuous ladder from 0.8 to 3.1px rather than three buckets.
+	      Buckets are what the eye recognises as a set.
+	    · BRIGHTNESS, correlated with size but not derived from it. Perfect
+	      correlation is a formula and reads as one; a big dim star and a small
+	      bright one are what say these are objects at distances rather than one
+	      object drawn at three scales.
+	    · HUE. Real stars run blue-white through white to amber, and four families
+	      is enough to carry it. The warm ones are deliberately RARE and dim — the
+	      aurora already lost its amber for reading as a red cast over green, and a
+	      warm star at 0.9 would do the same thing in miniature.
+	    · DENSITY. A scatter with even spacing is a grid with the lines rubbed out.
+	      There are two loose clusters here (around 33%/63% and 74%/22%) and a
+	      deliberate void (mid-right, low), because clumps and gaps are most of what
+	      makes a sky look unplanned.
+
+	   HALOS ON THE BRIGHTEST FIVE ONLY — a wide, nearly invisible wash behind the
+	   core, listed last so it paints under. That is the difference between a star
+	   being BRIGHT and being BIG: a 3px dot with no bloom is a dot, and scaling it
+	   up to read as bright just makes it a disc. Five is the cap because a halo on
+	   everything is fog. */
+	--star-blue: 198, 216, 240;
+	--star-white: 226, 236, 233;
+	--star-cyan: 198, 232, 228;
+	--star-warm: 236, 222, 196;
+	/* THREE PLANES, because the consumer drifts them at three rates — see
+	   `MeshCanvas`'s `.motes`. Split by depth and not arbitrarily: a plane has to
+	   be internally consistent in weight or the parallax contradicts the sizes, and
+	   the whole point is that what moves most is what is closest. */
+	--glass-motes-near:
+		/* The five brightest. Halos for these sit at the end of this plane. */
+		radial-gradient(circle 3.1px at 14% 71%, rgba(var(--star-white), 0.96), transparent 100%),
+		radial-gradient(circle 2.9px at 61% 24%, rgba(var(--star-blue), 0.92), transparent 100%),
+		radial-gradient(circle 2.7px at 88% 58%, rgba(var(--star-white), 0.88), transparent 100%),
+		radial-gradient(circle 2.6px at 33% 12%, rgba(var(--star-cyan), 0.86), transparent 100%),
+		radial-gradient(circle 2.8px at 72% 86%, rgba(var(--star-warm), 0.74), transparent 100%),
+		/* Foreground. */
+		radial-gradient(circle 2.2px at 5% 38%, rgba(var(--star-blue), 0.78), transparent 100%),
+		radial-gradient(circle 1.9px at 19% 52%, rgba(var(--star-white), 0.7), transparent 100%),
+		radial-gradient(circle 2.1px at 23% 18%, rgba(var(--star-blue), 0.74), transparent 100%),
+		radial-gradient(circle 2px at 41% 79%, rgba(var(--star-cyan), 0.68), transparent 100%),
+		radial-gradient(circle 1.8px at 46% 33%, rgba(var(--star-white), 0.66), transparent 100%),
+		radial-gradient(circle 2.2px at 52% 61%, rgba(var(--star-blue), 0.72), transparent 100%),
+		radial-gradient(circle 1.7px at 57% 8%, rgba(var(--star-white), 0.62), transparent 100%),
+		radial-gradient(circle 1.9px at 66% 47%, rgba(var(--star-cyan), 0.7), transparent 100%),
+		radial-gradient(circle 2.1px at 78% 31%, rgba(var(--star-white), 0.76), transparent 100%),
+		radial-gradient(circle 1.8px at 83% 72%, rgba(var(--star-blue), 0.64), transparent 100%),
+		radial-gradient(circle 2px at 93% 19%, rgba(var(--star-white), 0.72), transparent 100%),
+		radial-gradient(circle 1.7px at 97% 47%, rgba(var(--star-warm), 0.56), transparent 100%),
+		/* Bloom, under the cores of this plane — see the note on halos. */
+		radial-gradient(circle 10px at 14% 71%, rgba(var(--star-white), 0.09), transparent 70%),
+		radial-gradient(circle 9px at 61% 24%, rgba(var(--star-blue), 0.1), transparent 70%),
+		radial-gradient(circle 8px at 88% 58%, rgba(var(--star-white), 0.08), transparent 70%),
+		radial-gradient(circle 8px at 33% 12%, rgba(var(--star-cyan), 0.08), transparent 70%),
+		radial-gradient(circle 9px at 72% 86%, rgba(var(--star-warm), 0.07), transparent 70%);
+
+	--glass-motes-mid:
+		radial-gradient(circle 1.4px at 2% 61%, rgba(var(--star-blue), 0.52), transparent 100%),
+		radial-gradient(circle 1.3px at 8% 14%, rgba(var(--star-white), 0.46), transparent 100%),
+		radial-gradient(circle 1.5px at 11% 88%, rgba(var(--star-blue), 0.54), transparent 100%),
+		radial-gradient(circle 1.2px at 16% 29%, rgba(var(--star-cyan), 0.42), transparent 100%),
+		radial-gradient(circle 1.4px at 21% 93%, rgba(var(--star-white), 0.5), transparent 100%),
+		radial-gradient(circle 1.3px at 26% 44%, rgba(var(--star-blue), 0.48), transparent 100%),
+		radial-gradient(circle 1.5px at 29% 67%, rgba(var(--star-white), 0.56), transparent 100%),
+		radial-gradient(circle 1.2px at 36% 26%, rgba(var(--star-blue), 0.44), transparent 100%),
+		radial-gradient(circle 1.4px at 38% 91%, rgba(var(--star-cyan), 0.52), transparent 100%),
+		radial-gradient(circle 1.3px at 43% 54%, rgba(var(--star-white), 0.46), transparent 100%),
+		radial-gradient(circle 1.5px at 48% 16%, rgba(var(--star-blue), 0.55), transparent 100%),
+		radial-gradient(circle 1.2px at 51% 71%, rgba(var(--star-white), 0.4), transparent 100%),
+		radial-gradient(circle 1.4px at 56% 39%, rgba(var(--star-cyan), 0.5), transparent 100%),
+		radial-gradient(circle 1.3px at 59% 94%, rgba(var(--star-blue), 0.47), transparent 100%),
+		radial-gradient(circle 1.5px at 64% 13%, rgba(var(--star-white), 0.54), transparent 100%),
+		radial-gradient(circle 1.2px at 69% 62%, rgba(var(--star-blue), 0.43), transparent 100%),
+		radial-gradient(circle 1.4px at 74% 41%, rgba(var(--star-white), 0.51), transparent 100%),
+		radial-gradient(circle 1.3px at 77% 9%, rgba(var(--star-cyan), 0.45), transparent 100%),
+		radial-gradient(circle 1.5px at 81% 87%, rgba(var(--star-blue), 0.53), transparent 100%),
+		radial-gradient(circle 1.2px at 86% 36%, rgba(var(--star-white), 0.41), transparent 100%),
+		radial-gradient(circle 1.4px at 91% 64%, rgba(var(--star-blue), 0.49), transparent 100%),
+		radial-gradient(circle 1.3px at 99% 78%, rgba(var(--star-white), 0.44), transparent 100%);
+
+	/* The two clusters and the void live in here — the far plane is the one with
+	   enough members for density to say anything. */
+	--glass-motes-far:
+		radial-gradient(circle 1px at 1% 22%, rgba(var(--star-blue), 0.32), transparent 100%),
+		radial-gradient(circle 0.9px at 4% 79%, rgba(var(--star-white), 0.28), transparent 100%),
+		radial-gradient(circle 1.1px at 7% 48%, rgba(var(--star-blue), 0.34), transparent 100%),
+		radial-gradient(circle 0.8px at 10% 7%, rgba(var(--star-white), 0.24), transparent 100%),
+		radial-gradient(circle 1px at 13% 36%, rgba(var(--star-cyan), 0.3), transparent 100%),
+		radial-gradient(circle 0.9px at 15% 62%, rgba(var(--star-blue), 0.26), transparent 100%),
+		radial-gradient(circle 1.1px at 18% 96%, rgba(var(--star-white), 0.33), transparent 100%),
+		radial-gradient(circle 0.8px at 22% 11%, rgba(var(--star-blue), 0.22), transparent 100%),
+		radial-gradient(circle 1px at 25% 74%, rgba(var(--star-white), 0.31), transparent 100%),
+		radial-gradient(circle 0.9px at 29% 58%, rgba(var(--star-cyan), 0.27), transparent 100%),
+		radial-gradient(circle 1.1px at 31% 66%, rgba(var(--star-blue), 0.35), transparent 100%),
+		radial-gradient(circle 0.8px at 33% 61%, rgba(var(--star-white), 0.23), transparent 100%),
+		radial-gradient(circle 1px at 35% 71%, rgba(var(--star-blue), 0.29), transparent 100%),
+		radial-gradient(circle 0.9px at 37% 64%, rgba(var(--star-white), 0.25), transparent 100%),
+		radial-gradient(circle 1.1px at 30% 52%, rgba(var(--star-cyan), 0.32), transparent 100%),
+		radial-gradient(circle 0.8px at 42% 41%, rgba(var(--star-blue), 0.21), transparent 100%),
+		radial-gradient(circle 1px at 45% 18%, rgba(var(--star-white), 0.3), transparent 100%),
+		radial-gradient(circle 0.9px at 51% 37%, rgba(var(--star-blue), 0.26), transparent 100%),
+		radial-gradient(circle 1.1px at 56% 9%, rgba(var(--star-white), 0.34), transparent 100%),
+		radial-gradient(circle 0.8px at 69% 18%, rgba(var(--star-cyan), 0.22), transparent 100%),
+		radial-gradient(circle 1px at 71% 24%, rgba(var(--star-blue), 0.31), transparent 100%),
+		radial-gradient(circle 0.9px at 74% 20%, rgba(var(--star-white), 0.27), transparent 100%),
+		radial-gradient(circle 1.1px at 76% 27%, rgba(var(--star-blue), 0.33), transparent 100%),
+		radial-gradient(circle 0.8px at 78% 17%, rgba(var(--star-white), 0.23), transparent 100%),
+		radial-gradient(circle 1px at 87% 44%, rgba(var(--star-cyan), 0.29), transparent 100%),
+		radial-gradient(circle 0.9px at 90% 91%, rgba(var(--star-blue), 0.25), transparent 100%),
+		radial-gradient(circle 1.1px at 94% 32%, rgba(var(--star-white), 0.32), transparent 100%),
+		radial-gradient(circle 0.8px at 98% 12%, rgba(var(--star-blue), 0.24), transparent 100%);
+}
+
+:root {
 	/* The grid is what MAKES the glass visible, and it is not decoration.
 	   `backdrop-filter` over a smooth gradient is a no-op — a blurred gradient is
 	   the same gradient. Glass only reads when there is STRUCTURE behind it to
@@ -368,6 +586,18 @@
 	/* The full ground, in paint order: grid over colour over the page. Use this
 	   on the SCROLLING container, with `background-attachment: local`. */
 	--glass-ground: var(--glass-grid), var(--glass-aurora);
+
+	/* The same ground for a scene that supplies its own structure: the FINE grid
+	   over the colour, so the plate has tooth without a second floor plan. The fine
+	   grid is NOT in here — it is masked by the light, which needs it on its own
+	   element; see `.mesh-sky`. Paired
+	   with `--glass-ground` rather than assembled at the call site so the two stay
+	   one decision — they are the same layer of the design and a consumer picks
+	   between them, it does not compose them.
+	   The motes are NOT in here. They are animated by their consumer, which means
+	   they have to be their own elements; baking them into the static ground too
+	   would draw the whole field twice, once shimmering and once not. */
+	--glass-space: var(--glass-aurora);
 
 	/* ── Deep ground — the working pages ────────────────────────────────────
 	   /overview is a globe on a dark field and the aurora is part of the
@@ -914,6 +1144,24 @@
 	--palette-slate-l:   #64748B;
 	--palette-zinc:      #52525B;
 	--palette-zinc-l:    #71717A;
+
+}
+
+/* No motes on a lit sky. Inverting them to dark specks does not transpose the
+   effect — it reads as dust on the screen, which is the same reason the grid is a
+   surveyed floor rather than a glowing one. The aurora carries the whole ground
+   here, and it is already themed for a pale page.
+
+   All three planes: the two left behind would still shimmer over a page with
+   nothing to shimmer in. Scoped to `.mesh-sky` to match where they are declared —
+   on `:root` this override would not reach them. */
+[data-theme='light'] .mesh-sky,
+[data-theme='paper'] .mesh-sky,
+[data-theme='daylight'] .mesh-sky {
+	--glass-grid-fine: none;
+	--glass-motes-near: none;
+	--glass-motes-mid: none;
+	--glass-motes-far: none;
 }
 
 /* ── oled ───────────────────────────────────────────────────────────────── */
@@ -999,6 +1247,11 @@
 	   would be texture behind text and nothing more. */
 	--glass-grid: none;
 	--glass-ground: none;
+	/* The aurora goes too, for the same reason the grid does. It was already
+	   reaching every `Canvas ground={false}` and every mesh sky through
+	   `--glass-space`, which `--glass-ground: none` never covered — a tinted
+	   wash under text is the one thing this theme exists to remove. */
+	--glass-space: none;
 	--glass-surface: #000000;
 	--glass-surface-warm: #000000;
 	--glass-border: #ffffff;
@@ -1008,6 +1261,14 @@
 	--glass-shadow: none;
 	--glass-aurora: none;
 	color-scheme: dark;
+}
+
+/* Same scope as the declarations — see the light-theme note. */
+[data-theme='high-contrast'] .mesh-sky {
+	--glass-grid-fine: none;
+	--glass-motes-near: none;
+	--glass-motes-mid: none;
+	--glass-motes-far: none;
 }
 
 [data-theme='high-contrast'] a:not([class*='btn']):not([class*='brand']) {
@@ -1327,7 +1588,7 @@ body {
  *
  * Two ground planes — one below, one mirrored above — raked away from the
  * viewer so their lines converge on a horizon at the vertical centre, with the
- * cross-lines flowing toward you. The outrun/Mario-Kart read.
+ * cross-lines flowing toward you. The outrun read.
  *
  * THE STACKING BUG THIS ALSO FIXES. The old flat grid was `position: fixed;
  * z-index: 0`, which is a full-viewport layer sitting in the root stacking

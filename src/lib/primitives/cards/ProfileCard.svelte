@@ -99,7 +99,7 @@
 
 	<!-- Avatar -->
 	<div
-		class="flex shrink-0 items-center justify-center border font-[var(--mono-display)] font-bold
+		class="flex shrink-0 items-center justify-center border font-(family-name:--mono-display) font-bold
 			{isVertical ? 'mb-1 h-16 w-16 rounded-full text-[1.125rem]' : 'h-12 w-12 text-[0.875rem]'}"
 		style:border-color={v.corner}
 		style:background="rgba(15, 23, 42, 0.6)"
@@ -113,11 +113,11 @@
 		class="flex min-w-0 flex-1 flex-col gap-1
 			{isVertical ? 'items-center' : ''}"
 	>
-		<div class="font-[var(--sans-brand)] text-[1rem] font-bold leading-[1.2] text-[var(--fg)]">
+		<div class="font-(family-name:--sans-brand) text-[1rem] font-bold leading-[1.2] text-[var(--fg)]">
 			{name}
 		</div>
 		<div
-			class="mb-[0.375rem] font-[var(--mono)] text-[0.5625rem] uppercase tracking-[0.25em]"
+			class="mb-[0.375rem] font-(family-name:--mono) text-[0.5625rem] uppercase tracking-[0.25em]"
 			style:color={v.role}
 		>
 			{role}
@@ -132,7 +132,7 @@
 			>
 				{#each tags as tag}
 					<span
-						class="r-hairline border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-2 py-[0.2rem] font-[var(--mono)] text-[0.5rem] uppercase tracking-[0.15em] text-[var(--fg-dim)]"
+						class="r-hairline border border-[var(--border)] bg-[rgba(255,255,255,0.03)] px-2 py-[0.2rem] font-(family-name:--mono) text-[0.5rem] uppercase tracking-[0.15em] text-[var(--fg-dim)]"
 					>
 						{tag}
 					</span>

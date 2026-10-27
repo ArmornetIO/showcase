@@ -26,6 +26,11 @@ export default defineConfig({
 	// game's own agent on :5199 while working fine in the binary, which is the
 	// worst shape a config bug can have.
 	plugins: [svelte(), tailwindcss()],
+	// With no node_modules of its own, Vite's default cache is showcase's
+	// `node_modules/.vite` — shared with the showcase dev server, whose `deps/`
+	// this app's optimizer wipes on every re-optimise. The showcase then 504s
+	// every client import and serves un-hydrated SSR until someone restarts it.
+	cacheDir: repo('../../node_modules/.vite-breach'),
 	resolve: {
 		alias: {
 			// The library, by the name a published consumer would use. In this repo
@@ -57,7 +62,7 @@ export default defineConfig({
 			// Host INCLUDING the port. A page on :5199 dialling :4320 is refused
 			// 403 before any armornet auth runs. changeOrigin stays false for the
 			// same reason — rewriting Host to the target re-breaks it.
-			'^/v1/opamp': {
+			'^/v1/line': {
 				target: 'http://localhost:4320',
 				changeOrigin: false,
 				ws: true

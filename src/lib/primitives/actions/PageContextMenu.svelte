@@ -8,7 +8,8 @@
 	export interface CtxFilterGroup {
 		title: string;
 		options: CtxFilterOption[];
-		current: string;
+		/** An array makes the group multi-select: `set` is handed the clicked value to toggle. */
+		current: string | string[];
 		set: (v: string) => void;
 	}
 	export interface CtxSort {
@@ -36,6 +37,7 @@
 	import type { Snippet } from 'svelte';
 	import Icon from '../../icons/Icon.svelte';
 	import ActionsMenu, { type ActionMenuItem } from './ActionsMenu.svelte';
+	import Select, { type SelectItem } from '../forms/Select.svelte';
 
 	// Standardized per-page contextual menu, rendered in a page's LayoutHeader
 	// `eyebrowActions` snippet: active-filter chips · Filter dropdown (search +
@@ -50,11 +52,20 @@
 		onClear?: () => void;
 		sort?: CtxSort;
 		secondary?: CtxAction[];
+		/** Extra Display rows — how the page draws its content (layout, folding), under the sort. */
+		display?: ActionMenuItem[];
 		menu?: ActionMenuItem[];
+		/** Swaps the ⋯ trigger, e.g. `plus` when the menu is a set of create actions. */
+		menuIcon?: IconName;
+		menuLabel?: string;
+		/** Gives the trigger the primary action's accent, for when the menu replaces `primary`. */
+		menuPrimary?: boolean;
 		primary?: CtxAction;
 		/** Page-specific control (e.g. a mesh layout picker) rendered at the start
 		 *  of the toolbar, before the standard filter/display controls. */
 		controls?: Snippet;
+		/** Page-specific control rendered at the start of the actions zone. */
+		actions?: Snippet;
 	}
 	let {
 		chips = [],
@@ -63,9 +74,14 @@
 		onClear,
 		sort,
 		secondary = [],
+		display = [],
 		menu = [],
+		menuIcon = 'more-horizontal',
+		menuLabel = 'More actions',
+		menuPrimary = false,
 		primary,
-		controls
+		controls,
+		actions
 	}: Props = $props();
 
 	const hasFilter = $derived(!!search || filterGroups.length > 0);
@@ -75,34 +91,70 @@
 	// something to it (secondary, overflow, primary). Rendering them as one
 	// undifferentiated row makes the user parse six items to find the one verb.
 	// A hairline rule between the zones does that parsing for them.
-	const hasControls = $derived(!!controls || chips.length > 0 || hasFilter || !!sort);
-	const hasActions = $derived(secondary.length > 0 || menu.length > 0 || !!primary);
+	const hasControls = $derived(
+		!!controls || chips.length > 0 || hasFilter || !!sort || display.length > 0
+	);
+	const hasActions = $derived(
+		!!actions || secondary.length > 0 || menu.length > 0 || !!primary
+	);
 
-	let open = $state<'filter' | 'display' | null>(null);
-	let root = $state<HTMLElement>();
-	$effect(() => {
-		if (!open) return;
-		const onDown = (e: PointerEvent) => {
-			if (root && !root.contains(e.target as Node)) open = null;
-		};
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') open = null;
-		};
-		window.addEventListener('pointerdown', onDown);
-		window.addEventListener('keydown', onKey);
-		return () => {
-			window.removeEventListener('pointerdown', onDown);
-			window.removeEventListener('keydown', onKey);
-		};
-	});
+	// Both panels are Selects: the house popover owns placement, flipping, the
+	// portal and dismissal, so a strip inside a clipped rail still opens in full.
+	const filterItems = $derived<SelectItem[]>([
+		...filterGroups.flatMap((g, i): SelectItem[] => [
+			...(i ? [{ kind: 'separator' as const }] : []),
+			{ kind: 'header', label: g.title },
+			...g.options.map((o) =>
+				Array.isArray(g.current)
+					? { label: o.l, selected: g.current.includes(o.v), onclick: () => g.set(o.v) }
+					: {
+							label: o.l,
+							selected: g.current === o.v,
+							onclick: () => g.set(g.current === o.v ? 'all' : o.v)
+						}
+			)
+		]),
+		...(onClear
+			? [{ kind: 'separator' as const }, { label: 'Clear filters', icon: 'x' as const, onclick: onClear }]
+			: [])
+	]);
+
+	const displayItems = $derived<SelectItem[]>([
+		...(sort
+			? ([
+					{ kind: 'header', label: 'Sort by' },
+					...sort.options.map((s) => ({
+						label: s.l,
+						selected: sort.key === s.v,
+						onclick: () => sort.set(s.v, sort.dir)
+					})),
+					{ kind: 'separator' },
+					{
+						label: sort.dir === 'asc' ? 'Ascending' : 'Descending',
+						icon: sort.dir === 'asc' ? 'arrow-up' : 'arrow-down',
+						onclick: () => sort.set(sort.key, sort.dir === 'asc' ? 'desc' : 'asc')
+					}
+				] satisfies SelectItem[])
+			: []),
+		...(sort && display.length ? [{ kind: 'separator' as const }] : []),
+		...display
+	]);
+
+	const TRIGGER =
+		'flex items-center gap-1 h-7 px-2 rounded-md font-mono text-[0.68rem] transition-colors';
+	const triggerTone = (open: boolean) =>
+		open
+			? 'text-[var(--accent)] bg-[var(--accent-faint)]'
+			: 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]';
 </script>
 
-<div class="flex items-center gap-1.5 min-w-0" bind:this={root}>
+<div class="flex items-center gap-1.5 min-w-0">
 	<!-- page-specific control slot (e.g. mesh layout picker) -->
 	{@render controls?.()}
 
-	<!-- active filter chips -->
-	{#if chips.length}
+	<!-- active filter chips — inside the Filter panel when there is one, so a
+	     long filter set doesn't push the strip off the page -->
+	{#if chips.length && !hasFilter}
 		<div class="flex items-center gap-1.5 min-w-0 overflow-x-auto no-scrollbar">
 			{#each chips as c (c.label)}
 				{@render chip(c.label, c.remove)}
@@ -112,102 +164,56 @@
 
 	<!-- Filter -->
 	{#if hasFilter}
-		<div class="relative">
-			<button
-				type="button"
-				onclick={() => (open = open === 'filter' ? null : 'filter')}
-				class="flex items-center gap-1 h-7 px-2 rounded-md font-mono text-[0.68rem] transition-colors {open ===
-				'filter'
-					? 'text-[var(--accent)] bg-[var(--accent-faint)]'
-					: 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]'}"
-			>
-				<Icon name="filter" size={13} /> Filter
-			</button>
-			{#if open === 'filter'}
-				<div
-					class="absolute right-0 top-[calc(100%+0.4rem)] z-40 w-56 flex flex-col rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] overflow-hidden p-2 gap-1"
+		<Select
+			items={filterItems}
+			placement="bottom-end"
+			closeOnSelect={false}
+			label="Filter"
+			header={search || chips.length ? filterHeader : undefined}
+		>
+			{#snippet trigger({ open, toggle })}
+				<button
+					type="button"
+					onclick={toggle}
+					aria-haspopup="menu"
+					aria-expanded={open}
+					class="{TRIGGER} {triggerTone(open)}"
 				>
-					{#if search}
-						<div class="flex items-center gap-1.5 px-1 pb-1">
-							<Icon name="search" size={13} class="text-[var(--fg-dim)]" />
-							<input
-								value={search.value}
-								oninput={(e) => search?.set((e.currentTarget as HTMLInputElement).value)}
-								placeholder={search.placeholder ?? 'Search…'}
-								class="flex-1 bg-transparent outline-none font-mono text-[0.72rem] text-[var(--fg)] placeholder:text-[var(--fg-dim)]"
-							/>
-						</div>
-					{/if}
-					{#each filterGroups as g (g.title)}
-						{@render filterGroup(g)}
-					{/each}
-					{#if onClear}
-						<button
-							type="button"
-							onclick={onClear}
-							class="mt-1 px-2 py-1.5 text-left font-mono text-[0.66rem] text-[var(--fg-dim)] hover:text-[var(--fg)] rounded-md hover:bg-[var(--surface-raised)]"
+					<Icon name="filter" size={13} /> Filter
+					{#if chips.length}
+						<span
+							class="flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-[0.6rem] font-semibold"
+							aria-label="{chips.length} active">{chips.length}</span
 						>
-							Clear filters
-						</button>
 					{/if}
-				</div>
-			{/if}
-		</div>
+				</button>
+			{/snippet}
+		</Select>
 	{/if}
 
 	<!-- Display (sort) -->
-	{#if sort}
-		<div class="relative">
-			<button
-				type="button"
-				onclick={() => (open = open === 'display' ? null : 'display')}
-				class="flex items-center gap-1 h-7 px-2 rounded-md font-mono text-[0.68rem] transition-colors {open ===
-				'display'
-					? 'text-[var(--accent)] bg-[var(--accent-faint)]'
-					: 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]'}"
-			>
-				<Icon name="layers" size={13} /> Display <Icon name="chevron-down" size={12} />
-			</button>
-			{#if open === 'display'}
-				<div
-					class="absolute right-0 top-[calc(100%+0.4rem)] z-40 w-52 flex flex-col rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] overflow-hidden p-2 gap-0.5"
+	{#if sort || display.length}
+		<Select items={displayItems} placement="bottom-end" closeOnSelect={false} label="Display">
+			{#snippet trigger({ open, toggle })}
+				<button
+					type="button"
+					onclick={toggle}
+					aria-haspopup="menu"
+					aria-expanded={open}
+					class="{TRIGGER} {triggerTone(open)}"
 				>
-					<span
-						class="font-mono text-[0.56rem] tracking-[0.14em] uppercase text-[var(--fg-dim)] px-2 py-1"
-						>Sort by</span
-					>
-					{#each sort.options as s (s.v)}
-						<button
-							type="button"
-							onclick={() => sort?.set(s.v, sort.dir)}
-							class="flex items-center gap-2 px-2 py-1.5 rounded-md text-left font-mono text-[0.7rem] transition-colors {sort.key ===
-							s.v
-								? 'text-[var(--accent)]'
-								: 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]'}"
-						>
-							{#if sort.key === s.v}<Icon name="check" size={12} />{:else}<span class="w-3"></span
-								>{/if}
-							{s.l}
-						</button>
-					{/each}
-					<div class="border-t border-[var(--border)] my-1"></div>
-					<button
-						type="button"
-						onclick={() => sort?.set(sort.key, sort.dir === 'asc' ? 'desc' : 'asc')}
-						class="flex items-center gap-2 px-2 py-1.5 rounded-md text-left font-mono text-[0.7rem] text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]"
-					>
-						<Icon name={sort.dir === 'asc' ? 'arrow-up' : 'arrow-down'} size={12} />
-						{sort.dir === 'asc' ? 'Ascending' : 'Descending'}
-					</button>
-				</div>
-			{/if}
-		</div>
+					<Icon name="layers" size={13} /> Display <Icon name="chevron-down" size={12} />
+				</button>
+			{/snippet}
+		</Select>
 	{/if}
 
 	<!-- zone rule — controls (what you see) | actions (what you do) -->
 	{#if hasControls && hasActions}
 		<span class="w-px h-4 mx-1 bg-[var(--border-strong)] shrink-0" aria-hidden="true"></span>
 	{/if}
+
+	{@render actions?.()}
 
 	<!-- secondary ghost actions -->
 	{#each secondary as a (a.label)}
@@ -229,12 +235,19 @@
 				<button
 					type="button"
 					onclick={toggle}
-					aria-label="More actions"
-					class="flex items-center justify-center w-7 h-7 rounded-md transition-colors {menuOpen
-						? 'text-[var(--accent)] bg-[var(--accent-faint)]'
-						: 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]'}"
+					aria-label={menuLabel}
+					class="flex items-center justify-center transition-colors {menuPrimary
+						? 'w-[38px] h-9 rounded-[var(--radius-control)] border text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/20 ' +
+							(menuOpen
+								? 'border-[var(--accent)] bg-[var(--accent)]/20'
+								: 'border-[var(--accent)]/45 bg-[var(--accent-faint-strong)]')
+						: 'w-7 h-7 rounded-md ' +
+							(menuOpen
+								? 'text-[var(--accent)] bg-[var(--accent-faint)]'
+								: 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]')}"
 				>
-					<Icon name="more-horizontal" size={15} />
+					<!-- primary trigger matches ViewToggle's icon-mode button, its usual neighbour -->
+					<Icon name={menuIcon} size={menuPrimary ? 16 : 15} />
 				</button>
 			{/snippet}
 		</ActionsMenu>
@@ -272,21 +285,27 @@
 	</span>
 {/snippet}
 
-{#snippet filterGroup(g: CtxFilterGroup)}
-	<span
-		class="font-mono text-[0.56rem] tracking-[0.14em] uppercase text-[var(--fg-dim)] px-2 pt-1.5 pb-0.5"
-		>{g.title}</span
-	>
-	<div class="flex flex-wrap gap-1 px-1 pb-1">
-		{#each g.options as o (o.v)}
-			<button
-				type="button"
-				onclick={() => g.set(g.current === o.v ? 'all' : o.v)}
-				class="h-6 px-2 rounded-md font-mono text-[0.64rem] border transition-colors {g.current === o.v
-					? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent-faint)]'
-					: 'border-[var(--border)] text-[var(--fg-muted)] hover:text-[var(--fg)]'}">{o.l}</button
-			>
-		{/each}
+{#snippet filterHeader()}
+	{#if chips.length}
+		<!-- capped: the panel sizes to content, and an unwrapped chip row sets that -->
+		<div class="flex flex-wrap gap-1.5 max-w-64 {search ? 'mb-2' : ''}">
+			{#each chips as c (c.label)}
+				{@render chip(c.label, c.remove)}
+			{/each}
+		</div>
+	{/if}
+	{#if search}{@render searchField()}{/if}
+{/snippet}
+
+{#snippet searchField()}
+	<div class="flex items-center gap-1.5">
+		<Icon name="search" size={13} class="text-[var(--fg-dim)]" />
+		<input
+			value={search?.value ?? ''}
+			oninput={(e) => search?.set((e.currentTarget as HTMLInputElement).value)}
+			placeholder={search?.placeholder ?? 'Search…'}
+			class="flex-1 bg-transparent outline-none font-mono text-[0.72rem] text-[var(--fg)] placeholder:text-[var(--fg-dim)]"
+		/>
 	</div>
 {/snippet}
 

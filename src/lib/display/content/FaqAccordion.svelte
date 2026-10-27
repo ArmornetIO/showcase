@@ -28,8 +28,8 @@
 				aria-expanded={isOpen}
 				onclick={() => toggle(i)}
 			>
-				<span class="font-[var(--sans-brand)] text-base font-semibold text-[var(--fg)] leading-[1.4]">{item.q}</span>
-				<span class="font-[var(--mono)] text-xl text-[var(--accent)] shrink-0 leading-none" aria-hidden="true">{isOpen ? '−' : '+'}</span>
+				<span class="font-(family-name:--sans-brand) text-base font-semibold text-[var(--fg)] leading-[1.4]">{item.q}</span>
+				<span class="font-(family-name:--mono) text-xl text-[var(--accent)] shrink-0 leading-none" aria-hidden="true">{isOpen ? '−' : '+'}</span>
 			</button>
 			<div
 				class="grid transition-[grid-template-rows] duration-[250ms] ease-in-out"

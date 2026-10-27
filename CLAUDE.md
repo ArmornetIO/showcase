@@ -8,8 +8,6 @@ Run from `showcase/`:
 
 ```sh
 npm run check     # svelte-check type checking — run after edits
-npm run lint      # Prettier + ESLint
-npm run format    # Prettier auto-fix
 npm run test      # Vitest unit/component tests
 ```
 
@@ -20,6 +18,10 @@ npm run test      # Vitest unit/component tests
 - Absorb variants into a single unified component (e.g. Card covers StatCard/DocCard/SummaryCard) — do not ship parallel components for the same concept.
 - No new npm dependencies without explicit approval.
 
+## Testing
+
+Test files follow app-ui's naming (`*.svelte.spec.ts` in Chromium, `*.spec.ts` in Node, `*.e2e.ts` Playwright). **Do not run showcase's vitest locally**: the browser project hangs the machine. Write the tests; verify with `npm run check` and Playwright screenshots.
+
 ## Verification
 
-After adding or absorbing a component, run `npm run check` and `npm run test` to confirm parity and types are clean.
+After adding or absorbing a component, run `npm run check` to confirm types are clean.

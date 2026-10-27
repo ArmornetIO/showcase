@@ -11,6 +11,10 @@
 		ctaLabel?: string;
 		ctaHref?: string;
 		onCta?: () => void;
+		/** Shows the call to action but makes it inert: a choice the viewer can
+		 *  see and cannot make (a plan they are already on, or one only an owner
+		 *  may buy). A live-looking button that does nothing reads as broken. */
+		ctaDisabled?: boolean;
 		pending?: boolean;
 		badge?: string;
 		featured?: boolean;
@@ -28,6 +32,7 @@
 		ctaLabel = 'Get started',
 		ctaHref,
 		onCta,
+		ctaDisabled = false,
 		pending = false,
 		badge,
 		featured = false,
@@ -154,7 +159,7 @@
 
 	{#if badge}
 		<div
-			class="absolute right-6 top-[-1px] rounded-b-[3px] bg-[var(--c-badge)] px-[0.625rem] py-[0.2rem] font-[var(--mono)] text-[0.5rem] uppercase tracking-[0.2em] text-[var(--bg)]"
+			class="absolute right-6 top-[-1px] rounded-b-[3px] bg-[var(--c-badge)] px-[0.625rem] py-[0.2rem] font-(family-name:--mono) text-[0.5rem] uppercase tracking-[0.2em] text-[var(--bg)]"
 		>
 			{badge}
 		</div>
@@ -162,7 +167,7 @@
 
 	<div class="flex flex-col gap-[0.375rem]">
 		<div
-			class="font-[var(--mono-display)] text-[0.75rem] font-bold uppercase tracking-[0.25em] text-[var(--c-tier)]"
+			class="font-(family-name:--mono-display) text-[0.75rem] font-bold uppercase tracking-[0.25em] text-[var(--c-tier)]"
 		>
 			{tier}
 		</div>
@@ -175,14 +180,14 @@
 		<div>
 			<div class="flex items-baseline gap-1">
 				<span
-					class="font-[var(--mono-display)] text-[2.5rem] font-bold leading-none text-[var(--c-price)]"
+					class="font-(family-name:--mono-display) text-[2.5rem] font-bold leading-none text-[var(--c-price)]"
 					>{price}</span
 				>
-				<span class="font-[var(--mono)] text-[0.75rem] text-[var(--fg-dim)]">{priceUnit}</span>
+				<span class="font-(family-name:--mono) text-[0.75rem] text-[var(--fg-dim)]">{priceUnit}</span>
 			</div>
 			{#if priceSub}
 				<div
-					class="-mt-3 font-[var(--mono)] text-[0.5625rem] tracking-[0.1em] text-[var(--fg-dim)]"
+					class="-mt-3 font-(family-name:--mono) text-[0.5625rem] tracking-[0.1em] text-[var(--fg-dim)]"
 				>
 					{priceSub}
 				</div>
@@ -194,7 +199,7 @@
 		<ul class="m-0 flex flex-1 flex-col gap-[0.625rem] p-0 [list-style:none]">
 			{#each items as item}
 				<li class="flex items-baseline gap-[0.625rem] text-[0.875rem] leading-[1.5] text-[var(--fg-muted)]">
-					<span class="shrink-0 font-[var(--mono)] text-[0.75rem] text-[var(--c-check)]" aria-hidden="true">✓</span>
+					<span class="shrink-0 font-(family-name:--mono) text-[0.75rem] text-[var(--c-check)]" aria-hidden="true">✓</span>
 					{item}
 				</li>
 			{/each}
@@ -204,23 +209,24 @@
 	{#if !pending}
 		{#if ctaHref}
 			<a
-				class="mt-auto block w-full r-inset px-6 py-3 text-center font-[var(--mono-display)] text-[0.8125rem] font-bold uppercase tracking-[0.1em] no-underline transition-[opacity,transform] duration-200 hover:-translate-y-px hover:opacity-[0.88]"
+				class="mt-auto block w-full r-inset px-6 py-3 text-center font-(family-name:--mono-display) text-[0.8125rem] font-bold uppercase tracking-[0.1em] no-underline transition-[opacity,transform] duration-200 hover:-translate-y-px hover:opacity-[0.88]"
 				style:background={v.ctaBg}
 				style:color={v.cta}
 				href={ctaHref}>{ctaLabel}</a
 			>
 		{:else}
 			<button
-				class="mt-auto block w-full cursor-pointer r-inset border-none px-6 py-3 font-[var(--mono-display)] text-[0.8125rem] font-bold uppercase tracking-[0.1em] transition-[opacity,transform] duration-200 hover:-translate-y-px hover:opacity-[0.88]"
+				class="mt-auto block w-full cursor-pointer r-inset border-none px-6 py-3 font-(family-name:--mono-display) text-[0.8125rem] font-bold uppercase tracking-[0.1em] transition-[opacity,transform] duration-200 hover:-translate-y-px hover:opacity-[0.88] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:opacity-40"
 				style:background={v.ctaBg}
 				style:color={v.cta}
 				type="button"
+				disabled={ctaDisabled}
 				onclick={onCta}>{ctaLabel}</button
 			>
 		{/if}
 	{:else}
 		<div
-			class="mt-auto block w-full cursor-default r-inset px-6 py-3 text-center font-[var(--mono-display)] text-[0.8125rem] font-bold uppercase tracking-[0.1em] text-[var(--fg-dim)]"
+			class="mt-auto block w-full cursor-default r-inset px-6 py-3 text-center font-(family-name:--mono-display) text-[0.8125rem] font-bold uppercase tracking-[0.1em] text-[var(--fg-dim)]"
 			style:background="rgba(255,255,255,0.06)"
 		>
 			Coming soon

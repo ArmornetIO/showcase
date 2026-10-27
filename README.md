@@ -116,10 +116,10 @@ This is the part that isn't in your other component library.
 
 ### 1. Every component publishes its own API as JSON
 
-`npm run gen:api` walks the TypeScript AST of every component, resolves the
-`$props()` type — whether it's an inline literal or a named interface in a
-sibling `.types.ts` — and writes the contract to `src/lib/generated/*.api.json`,
-JSDoc descriptions included.
+`cmd/propsgen` (in the armornet repository, run by `make generate`) reads every
+component's source, resolves the `$props()` type — whether it's an inline literal
+or a named interface in a sibling `.types.ts` — and writes the contract to
+`src/lib/generated/api.json`, JSDoc descriptions included.
 
 ```json
 {
@@ -283,7 +283,6 @@ npm install
 npm run dev          # the showcase app — every component, live
 npm run check        # svelte-check
 npm run test:run     # Vitest, real browser
-npm run gen:api      # regenerate the machine-readable component contracts
 npm run build        # build app + package the library (svelte-package + publint)
 ```
 
@@ -298,7 +297,7 @@ npm run build        # build app + package the library (svelte-package + publint
 4. Export from `src/lib/index.ts`.
 5. Add a registry entry if it should be placeable — `presentation`, `showWhen`,
    and `animate` where the defaults are wrong.
-6. `npm run gen:api`, then a `.spec.ts` next to it.
+6. `make generate` from the armornet repository, then a `.spec.ts` next to it.
 7. Add a route in `src/routes/` so a human can see it too.
 
 The parity and coverage specs will tell you which of these you forgot.

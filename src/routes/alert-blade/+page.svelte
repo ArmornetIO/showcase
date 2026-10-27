@@ -147,17 +147,6 @@
 <AlertBladeHost position={bladePosition} draggable={bladeDraggable} />
 
 <style>
-	.component-block {
-		display: flex;
-		flex-direction: column;
-		gap: 0.9rem;
-		padding: 1.25rem;
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		background: var(--bg-elev);
-		margin-bottom: 1.5rem;
-	}
-
 	.demo-code {
 		font-family: var(--mono);
 		font-size: 0.78em;

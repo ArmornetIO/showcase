@@ -14,7 +14,7 @@ export interface ToolGroup {
 	label: string;
 	/** Rail glyph. */
 	glyph?: string;
-	/** Rail order. Built-ins occupy 10/20/30/40/50/60 so a host can sit between. */
+	/** Rail order. Built-ins occupy 50/60/70 so a host can sit before or between. */
 	order?: number;
 	/**
 	 * False when the current context does not offer this group. It still renders
@@ -33,7 +33,10 @@ export interface ToolGroup {
 
 /** Storage keys and branding the host injects, so nothing here is app-specific. */
 export interface ConsoleConfig {
-	/** localStorage key for the selected group. */
+	/**
+	 * Cookie holding the open state and selected group. Every console on the
+	 * host that uses the same name stays aligned with the others.
+	 */
 	stateKey: string;
 }
 

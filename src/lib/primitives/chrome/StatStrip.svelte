@@ -52,19 +52,24 @@
 </script>
 
 <div class="stat-strip glass {density === 'compact' ? 'compact' : ''} {cls}">
-	{#each items as item, i (i)}
-		{#if i > 0}
-			<div class="ss-sep" aria-hidden="true"></div>
-		{/if}
-		<div class="ss-item {item.color ?? 'default'}" style:--ss-hex={item.hex}>
-			<!-- Inside a pre-load Frame each value rolls (fixed width); labels stay. -->
-			<span class="v"
-				><FrameNumber value={item.value} />{#if item.suffix}<span class="sfx">{item.suffix}</span
-					>{/if}</span
-			>
-			{item.label}
+	<!-- Dividers are each item's left border, and the row is pulled left under a
+	     clip: every wrapped line then starts flush with no orphan divider, which a
+	     separator element between siblings cannot do once the strip wraps. -->
+	<div class="ss-clip">
+		<div class="ss-row">
+			{#each items as item, i (i)}
+				<div class="ss-item {item.color ?? 'default'}" style:--ss-hex={item.hex}>
+					<!-- Inside a pre-load Frame each value rolls (fixed width); labels stay. -->
+					<span class="v"
+						><FrameNumber value={item.value} />{#if item.suffix}<span class="sfx"
+								>{item.suffix}</span
+							>{/if}</span
+					>
+					{item.label}
+				</div>
+			{/each}
 		</div>
-	{/each}
+	</div>
 	{#if trailing}
 		<div class="ss-trailing">{@render trailing()}</div>
 	{/if}
@@ -77,11 +82,24 @@
 	   which is how this strip stayed opaque while the cards around it followed
 	   the setting. */
 	.stat-strip {
+		--ss-pad: 24px;
+		--ss-row-gap: 10px;
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		padding: 16px 20px;
+	}
+	.ss-clip {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+	}
+	.ss-row {
+		display: flex;
+		align-items: center;
 		flex-wrap: wrap;
+		row-gap: var(--ss-row-gap);
+		margin-left: calc(-1 * var(--ss-pad) - 1px);
 	}
 	.ss-item {
 		display: flex;
@@ -92,7 +110,9 @@
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 		color: var(--fg-dim);
-		padding-right: 24px;
+		padding: 0 var(--ss-pad);
+		border-left: 1px solid var(--border);
+		white-space: nowrap;
 	}
 	.ss-item .v {
 		font-family: var(--mono-display);
@@ -124,13 +144,6 @@
 	.ss-trailing {
 		margin-left: auto;
 	}
-	.ss-sep {
-		width: 1px;
-		height: 22px;
-		background: var(--border);
-		margin-right: 24px;
-		flex-shrink: 0;
-	}
 
 	/* Compact — what `MetricsStrip` was. Reads as a rule under the toolbar rather
 	   than a card of its own: squarer corners, tighter padding. It says that
@@ -139,8 +152,9 @@
 	   flatten it back out. */
 	.compact {
 		--glass-radius: var(--radius-control);
+		--ss-pad: 16px;
+		--ss-row-gap: 6px;
 		padding: 10px 16px;
-		gap: 0;
 	}
 	/* Flat mode never reads `--glass-radius` or the glass fill, so the compact
 	   strip has to restate both or it inherits the full card treatment it is
@@ -152,22 +166,14 @@
 	.compact .ss-item {
 		align-items: baseline;
 		gap: 6px;
-		padding: 0 16px;
 		font-size: 0.6rem;
 		letter-spacing: 0.14em;
-	}
-	.compact .ss-item:first-child {
-		padding-left: 0;
+		border-left-color: rgba(255, 255, 255, 0.08);
 	}
 	.compact .ss-item .v {
 		font-family: var(--mono);
 		font-size: 0.9rem;
 		font-weight: 700;
 		letter-spacing: -0.01em;
-	}
-	.compact .ss-sep {
-		height: 18px;
-		margin-right: 0;
-		background: rgba(255, 255, 255, 0.08);
 	}
 </style>

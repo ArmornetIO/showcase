@@ -63,7 +63,7 @@
 <div class="w-full">
 	{#if label}
 		<div
-			class="mb-[7px] font-[var(--mono)] text-[0.625rem] tracking-[0.12em] uppercase text-[var(--fg-muted)]"
+			class="mb-[7px] font-(family-name:--mono) text-[0.625rem] tracking-[0.12em] uppercase text-[var(--fg-muted)]"
 		>
 			{label}
 		</div>
@@ -93,7 +93,7 @@
 	{#if showLegend}
 		<div class="flex flex-wrap gap-[12px] mt-[10px]">
 			{#each enriched as seg}
-				<div class="flex items-center gap-[6px] font-[var(--mono)] text-[0.625rem] tracking-[0.1em]">
+				<div class="flex items-center gap-[6px] font-(family-name:--mono) text-[0.625rem] tracking-[0.1em]">
 					<span
 						class="w-[8px] h-[8px] r-hairline shrink-0"
 						style:background={seg.resolvedColor}

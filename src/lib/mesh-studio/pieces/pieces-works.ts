@@ -302,7 +302,7 @@ const BASTION: Piece = (() => {
 	];
 })();
 
-/** ARCHIVE — codebase analysis. The whole corpus, held still and read.
+/** ARCHIVE — codebase analysis. The whole codebase, held still and read.
  *
  *  A wide hall under TWIN parallel ridges running east, with a lantern tower
  *  punching up through the roof at one end. Two ridges give an M along the top
@@ -414,10 +414,16 @@ export const WORKS_PIECES: Record<string, Piece> = {
 // `satisfies` checks every key is a real mode AND keeps the exact key set, so
 // the completeness check downstream has something to count.
 export const WORKS_MODE_PIECES = {
-	dns_proxy: 'checkpoint',
-	github_runner: 'forge',
-	hardened_agent: 'redoubt',
+	package_scan: 'redoubt',
 	posture: 'bastion',
 	codebase_analysis: 'archive',
-	vscode_enforcement: 'precinct',
+	// A keep holds the record and sends it out; the docs agent holds a repo's docs
+	// and carries edits back as pull requests.
+	docs_sync: 'keep',
+	editor: 'precinct',
+	// Silos take repeated deliveries from outside and hold them as a measured
+	// volume, which is what a DMARC collector does: mail receivers send aggregate
+	// reports in on their own schedule, and what accumulates is daily pass/fail
+	// totals per sender. Not a gate — this mode inspects nothing in flight.
+	dmarc_reports: 'silos',
 } satisfies Partial<Record<ModeKey, string>>;

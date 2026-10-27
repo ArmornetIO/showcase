@@ -237,8 +237,10 @@ export class CanvasCameraImpl implements CanvasCamera {
 	private readonly _s: { w: number; h: number };
 	private readonly _nodes: Map<string, () => { x: number; y: number } | null>;
 	private readonly _bounds: Map<symbol | string, () => { minX: number; minY: number; maxX: number; maxY: number } | null>;
-	private readonly _minZoom: number;
-	private readonly _maxZoom: number;
+	// Read through on every clamp rather than copied in: the host's zoom limits
+	// are props, and a camera built once at mount would otherwise clamp to
+	// whatever they were on the first render forever.
+	private readonly _zoomLimits: { readonly min: number; readonly max: number };
 	private _cancelAnim?: () => void;
 
 	constructor(
@@ -246,15 +248,13 @@ export class CanvasCameraImpl implements CanvasCamera {
 		svgSize: { w: number; h: number },
 		nodePositions: Map<string, () => { x: number; y: number } | null>,
 		boundsRegistry: Map<symbol | string, () => { minX: number; minY: number; maxX: number; maxY: number } | null>,
-		minZoom: number,
-		maxZoom: number,
+		zoomLimits: { readonly min: number; readonly max: number },
 	) {
 		this._t = transform;
 		this._s = svgSize;
 		this._nodes = nodePositions;
 		this._bounds = boundsRegistry;
-		this._minZoom = minZoom;
-		this._maxZoom = maxZoom;
+		this._zoomLimits = zoomLimits;
 	}
 
 	get transform(): { tx: number; ty: number; scale: number } {
@@ -262,7 +262,7 @@ export class CanvasCameraImpl implements CanvasCamera {
 	}
 
 	private _clamp(z: number): number {
-		return Math.max(this._minZoom, Math.min(this._maxZoom, z));
+		return Math.max(this._zoomLimits.min, Math.min(this._zoomLimits.max, z));
 	}
 
 	private _resolve(target: string | { x: number; y: number }): { x: number; y: number } | null {

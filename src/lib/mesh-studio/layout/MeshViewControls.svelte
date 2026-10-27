@@ -5,7 +5,6 @@
 	// operator gets), so it lives here. Anything page-specific — folding, status /
 	// mode filters — is a snippet the caller drops in below the picker.
 	import type { Snippet } from 'svelte';
-	import Button from '../../primitives/actions/Button.svelte';
 	import Icon from '../../icons/Icon.svelte';
 	import MeshLayoutPicker from './MeshLayoutPicker.svelte';
 	import type { MeshLayoutId } from './mesh-layout.js';
@@ -28,10 +27,19 @@
 </script>
 
 <div class="relative">
-	<Button variant="ghost" size="sm" onclick={() => (open = !open)}>
-		<Icon name="settings" size={11} />
+	<!-- Styled as PageContextMenu's Filter/Display triggers: it sits beside that
+	     strip, and a Button size="sm" stands taller than its h-7 row. -->
+	<button
+		type="button"
+		onclick={() => (open = !open)}
+		aria-expanded={open}
+		class="flex items-center gap-1 h-7 px-2 rounded-md font-mono text-[0.68rem] transition-colors {open
+			? 'text-[var(--accent)] bg-[var(--accent-faint)]'
+			: 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--surface-raised)]'}"
+	>
+		<Icon name="settings" size={13} />
 		View{count ? ` (${count})` : ''}
-	</Button>
+	</button>
 	{#if open}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div

@@ -182,6 +182,40 @@ func TestSecondRunDoesNotCompressItsOwnOutput(t *testing.T) {
 	}
 }
 
+// A bundle built with DropOriginals holds each compressible asset once, as its
+// sidecar. Both kinds of client must still get the asset, and HTML must stay
+// raw because pages are read to be injected into.
+func TestDroppedOriginalsAreServedFromTheSidecar(t *testing.T) {
+	dir := t.TempDir()
+	js := strings.Repeat("export const answer = 42;\n", 200)
+	write(t, filepath.Join(dir, "app.js"), js)
+	write(t, filepath.Join(dir, "index.html"), "<!doctype html><title>x</title>"+strings.Repeat(" ", 2048))
+	if _, err := assetenc.Dir(dir, assetenc.Options{DropOriginals: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "app.js")); err == nil {
+		t.Fatal("app.js survived DropOriginals")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "index.html")); err != nil {
+		t.Fatal("index.html was dropped — compose reads pages raw")
+	}
+	app := compose.App{Name: "console", Path: "/", AssetPrefix: compose.AssetPrefix("console"), Files: os.DirFS(dir)}
+
+	if rec := getAsset(t, app, "http://x/app.js", "gzip"); rec.Header().Get("Content-Encoding") != "gzip" {
+		t.Errorf("gzip client: Content-Encoding = %q, want gzip", rec.Header().Get("Content-Encoding"))
+	}
+	rec := getAsset(t, app, "http://x/app.js", "")
+	if got := rec.Header().Get("Content-Encoding"); got != "" {
+		t.Errorf("identity client: Content-Encoding = %q, want none", got)
+	}
+	if rec.Body.String() != js {
+		t.Errorf("identity client did not get the decoded asset: %.40q", rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "javascript") {
+		t.Errorf("identity client: Content-Type = %q, want a JavaScript type", ct)
+	}
+}
+
 // Fingerprinted assets are cached for a year, so their caching must survive
 // negotiation untouched. This is the invariant the whole adaptive-delivery
 // design rests on: only the ENCODING of an immutable URL may differ.

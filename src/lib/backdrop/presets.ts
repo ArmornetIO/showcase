@@ -17,8 +17,8 @@ import {
 	mrRobotStrips,
 	ribbonStrips,
 	seedStrips,
+	misregisteredStrips,
 	siliconValleyStrips,
-	spiderVerseStrips,
 	spiralStrips,
 	tonysStrips,
 	type BackdropPreset,
@@ -28,7 +28,7 @@ import {
 export type PresetId =
 	| 'mr robot'
 	| 'silicon valley'
-	| 'spider-verse'
+	| 'misregistered'
 	| 'tonys'
 	| 'spiral'
 	| 'ribbon'
@@ -37,7 +37,7 @@ export type PresetId =
 export const PRESETS: Record<PresetId, () => StripSpec[] | BackdropPreset> = {
 	'mr robot': mrRobotStrips,
 	'silicon valley': siliconValleyStrips,
-	'spider-verse': spiderVerseStrips,
+	misregistered: misregisteredStrips,
 	tonys: tonysStrips,
 	spiral: spiralStrips,
 	ribbon: ribbonStrips,

@@ -40,19 +40,7 @@ describe('readKnobs', () => {
 });
 
 describe('snippet', () => {
-	it('is a bare tag until something moves', () => {
-		const m = mark('crest');
-		expect(snippet(m, m.knobs(), m.knobs())).toBe('<ArmornetCrest />');
-	});
 
-	it('carries only what moved, in the prop’s own syntax', () => {
-		const m = mark('hub');
-		const base = m.knobs();
-		const tuned = move(move(move(base, 'q:size', 128), 'c:look', 'weight'), 'b:tethers', false);
-		expect(snippet(m, tuned, base)).toBe(
-			'<ArmornetCrestHub size={128} look="weight" tethers={false} />'
-		);
-	});
 
 	it('leaves the ink out — Icon has no colour prop', () => {
 		const m = mark('icon');

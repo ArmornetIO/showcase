@@ -13,6 +13,7 @@
 	 */
 	import { builder, FRAME_PRESETS } from './store.svelte.js';
 	import type { CanvasFrame } from './store.svelte.js';
+	import { storyboard } from './storyboard.svelte.js';
 
 	let {
 		scale = 1,
@@ -78,6 +79,7 @@
 	{#each builder.frames as f (f.id)}
 		{#if f.visible}
 			{@const selected = builder.selectedFrameId === f.id}
+			{@const steps = storyboard.steps.get(`${builder.activePageId}:${f.id}`)}
 			<div
 				class="frame"
 				class:frame--selected={selected}
@@ -107,6 +109,7 @@
 						if (e.key === 'Enter' || e.key === ' ') builder.selectFrame(f.id);
 					}}
 				>
+					{#if steps}<span class="frame-step" title="Storyboard stage">{steps.join(' · ')}</span>{/if}
 					<span class="frame-name">{f.name}</span>
 					<span class="frame-size">{sizeLabel(f)}</span>
 					{#if f.locked}<span class="frame-lock">⊘</span>{/if}
@@ -175,6 +178,15 @@
 	}
 	.frame--selected .frame-name {
 		color: var(--accent);
+	}
+	.frame-step {
+		padding: 0 4px;
+		border: 1px solid var(--accent, #5eead4);
+		border-radius: 2px;
+		font-family: var(--mono);
+		font-size: 9px;
+		color: var(--accent, #5eead4);
+		font-variant-numeric: tabular-nums;
 	}
 	.frame-size,
 	.frame-lock {

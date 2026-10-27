@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Select from '../forms/Select.svelte';
 	import type {
 		CardVariant,
 		DataInputMode,
@@ -197,17 +198,13 @@
 								bind:value={formValues[field.name]}
 							></textarea>
 						{:else if field.type === 'select'}
-							<select
+							<Select
 								id="di-{field.name}"
 								name={field.name}
-								class="di-input"
-								required={field.required}
+								width="100%"
 								bind:value={formValues[field.name]}
-							>
-								{#each field.options ?? [] as opt}
-									<option value={opt}>{opt}</option>
-								{/each}
-							</select>
+								options={(field.options ?? []).map((o) => ({ value: o, label: o }))}
+							/>
 						{:else}
 							<input
 								id="di-{field.name}"

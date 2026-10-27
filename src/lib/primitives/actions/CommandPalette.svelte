@@ -30,7 +30,7 @@
 		/**
 		 * Host owns filtering: when true, `commands` is rendered verbatim (no internal
 		 * ranking pass) so the host can return its own ranked results — a host that
-		 * searches a live corpus knows things the label text does not. Pair with
+		 * searches a live index knows things the label text does not. Pair with
 		 * `onquery`. Default false runs the built-in fuzzy ranking.
 		 */
 		externalFilter?: boolean;

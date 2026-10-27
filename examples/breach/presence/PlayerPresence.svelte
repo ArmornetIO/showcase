@@ -124,14 +124,7 @@
 {:else}
 	<div class="flex flex-col gap-3 {cls}">
 		{#if on('roster')}
-			<!-- The roster is where a chair is named, so it is where one is taken.
-			     Offered only by a table whose settings allow it; the engine refuses
-			     the call regardless of what is on screen. -->
-			<RosterPanel
-				{model}
-				{oninspect}
-				ontakeover={match.takeover ? (key) => void match.claim(key) : undefined}
-			/>
+			<RosterPanel {model} {oninspect} />
 		{/if}
 		{#if on('cameras')}
 			<SeatCameras {model} {onvisit} />

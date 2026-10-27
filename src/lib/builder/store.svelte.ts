@@ -15,6 +15,8 @@ const HISTORY_MAX = 100;
 const COALESCE_MS = 600;
 /** Offset a duplicate/paste lands at, so it never hides under its original. */
 const CLONE_OFFSET = 20;
+/** Space between a frame and the copy `copyFrame` lays beside it. */
+const FRAME_COPY_GAP = 160;
 
 export interface CanvasItem {
 	id: string;
@@ -186,6 +188,12 @@ interface PageDoc {
 export interface BuilderPage {
 	id: string;
 	name: string;
+	/** A 3D scene: its items are `Object3D`s drawn by the scene stage instead of
+	 *  the 2D canvas. Absent is a UI page, so every saved page stays one. */
+	kind?: '3d';
+	/** The BREACH map a 3D page was imported from: its floor, light and props
+	 *  stay underneath, so an export is still that map. */
+	base?: string;
 }
 
 /** The persisted document — everything a reload has to bring back. */
@@ -988,8 +996,9 @@ export class BuilderStore {
 		return this.#parked[id]?.items.length ?? 0;
 	}
 
-	addPage(name?: string): BuilderPage {
-		const page: BuilderPage = { id: uid(), name: name || `Page ${this.#pages.length + 1}` };
+	addPage(name?: string, kind?: '3d', base?: string): BuilderPage {
+		const n = this.#pages.filter((p) => p.kind === kind).length + 1;
+		const page: BuilderPage = { id: uid(), name: name || (kind ? `Scene ${n}` : `Page ${n}`), kind, base };
 		this.#pages = [...this.#pages, page];
 		this.#parked[page.id] = emptyPage();
 		this.switchPage(page.id);
@@ -1042,7 +1051,7 @@ export class BuilderStore {
 			nextClusterN: doc.nextClusterN
 		};
 
-		const page: BuilderPage = { id: uid(), name: `${source.name} copy` };
+		const page: BuilderPage = { ...source, id: uid(), name: `${source.name} copy` };
 		const at = this.#pages.findIndex((p) => p.id === id) + 1;
 		this.#pages = [...this.#pages.slice(0, at), page, ...this.#pages.slice(at)];
 		this.#parked[page.id] = copy;
@@ -1117,7 +1126,9 @@ export class BuilderStore {
 	}
 
 	// ── Item CRUD ──────────────────────────────────────────────────────────────
-	addItem(componentId: string, rawX: number, rawY: number): void {
+	/** `props` overrides the registry defaults, so an item that arrives already
+	 *  configured — a 3D object at its drop point — is one undo step, not two. */
+	addItem(componentId: string, rawX: number, rawY: number, props?: Record<string, unknown>): void {
 		const meta = REGISTRY_MAP.get(componentId);
 		if (!meta) return;
 		const g = this.#gridSize;
@@ -1128,7 +1139,7 @@ export class BuilderStore {
 			y: snapTo(Math.max(0, rawY), g),
 			w: meta.defaultW,
 			h: meta.defaultH,
-			props: Object.fromEntries(Object.entries(meta.props).map(([k, d]) => [k, d.default])),
+			props: { ...Object.fromEntries(Object.entries(meta.props).map(([k, d]) => [k, d.default])), ...props },
 			zIndex: this.#nextZ++,
 			visible: true,
 			locked: false
@@ -1485,6 +1496,50 @@ export class BuilderStore {
 		);
 	}
 
+	/**
+	 * Copy a frame and everything inside it to the first free spot on its right.
+	 * This is the storyboard's "next stage": the next screen starts as this one
+	 * plus whatever changes, and laying it beside the source keeps a flow
+	 * reading left to right on the canvas.
+	 */
+	copyFrame(id: string): CanvasFrame | null {
+		const f = this.#frames.find((fr) => fr.id === id);
+		if (!f) return null;
+		const overlaps = (x: number) =>
+			this.#frames.some(
+				(o) => o.y < f.y + f.h && o.y + o.h > f.y && o.x < x + f.w && o.x + o.w > x
+			);
+		// A second "next" from the same screen steps past the first copy.
+		let x = f.x + f.w + FRAME_COPY_GAP;
+		while (overlaps(x)) x += f.w + FRAME_COPY_GAP;
+		const dx = x - f.x;
+
+		const inside = (px: number, py: number) =>
+			px >= f.x && py >= f.y && px <= f.x + f.w && py <= f.y + f.h;
+		const clusters = this.#clusters.filter((c) => inside(c.x, c.y));
+		const copy: CanvasFrame = {
+			...f,
+			id: uid(),
+			name: `${FRAME_PRESETS[f.preset].label} ${this.#nextFrameN++}`,
+			x,
+			locked: false
+		};
+		this.#frames = [...this.#frames, copy];
+		this.#clusters = [...this.#clusters, ...clusters.map((c) => ({ ...c, id: uid(), x: c.x + dx }))];
+		this.#items = [...this.#items, ...this.#clone(this.frameMembers(id), dx, 0)];
+		this.selectFrame(copy.id);
+		this.#persist();
+		this.#emit({ kind: 'frame', name: copy.name, x: copy.x, y: copy.y, w: copy.w, h: copy.h });
+		return copy;
+	}
+
+	/** Any page's frames and items, live or parked — a storyboard reads screens
+	 *  on pages other than the one being edited. */
+	pageContents(id: string): { frames: CanvasFrame[]; items: CanvasItem[] } {
+		const doc = id === this.#activePageId ? this.#pageDoc() : this.#parked[id];
+		return { frames: doc?.frames ?? [], items: doc?.items ?? [] };
+	}
+
 	/** Move a frame and carry its contents. Does not persist — the drag's
 	 *  `snapFrame` commits, matching how item drags work. */
 	setFrameRect(id: string, x: number, y: number, w: number, h: number): void {
@@ -1753,6 +1808,10 @@ export class BuilderStore {
 	 * a self-sizing component stacks at zero height and its neighbours pile up
 	 * one gap apart, which looks like the layout ignoring the items entirely.
 	 */
+	extent(item: CanvasItem): { w: number; h: number } {
+		return this.#extent(item);
+	}
+
 	#extent(item: CanvasItem): { w: number; h: number } {
 		const meta = REGISTRY_MAP.get(item.componentId);
 		return {

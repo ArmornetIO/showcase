@@ -82,6 +82,12 @@ class ThemeStore {
 	/** What that resolves to right now. Never stored, never synced by hand. */
 	readonly resolved: ThemeKey = $derived.by(() => {
 		const key = resolveChoice(this.#choice, this.#prefersLight);
+		// A palette that is not finished must not paint the app, however the
+		// choice got here — a value stored before it was flagged, a `system`
+		// preference for light, or a picker that forgot to disable its row.
+		// Suppression, like `allowLight`: the stored choice is left alone so
+		// clearing the flag restores it.
+		if (getTheme(key).comingSoon) return DEFAULT_DARK;
 		if (this.#allowLight) return key;
 		return getTheme(key).mode === 'light' ? DEFAULT_DARK : key;
 	});

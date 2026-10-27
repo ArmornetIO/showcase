@@ -23,6 +23,9 @@ type router struct {
 	// it appears to sit under.
 	assets []claim
 	byName map[string]App
+	// ordered is this listener's apps in profile order; byName cannot give a
+	// stable one.
+	ordered []App
 	// shared are root-relative URLs no app owns.
 	shared []string
 }
@@ -39,6 +42,7 @@ func newRouter(s Set, listener string, shared []string) *router {
 			continue
 		}
 		rt.byName[a.Name] = a
+		rt.ordered = append(rt.ordered, a)
 		if a.Path != "/" {
 			rt.claims = append(rt.claims, claim{prefix: a.Path, app: a})
 		}

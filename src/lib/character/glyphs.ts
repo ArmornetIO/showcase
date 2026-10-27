@@ -19,6 +19,18 @@
 
 import { prism, type Solid } from '../mesh-studio/pieces/pieces.js';
 import { ccw, tip } from './solids.js';
+import { CRESTLINK_NODE_R, insetPoints, outlinePoly, placeFigure, type Pt } from '../icons/ArmornetCrestMesh.svelte';
+
+// The filled logo's mask weights, in its 24-unit box (ArmornetCrestMesh.svelte),
+// made heavier: the chest mark is ~17 mm tall on a 96 mm print, where the
+// screen weights come out at 0.37–0.54 mm lines — under a 0.4 nozzle's reach.
+// 1.25 lifts the thinnest to ~0.46 mm and still leaves the rings open; at 1.6
+// the spoke tips filled the rings and the mark read as blobs.
+const PRINT_WEIGHT = 1.25;
+const WALL_W = 0.5 * PRINT_WEIGHT;
+const INNER_WALL = 1.05;
+const INNER_WALL_W = 0.4 * PRINT_WEIGHT;
+import { LOGO_GEOMETRY } from '../icons/ArmornetLogo.svelte';
 
 /** A mark: the convex plates it decomposes into, each wound however the author
  *  found natural — `glyph()` fixes the winding rather than trusting it. */
@@ -71,12 +83,105 @@ function annulus(r: number, w: number, k = 12, cx = 0, cy = 0): Glyph {
 	});
 }
 
+/** The part of a convex outline between heights `y0` and `y1` — itself convex. */
+function band(poly: [number, number][], y0: number, y1: number): [number, number][] {
+	const clip = (pts: [number, number][], y: number, keep: 1 | -1) =>
+		pts.flatMap((a, i): [number, number][] => {
+			const b = pts[(i + 1) % pts.length];
+			const [sa, sb] = [(a[1] - y) * keep, (b[1] - y) * keep];
+			const out: [number, number][] = sa >= 0 ? [a] : [];
+			if (sa * sb < 0) out.push([a[0] + ((b[0] - a[0]) * sa) / (sa - sb), y]);
+			return out;
+		});
+	return clip(clip(poly, y0, 1), y1, -1);
+}
+
 /** A triangle, as the author wrote it. */
 const tri = (
 	a: [number, number],
 	b: [number, number],
 	c: [number, number]
 ): [number, number][] => [a, b, c];
+
+/**
+ * The filled Armornet mark, traced off the logo's own geometry rather than
+ * redrawn, so a retuned shield moves the chest plate with it. Two glyphs,
+ * because the logo's figure is PUNCHED through the shield and a convex kernel
+ * cannot punch: the wearer lays the figure over the shield in a darker material
+ * instead, which a print renders as relief.
+ */
+function logoMark(): {
+	shield: Glyph;
+	figure: Glyph;
+	halfWidth: number;
+	/** Where the figure's rings sit, for a stencil that must bridge them. */
+	hub: [number, number];
+	nodes: [number, number][];
+	nodeR: number;
+	stroke: number;
+} {
+	const outline = outlinePoly(LOGO_GEOMETRY, 12);
+	const ys = outline.map((p) => p[1]);
+	const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+	const s = 1 / (cy - Math.min(...ys));
+	// SVG is y-down about (12, cy); a glyph is y-up about the origin.
+	const to = ([x, y]: Pt): [number, number] => [(x - 12) * s, (cy - y) * s];
+
+	// The shield is convex except where the key notch cuts the crown. Each ear
+	// tip (a convex corner beside a reflex one) is cut off as a triangle, and
+	// what remains is the convex body.
+	const n = outline.length;
+	const at = (i: number) => outline[(i + n) % n];
+	const turn = (i: number) => {
+		const [a, b, c] = [at(i - 1), at(i), at(i + 1)];
+		return (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+	};
+	const sense = Math.sign(outline.reduce((t, _, i) => t + turn(i), 0));
+	const reflex = (i: number) => Math.sign(turn(i)) === -sense;
+	const tip = (i: number) => !reflex(i) && (reflex(i - 1) || reflex(i + 1));
+	const idx = outline.map((_, i) => i);
+	// The body in horizontal bands. Whole, it is one face whose centre sits
+	// mid-shield, and from any camera above it the sort put it over the figure's
+	// lower strokes: the inner wall vanished below the nodes.
+	const body = idx.filter((i) => !tip(i)).map((i) => to(at(i)));
+	const BANDS = 8;
+	const shield: Glyph = [
+		...Array.from({ length: BANDS }, (_, k) => band(body, -1 + (2 * k) / BANDS, -1 + (2 * (k + 1)) / BANDS)).filter(
+			(p) => p.length >= 3
+		),
+		...idx.filter(tip).map((i) => [at(i - 1), at(i), at(i + 1)].map(to))
+	];
+
+	// Everything the filled logo's mask cuts, at the mask's own weights: the
+	// inner wall, the spokes, a ring per satellite and the solid hub.
+	const wall = (t: number) => insetPoints(outline, t);
+	const [w0, w1] = [wall(INNER_WALL - INNER_WALL_W / 2), wall(INNER_WALL + INNER_WALL_W / 2)];
+	const innerWall: Glyph = outline.map((_, i) => {
+		const j = (i + 1) % n;
+		return [w0[i], w0[j], w1[j], w1[i]].map(to);
+	});
+	const f = placeFigure(LOGO_GEOMETRY);
+	const fk = f.nodeR / CRESTLINK_NODE_R;
+	const half = (WALL_W / 2) * fk * s;
+	// The hub is a solid disc, so it keeps the screen stroke: thickening it for
+	// the nozzle only made it outgrow the logo's proportions.
+	const hubR = (f.hubR + (WALL_W / PRINT_WEIGHT / 2) * fk) * s;
+	const [hx, hy] = to(f.hub);
+	// Each spoke ends in the node's centre on a round cap, as the SVG's
+	// `stroke-linecap: round` draws it: a dot inside the ring, not a stub.
+	const figure: Glyph = [
+		...innerWall,
+		disc(hubR, 32, hx, hy),
+		...f.nodes.flatMap((p) => {
+			const [nx, ny] = to(p);
+			return [...annulus(f.nodeR * s, half, 24, nx, ny), bar(hx, hy, nx, ny, half), disc(half, 12, nx, ny)];
+		})
+	];
+	const halfWidth = Math.max(...outline.map((p) => Math.abs(to(p)[0])));
+	return { shield, figure, halfWidth, hub: [hx, hy], nodes: f.nodes.map(to), nodeR: f.nodeR * s, stroke: 2 * half };
+}
+
+export const LOGO = logoMark();
 
 // ── The marks ────────────────────────────────────────────────────────────────
 // The ten the game ships. Each is the SAME device the flat set carried, cut

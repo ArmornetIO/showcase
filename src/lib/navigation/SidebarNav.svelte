@@ -18,6 +18,9 @@
 		disabled?: boolean;
 		/** Tiny trailing tag, e.g. "SOON" on a locked item. */
 		badge?: string;
+		/** `danger` tints the badge, for a state that needs action (a full quota)
+		 *  rather than a label like "SOON". */
+		badgeTone?: 'danger';
 		/** Nested rows — renders an expand chevron; children indent one level. */
 		children?: NavItem[];
 		/** Start expanded. */
@@ -264,7 +267,10 @@
 			>
 			{#if item.badge}
 				<span
-					class="nav-label ml-auto font-mono text-[0.5rem] tracking-[0.1em] uppercase px-1 py-[0.05rem] rounded border border-[var(--border)] text-[var(--fg-dim)]"
+					class="nav-label ml-auto font-mono text-[0.5rem] tracking-[0.1em] uppercase px-1 py-[0.05rem] rounded border {item.badgeTone ===
+					'danger'
+						? 'border-rose-400/40 bg-rose-400/[0.1] text-rose-300'
+						: 'border-[var(--border)] text-[var(--fg-dim)]'}"
 					>{item.badge}</span
 				>
 			{/if}

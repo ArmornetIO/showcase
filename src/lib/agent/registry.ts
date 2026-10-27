@@ -69,8 +69,20 @@ let connecting: Promise<ArmornetAgent> | null = null;
  * with an error that says so — a host that code-splits its clients should
  * declare from a module it loads eagerly.
  */
-export function declareCapability(capability: string): void {
+export function declareCapability(capability: string, version = 1): void {
 	declared.add(capability);
+	if (version !== 1) versions.set(capability, version);
+}
+
+/** Wire version of each declared capability that is not at 1. It must match the
+ *  server's, or the Line makes that capability unavailable — the version moves
+ *  when the payload encoding does, and the page is what encodes it. */
+const versions = new Map<string, number>();
+
+/** The declaration as the agent reads it: `name`, or `name@version`. */
+function announced(capability: string): string {
+	const v = versions.get(capability);
+	return v === undefined ? capability : `${capability}@${v}`;
 }
 
 /** Where the agent dials. Same origin, always.
@@ -80,7 +92,7 @@ export function declareCapability(capability: string): void {
  *  a different port directly is refused 403 before any armornet auth runs. */
 function agentLineURL(): string {
 	const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-	return `${proto}//${location.host}/v1/opamp`;
+	return `${proto}//${location.host}/v1/line`;
 }
 
 /**
@@ -103,7 +115,7 @@ function connect(): Promise<ArmornetAgent> {
 		// No token: the session cookie IS the credential. A browser cannot set an
 		// Authorization header on a WebSocket, and it does not need to — the
 		// cookie that authenticates every other request travels here too.
-		await agent.connect(agentLineURL(), '', { capabilities: announcing });
+		await agent.connect(agentLineURL(), '', { capabilities: announcing.map(announced) });
 		dialled = announcing;
 		// The registry owns this slot, and it is the ONLY owner. A subscriber
 		// that reaches for `agent.onClose` itself overwrites this — the agent is

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { portal } from '../portal.js';
 
 	export type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right';
 
@@ -62,21 +63,6 @@
 		}
 		x = nx;
 		y = ny;
-	}
-
-	// The panel is `position: fixed`, but a transformed/filtered ancestor turns it
-	// into a containing block: the panel then lays out inside that ancestor and
-	// counts toward its scroll extent, so showing a tooltip near the end of a
-	// scrollable row nudges the scroll position, which fires the reposition
-	// listener, which moves the panel again. Parking it on <body> keeps viewport
-	// coordinates meaning what they say.
-	function portal(node: HTMLElement) {
-		document.body.appendChild(node);
-		return {
-			destroy() {
-				node.remove();
-			}
-		};
 	}
 
 	function show() {

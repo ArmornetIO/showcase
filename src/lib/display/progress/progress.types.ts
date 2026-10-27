@@ -11,7 +11,7 @@
  */
 
 /** Which of the progress renderings to use. */
-export type ProgressType = 'linear' | 'radial' | 'stepped' | 'stacked' | 'pips';
+export type ProgressType = 'linear' | 'radial' | 'stepped' | 'stacked' | 'pips' | 'read';
 
 /** Semantic color, honoured by every progress type. */
 export type ProgressVariant = 'default' | 'accent' | 'success' | 'warn' | 'error';

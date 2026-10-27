@@ -7,7 +7,7 @@
 	import SelectionBox from '$lib/primitives/canvas/SelectionBox.svelte';
 	import PieceCrest from '$lib/mesh-studio/pieces/PieceCrest.svelte';
 	import { ALL_PIECES } from '$lib/mesh-studio/pieces/piece-catalogue.js';
-	import PieceStudio, { type StudioPiece } from '$lib/mesh-studio/pieces/PieceStudio.svelte';
+	import { base } from '$app/paths';
 	import Edge from '$lib/primitives/canvas/Edge.svelte';
 	import type { DataType, EdgeStyle } from '$lib/primitives/canvas/canvas.types.js';
 	import type { EdgeCurve } from '$lib/primitives/canvas/edge-path.js';
@@ -53,18 +53,6 @@
 	// building that draws wrong, or one somebody added and forgot, shows up here
 	// without an edit.
 	const pieceKeys = Object.keys(ALL_PIECES).sort();
-
-	// The crest grid is the index; the studio is the review — one subject at the
-	// size you choose, turnable. Walks the same list the grid renders, so the
-	// arrows cannot step onto a building this page did not show.
-	const studioItems: StudioPiece[] = pieceKeys.map((piece) => ({ piece, label: piece }));
-	let studioOpen = $state(false);
-	let studioIndex = $state(0);
-
-	function review(n: number) {
-		studioIndex = n;
-		studioOpen = true;
-	}
 
 	// ── Edge demo ─────────────────────────────────────────────────────────────
 	// Every row is drawn between the SAME two coordinates, so what varies down
@@ -225,17 +213,23 @@
 		</p>
 
 		<div class="crest-grid">
-			{#each pieceKeys as key, n (key)}
-				<button class="crest" onclick={() => review(n)} title="Open {key} on the turntable">
+			<!-- The Builder's 3D mode walks the same sorted catalogue, so its arrows
+			     step through exactly this grid. -->
+			{#each pieceKeys as key (key)}
+				<a
+					class="crest"
+					href="{base}/builder?mode=3d&studio=piece&piece={key}"
+					title="Open {key} on the turntable"
+				>
 					<PieceCrest piece={key} color="var(--accent)" size={54} />
 					<span>{key}</span>
-				</button>
+				</a>
 			{/each}
 		</div>
 
 		<p class="component-desc sub">
 			<code class="demo-code">PieceStudio</code> is the review the crest grid is the index for:
-			click any building above to put it on the turntable at a size you choose. Two solids that
+			click any building above to put it on the turntable in the Builder's 3D mode. Two solids that
 			converge under a squint are the same building however different their geometry is on paper,
 			and that is only visible one at a time and large.
 		</p>
@@ -380,12 +374,6 @@
 
 </div>
 
-<PieceStudio
-	open={studioOpen}
-	items={studioItems}
-	bind:index={studioIndex}
-	onclose={() => (studioOpen = false)}
-/>
 
 <style>
 	.canvas-demo {
@@ -419,7 +407,7 @@
 		border: 0;
 		background: none;
 		color: inherit;
-		cursor: pointer;
+		text-decoration: none;
 	}
 	.crest:hover span {
 		color: var(--accent);

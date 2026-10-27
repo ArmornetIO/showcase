@@ -43,6 +43,11 @@ export const BAND = 0.24;
  *  every edge by a fraction of a percent for no gain. */
 export const LIGHT: readonly [number, number, number] = [-0.42, -0.5, 0.76];
 
+/** The hover dais radius, in node radii — see `pieces/piece-base`. Here because
+ *  the shader shades by it and this module imports nothing. Wider than a glyph's
+ *  plate, so the piece hangs over the pool rather than filling it. */
+export const DAIS_R = 1.4;
+
 /** GLSL has no integer-to-float promotion in constructors, so `1` is a compile
  *  error where `1.0` is fine. Every interpolated number goes through here. */
 const f = (x: number): string => (Number.isInteger(x) ? x.toFixed(1) : String(x));
@@ -86,6 +91,7 @@ out vec3 vNormalW;
 out vec2 vNodePx;
 out float vH;
 out float vAlpha;
+out vec2 vLocal;
 flat out float vState;
 
 void main() {
@@ -119,6 +125,7 @@ void main() {
 	vH = aLocal.z;
 
 	vAlpha = iAlpha;
+	vLocal = aLocal.xy;
 	vState = iState;
 }
 `;
@@ -140,6 +147,7 @@ in vec3 vNormalW;
 in vec2 vNodePx;
 in float vH;
 in float vAlpha;
+in vec2 vLocal;
 flat in float vState;
 
 uniform int uPass;
@@ -150,20 +158,33 @@ const int PASS_SEAT = 0;
 const int PASS_BLOOM = 1;
 const int PASS_EMIT = 2;
 const int PASS_EDGE = 3;
+const int PASS_BASE = 4;
+const float DAIS_R = ${f(DAIS_R)};
 
 const vec3 LIGHT = ${L};
 const float BAND = ${f(BAND)};
 
-// NodePiece's four <g> opacities, healthy / offline.
-const float SEAT_A = 0.55, SEAT_A_OFF = 0.34;
-const float BLOOM_A = 0.13, BLOOM_A_OFF = 0.06;
-const float EMIT_A = 0.32, EMIT_A_OFF = 0.14;
+// NodePiece's four <g> opacities, healthy / offline — raised from the SVG's
+// values. The SVG sat on a flat dark globe; this one has lit territories and
+// contour lines under it, and at the inherited alphas the ground read THROUGH
+// the buildings hard enough that they looked printed on the map.
+const float SEAT_A = 0.78, SEAT_A_OFF = 0.5;
+const float BLOOM_A = 0.16, BLOOM_A_OFF = 0.08;
+const float EMIT_A = 0.42, EMIT_A_OFF = 0.18;
 const float EDGE_A = 0.95, EDGE_A_OFF = 0.5;
 const float CONTOUR_A = 0.4, CONTOUR_A_OFF = 0.22;
 
 // Selected fattens the strokes, which is geometry the host builds; level is
 // what is left for the shader.
-const float SEL_BLOOM = 1.5, SEL_EMIT = 1.18, SEL_EDGE = 1.12;
+//
+// SEAT is the one that actually answers "I cannot see the selected building".
+// The others add light to a material you can still read the globe's contour
+// lines through, and on a lit territory the ground wins that contest however
+// bright the edges get. Thickening the wash under the footprint is what makes
+// the piece read as standing in front of the world rather than printed on it.
+// It is still short of opaque on purpose — a hologram that goes solid when you
+// touch it stops being the same object.
+const float SEL_SEAT = 1.2, SEL_BLOOM = 1.9, SEL_EMIT = 1.5, SEL_EDGE = 1.12;
 
 const float CONTOUR_W = 0.6;  // css px, matching the SVG stroke-width
 const float DASH = 5.5;       // css px period
@@ -173,8 +194,13 @@ const float DASH_ON = 2.5;    // css px lit, i.e. the SVG's "2.5 3"
 // neighbouring faces land a few percent apart and read as one blob.
 // step() is >=, NodePiece's band() was >; they differ only on the two exact
 // threshold values, which is a measure-zero set of normals.
+// The floor is what an UNLIT face is worth, and it is the whole reason a piece
+// turned away from the key light used to vanish into the territory under it: at
+// 0.54 its edges landed dimmer than the globe's own contour lines. Raised, with
+// the two steps narrowed so the top of the ladder stays at 1.0 — the ladder is
+// still three readable values, it just starts higher.
 float band(float lit) {
-	return 0.54 + 0.22 * step(0.22, lit) + 0.24 * step(0.62, lit);
+	return 0.7 + 0.16 * step(0.22, lit) + 0.14 * step(0.62, lit);
 }
 
 void main() {
@@ -208,7 +234,7 @@ void main() {
 		// which is exactly what painting the background over it did, and it stays
 		// right whatever --bg turns out to be.
 		rgb = vec3(0.0);
-		a = off ? SEAT_A_OFF : SEAT_A;
+		a = min(1.0, (off ? SEAT_A_OFF : SEAT_A) * (sel ? SEL_SEAT : 1.0));
 	} else if (uPass == PASS_BLOOM) {
 		// Light spilling off the piece, and its halo against the globe. Additive
 		// rather than the SVG's 13% wash: a halo can only ever ADD light, and an
@@ -236,6 +262,21 @@ void main() {
 		// become a wash, so fade them out rather than fill the face.
 		line *= 1.0 - smoothstep(0.25, 0.5, perPx);
 		a += (off ? CONTOUR_A_OFF : CONTOUR_A) * line;
+	} else if (uPass == PASS_BASE) {
+		// The hover dais — \`Figure\`'s floor, stop for stop. Lit at the RIM: light
+		// that falls off at the edge is a floor, a flat wash is a disc stood in
+		// front of. The dark core is the hole the piece hangs over; without it a
+		// lit pool under a floating piece reads as a lamp, not a place.
+		float r = length(vLocal) / DAIS_R;
+		float pool = r < 0.72
+			? mix(0.09, 0.2, r / 0.72)
+			: r < 0.93 ? mix(0.2, 0.38, (r - 0.72) / 0.21) : mix(0.38, 0.0, (r - 0.93) / 0.07);
+		float px = fwidth(r);
+		float rim = 0.5 * (1.0 - smoothstep(0.0, 1.5 * px, abs(r - 0.985)));
+		float light = (pool + rim) * (sel ? 1.6 : 1.0) * (off ? 0.5 : 1.0);
+		float hole = 0.55 * (1.0 - smoothstep(0.42, 0.56, r));
+		a = light + hole - light * hole;
+		rgb = a > 0.0 ? vColor * (light / a) : vec3(0.0);
 	} else if (uPass == PASS_EDGE) {
 		// Last and brightest. On a wireframe-ish material the edge carries the
 		// whole shape, so it is the one thing allowed to be near-opaque. Rides
@@ -285,7 +326,7 @@ export const PIECE_ATTRIBS: { name: string; size: 1 | 2 | 3 | 4; divisor?: numbe
 	{ name: 'iColor', size: 3, divisor: 1 },
 	{ name: 'iLand', size: 3, divisor: 1 },
 	{ name: 'iAlpha', size: 1, divisor: 1 },
-	{ name: 'iState', size: 1, divisor: 1 }
+	{ name: 'iState', size: 1, divisor: 1 },
 ];
 
 export const PIECE_UNIFORMS: string[] = ['uCam', 'uSize', 'uPass'];
@@ -307,9 +348,16 @@ export const PIECE_UNIFORMS: string[] = ['uCam', 'uSize', 'uPass'];
  *  Order matters and is painter's order: the seat clears the mesh out from
  *  behind the piece, the bloom lays a halo under the real lines, the faces emit,
  *  and the edges land on top. */
+/** The hover dais, drawn before every piece pass and only under pieces whose
+ *  base is `hover`. Its own mesh, so it is not in `PIECE_PASSES`, which the host
+ *  draws against each piece's own buffers. Premultiplied OVER — `ONE,
+ *  ONE_MINUS_SRC_ALPHA`, as the table above states — because unlike the seat
+ *  it carries colour. */
+export const PIECE_BASE_PASS = { id: 4, name: 'base' } as const;
+
 export const PIECE_PASSES: { id: number; name: string; blend: 'over' | 'add' | 'screen' }[] = [
 	{ id: 0, name: 'seat', blend: 'over' },
 	{ id: 1, name: 'bloom', blend: 'add' },
 	{ id: 2, name: 'emit', blend: 'screen' },
-	{ id: 3, name: 'edge', blend: 'over' }
+	{ id: 3, name: 'edge', blend: 'over' },
 ];

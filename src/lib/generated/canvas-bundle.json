@@ -15,7 +15,9 @@
           "kind": "enum",
           "options": [
             "bottom-end",
-            "bottom-start"
+            "bottom-start",
+            "top-end",
+            "top-start"
           ]
         },
         "disabled": {
@@ -29,25 +31,6 @@
     {
       "id": "AlertBlade",
       "props": {}
-    },
-    {
-      "id": "ArmornetCrest",
-      "props": {
-        "size": {
-          "kind": "number",
-          "min": 16,
-          "max": 320
-        },
-        "color": {
-          "kind": "text"
-        },
-        "glow": {
-          "kind": "boolean"
-        },
-        "mesh": {
-          "kind": "boolean"
-        }
-      }
     },
     {
       "id": "ArmornetCrestChrome",
@@ -81,98 +64,6 @@
           "kind": "number",
           "min": 0,
           "max": 1
-        }
-      }
-    },
-    {
-      "id": "ArmornetCrestHub",
-      "props": {
-        "size": {
-          "kind": "number",
-          "min": 16,
-          "max": 320
-        },
-        "look": {
-          "kind": "enum",
-          "options": [
-            "hollow",
-            "weight",
-            "plated"
-          ]
-        },
-        "spokes": {
-          "kind": "enum",
-          "options": [
-            "full",
-            "stem",
-            "bar"
-          ]
-        },
-        "tethers": {
-          "kind": "boolean"
-        },
-        "glow": {
-          "kind": "boolean"
-        }
-      }
-    },
-    {
-      "id": "ArmornetCrestMesh",
-      "props": {
-        "size": {
-          "kind": "number",
-          "min": 16,
-          "max": 320
-        },
-        "color": {
-          "kind": "text"
-        },
-        "shape": {
-          "kind": "enum",
-          "options": [
-            "crest",
-            "crestwide",
-            "crestsharp",
-            "crestnotch",
-            "crestkey",
-            "merlon",
-            "bastille",
-            "crestear",
-            "crestspur",
-            "heater",
-            "keel",
-            "flared",
-            "peaked",
-            "notched",
-            "bouche",
-            "keyed",
-            "notchspur",
-            "clipped",
-            "keyclip",
-            "notchclip",
-            "bevel",
-            "octant",
-            "slab",
-            "eared",
-            "crowned",
-            "blade",
-            "wedge",
-            "spiked",
-            "spurred"
-          ]
-        },
-        "variant": {
-          "kind": "enum",
-          "options": [
-            "outline",
-            "filled"
-          ]
-        },
-        "innerWall": {
-          "kind": "boolean"
-        },
-        "glow": {
-          "kind": "boolean"
         }
       }
     },
@@ -550,6 +441,9 @@
         "placeholder": {
           "kind": "text"
         },
+        "sortable": {
+          "kind": "boolean"
+        },
         "disabled": {
           "kind": "boolean"
         }
@@ -693,6 +587,23 @@
         },
         "tableRows": {
           "kind": "textarea"
+        }
+      }
+    },
+    {
+      "id": "DateSelect",
+      "props": {
+        "variant": {
+          "kind": "enum",
+          "options": [
+            "input",
+            "picker",
+            "calendar",
+            "range"
+          ]
+        },
+        "disabled": {
+          "kind": "boolean"
         }
       }
     },
@@ -1298,6 +1209,20 @@
       }
     },
     {
+      "id": "ScenePlayer",
+      "props": {
+        "scene": {
+          "kind": "enum"
+        },
+        "autoplay": {
+          "kind": "boolean"
+        },
+        "loop": {
+          "kind": "boolean"
+        }
+      }
+    },
+    {
       "id": "SearchInput",
       "props": {
         "placeholder": {
@@ -1537,87 +1462,15 @@
         },
         "wrap": {
           "kind": "boolean"
-        }
-      }
-    },
-    {
-      "id": "StoryboardArrow",
-      "props": {
-        "label": {
-          "kind": "text"
         },
-        "tall": {
-          "kind": "boolean"
-        }
-      }
-    },
-    {
-      "id": "StoryboardBranch",
-      "props": {
-        "connector": {
-          "kind": "text"
-        },
-        "label": {
-          "kind": "text"
-        },
-        "__children": {
-          "kind": "text"
-        }
-      }
-    },
-    {
-      "id": "StoryboardCanvas",
-      "props": {
-        "title": {
-          "kind": "text"
-        },
-        "__children": {
-          "kind": "text"
-        }
-      }
-    },
-    {
-      "id": "StoryboardFrame",
-      "props": {
-        "step": {
-          "kind": "number",
-          "min": 1,
-          "max": 9
-        },
-        "route": {
-          "kind": "text"
-        },
-        "badge": {
-          "kind": "text"
-        },
-        "badgeVariant": {
+        "variant": {
           "kind": "enum",
           "options": [
-            "default",
-            "red"
+            "inline",
+            "tile"
           ]
         },
-        "dashed": {
-          "kind": "boolean"
-        },
-        "__children": {
-          "kind": "text"
-        }
-      }
-    },
-    {
-      "id": "SwimLane",
-      "props": {
-        "pill": {
-          "kind": "text"
-        },
-        "label": {
-          "kind": "text"
-        },
-        "sub": {
-          "kind": "text"
-        },
-        "__children": {
+        "caption": {
           "kind": "text"
         }
       }

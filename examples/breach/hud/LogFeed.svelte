@@ -19,6 +19,7 @@
 	// row that names nobody is one this component was never told about. Absence
 	// is the fog; there is no check to forget.
 	import { Figure, Icon, PieceCrest, Tooltip, type IconName } from 'showcase';
+	import { portraitScale } from '../parts/portrait.js';
 	import {
 		OUTCOME_COLOR,
 		OUTCOME_LABEL,
@@ -28,7 +29,6 @@
 		structureById
 	} from '../internal/rules.js';
 	import { fxFor } from '../internal/fx.js';
-	import { portraitScale } from '../parts/portrait.js';
 	import type { BreachMatch } from '../internal/match.svelte.js';
 
 	interface Props {
@@ -146,13 +146,14 @@
 								     A face in the log and the same face in the chip above it
 								     are the same person; if the two surfaces size them
 								     separately they stop looking like it. -->
-								{@const fill = portraitScale(actor)}
+								{@const f = match.figureOf?.(actor.key)}
+								{@const fill = portraitScale(f?.skin ?? actor)}
 								<span
 									class="absolute inset-x-0 top-0 aspect-square origin-top"
 									style:scale={fill}
 									style:translate="0 {((1 - fill) * 30).toFixed(1)}px"
 								>
-									<Figure klass={actor} crop="bust" />
+									<Figure klass={f?.skin ?? actor} crop="bust" art={f?.art} />
 								</span>
 							{:else}
 								<!-- Nobody to draw. A fogged row still gets the well, because the

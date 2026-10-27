@@ -39,9 +39,9 @@ const files = await walk(SRC);
 // nothing — which reads as a layout bug, not a build problem, and sends you
 // hunting through CSS that was never emitted.
 //
-// This is not hypothetical: `src/routes/mockups/*` is ignored by design, so
-// every mockup that styles itself with utilities has to be un-ignored to work.
-// The .gitignore already carries the exceptions and the reason.
+// Mockups are exempt: they are local sketches, and one rendering unstyled is
+// its author's problem, not a reason to commit it or fail everyone's check.
+const MOCKUPS = join(SRC, 'routes', 'mockups');
 
 const ignored = new Set();
 if (files.length) {
@@ -78,7 +78,7 @@ function carriesUtilities(src) {
 }
 
 for (const f of files) {
-	if (!ignored.has(f)) continue;
+	if (!ignored.has(f) || f.startsWith(MOCKUPS)) continue;
 	let src;
 	try {
 		src = readFileSync(f, 'utf8');

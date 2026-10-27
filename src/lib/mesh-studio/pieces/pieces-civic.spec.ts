@@ -213,13 +213,9 @@ describe('the civic pieces', () => {
 
 describe('the mode mapping', () => {
 	const MODES = [
-		'intelligence',
+		'rss',
 		'language',
-		'harness',
-		'momus',
-		'hello_world',
-		'browser',
-		'fetch'
+		'momus'
 	];
 
 	it('covers exactly the cognition & signal modes', () => {

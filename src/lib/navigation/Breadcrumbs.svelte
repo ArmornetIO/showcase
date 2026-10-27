@@ -18,7 +18,7 @@
 </script>
 
 <nav aria-label="Breadcrumb">
-	<ol class="flex items-center gap-1.5 font-[var(--mono)] text-[0.75rem] list-none p-0 m-0 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
+	<ol class="flex items-center gap-1.5 font-(family-name:--mono) text-[0.75rem] list-none p-0 m-0 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
 		{#each items as item, i (i)}
 			<li class="flex items-center gap-1.5">
 				{#if i > 0}

@@ -1,0 +1,1079 @@
+{
+  "$generated": "cmd/roadmapgen from docs/roadmap. DO NOT EDIT.",
+  "as_of": "2026-10-01",
+  "current_version": "0.0.14",
+  "launch": {
+    "date": "2026-09-09",
+    "title": "Alpha launch: Breach, Showcase and alpha sign-up"
+  },
+  "releases": [
+    {
+      "version": "0.0.14",
+      "bump": "maintenance",
+      "phase": "alpha",
+      "title": "Current alpha",
+      "proposed": false
+    },
+    {
+      "version": "0.0.15",
+      "date": "2026-10-12",
+      "bump": "maintenance",
+      "phase": "alpha",
+      "title": "Alpha drop",
+      "proposed": true
+    },
+    {
+      "version": "0.0.16",
+      "date": "2026-10-26",
+      "bump": "maintenance",
+      "phase": "alpha",
+      "title": "Alpha drop",
+      "proposed": true
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-11-16",
+      "bump": "minor",
+      "phase": "beta",
+      "title": "Beta opens: vendors can answer",
+      "proposed": true,
+      "target": 5
+    },
+    {
+      "version": "0.2.0",
+      "date": "2026-12-14",
+      "bump": "minor",
+      "phase": "beta",
+      "title": "Package Monitoring, Line, Identity, Showcase",
+      "proposed": true,
+      "target": 4
+    },
+    {
+      "version": "0.3.0",
+      "date": "2027-01-25",
+      "bump": "minor",
+      "phase": "beta",
+      "title": "Risk and controls, Endpoint rollout, Agent bridge",
+      "proposed": true,
+      "target": 3
+    },
+    {
+      "version": "0.4.0",
+      "date": "2027-02-22",
+      "bump": "minor",
+      "phase": "beta",
+      "title": "Sandbox review, CI runner, upstream fixes",
+      "proposed": true,
+      "target": 4
+    },
+    {
+      "version": "0.5.0",
+      "date": "2027-03-22",
+      "bump": "minor",
+      "phase": "beta",
+      "title": "Release candidate: browser protection, Database Manager, Data Steward",
+      "proposed": true,
+      "target": 3
+    },
+    {
+      "version": "1.0.0",
+      "date": "2027-04",
+      "bump": "major",
+      "phase": "ga",
+      "title": "GA: code- and feature-complete on every existing area, plus the open-source release",
+      "proposed": false,
+      "gates": [
+        {
+          "name": "Server key rotation",
+          "tasks": [
+            "Replace the placeholder postgres certificate Secrets",
+            "Read every secret through the resolver, starting with the KEK, so cloud secret references work",
+            "KMS key provider for the KEK and the Line and access signing keys",
+            "Pin a root key in Agents so server key certificates take effect",
+            "Run a live rotation end to end"
+          ]
+        },
+        {
+          "name": "Production hosting on GCP",
+          "tasks": [
+            "Move production off the VPS to GCP (waiting on cloud credits)",
+            "GCP environments, hosts and terraform",
+            "A god release per environment, so stage and prod have an admin surface"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "date": "2027-06-07",
+      "bump": "minor",
+      "phase": "ga",
+      "title": "First net-new features",
+      "proposed": true
+    }
+  ],
+  "pillars": [
+    {
+      "id": "line",
+      "name": "Line",
+      "summary": "The one protocol every Agent, server and browser speaks.",
+      "description": "Line (Logically Interconnected Neural-Engine) is how Agents reach the server and each other. Every hop is sealed, and Agent-to-Agent traffic is sealed end to end, so the server relays what it cannot read. It is one frame envelope with request and reply, per-capability flow control and guaranteed delivery, and it builds under TinyGo, so the same Agent code runs in a browser. Everything else on this roadmap travels over it."
+    },
+    {
+      "id": "mesh",
+      "name": "Mesh",
+      "summary": "The Agents a customer runs, one mode each, and what each one is for.",
+      "description": "The Mesh is the customer's own Agents. One binary runs in one of several modes, and each mode is a job with its own tools: filter DNS, proxy package installs, enforce an editor policy, steward a database. Agents run on the customer's machines, in their cluster or in a browser tab, and they do the org's work against the outside world, so the server never holds the org's credentials. Every Mesh item is one mode.",
+      "modes": [
+        {
+          "mode": "dns_proxy",
+          "used_for": "Filters DNS against the Armory's threat cache and records every block with its reason",
+          "item": "dns-relay"
+        },
+        {
+          "mode": "supply_chain_proxy",
+          "used_for": "Proxies package installs from npm, PyPI and other registries and blocks known-bad packages",
+          "item": "package-relay"
+        },
+        {
+          "mode": "editor",
+          "used_for": "Inventories editor extensions and AI coding tools and enforces the org's policy on them",
+          "item": "editor-policy"
+        },
+        {
+          "mode": "language",
+          "used_for": "Runs model reasoning on the customer's own models, or through a person over the Agent bridge",
+          "item": "agent-bridge"
+        },
+        {
+          "mode": "hardened_agent",
+          "used_for": "Runs untrusted work, such as installing a suspicious dependency, in a throwaway sandbox",
+          "item": "hardened-ci-runner"
+        },
+        {
+          "mode": "browser",
+          "used_for": "A WebAssembly Agent hosted by a page",
+          "item": "browser-protection"
+        },
+        {
+          "mode": "model_steward",
+          "used_for": "Sits beside the customer's database and reports its schema and drift",
+          "item": "data-steward"
+        },
+        {
+          "mode": "codebase_analysis",
+          "used_for": "Scans the org's repos for every dependency and the vendor behind it"
+        },
+        {
+          "mode": "vendor_management",
+          "used_for": "Third-party vendor risk"
+        },
+        {
+          "mode": "docs_sync",
+          "used_for": "Keeps the docs editor in sync with the org's repo and opens its pull requests"
+        },
+        {
+          "mode": "momus",
+          "used_for": "Watches the security program and says when something needs a person",
+          "item": "momus-alerting"
+        },
+        {
+          "mode": "posture",
+          "used_for": "Security-posture checks, such as the CIS Kubernetes benchmark",
+          "item": "posture"
+        },
+        {
+          "mode": "dmarc_reports",
+          "used_for": "Collects DMARC aggregate reports for the org's email domains",
+          "item": "dmarc"
+        }
+      ]
+    },
+    {
+      "id": "armory",
+      "name": "Armory",
+      "summary": "Armornet's threat intelligence and research, from listening for threats to a verdict on a package or vendor.",
+      "description": "The Armory is the machine-learning and AI analysis of the software supply chain, run by research Agents at scale. It listens: threat feeds, forks of the projects customers depend on, and new versions of their dependencies. It judges: suspicious packages run in a sandbox and get a multi-model verdict. And it publishes what it finds as indicators every Agent enforces. Customers meet it through Vendor Intelligence, Package Monitoring and Sandbox review; the research network under them is worked on the whole time."
+    },
+    {
+      "id": "open-source/products",
+      "name": "Open source: products",
+      "ga_exception": true,
+      "summary": "The packages Armornet publishes under Apache 2.0, one item each.",
+      "description": "The first release open-sources everything Armornet is built on, so each published package is a product in its own right: Showcase (with Breach), the Identity Library, the Database Manager and the OTA updater. Each is its own module with no armornet imports, published by git subtree. Net-new work is allowed here before 1.0. The relay proxies and the network stay closed."
+    },
+    {
+      "id": "open-source/initiatives",
+      "name": "Open source: initiatives",
+      "ga_exception": true,
+      "summary": "Work Armornet does for the open-source projects it and its customers depend on.",
+      "description": "Open source is how Armornet earns trust with the communities it depends on: real, free work that helps maintainers keep up, not only work that benefits Armornet. The Armory already watches these projects; these initiatives turn what it sees into contributions. A person always reviews and opens anything that reaches upstream."
+    },
+    {
+      "id": "engine",
+      "name": "Engine",
+      "summary": "The console workflows and rollout that bind the pillars together.",
+      "description": "Product work that is no Agent mode, no Armory research and no published package: getting Agents onto every machine, and the console workflows a security team runs day to day, such as risk, controls, policies and documents. These are what a buyer sees in a demo, and most of them read what the Mesh and the Armory produce."
+    }
+  ],
+  "items": [
+    {
+      "id": "armory/package-monitoring",
+      "pillar": "armory",
+      "name": "Package Monitoring",
+      "surface": "Codebase page",
+      "release": "0.2.0",
+      "status": "partial",
+      "depends_on": [
+        "armory/research-network"
+      ],
+      "summary": "See every dependency their repos pull in and who publishes it, and when a package goes bad, where it came from, what it touched and who else pulled it in, with the indicators published as a feed.",
+      "description": "A codebase scan, run by the org's own Agent through the GitHub App, lists every dependency and names the publisher behind it. A pull-request check flags bad packages before they merge. The open work joins that inventory to what the relays intercept, so a bad package shows its blast radius, and publishes the Armory's package indicators as a feed.",
+      "shipped": [
+        "GitHub App connect and a codebase scan run by the org's Agent",
+        "The publisher behind each dependency, with unattributed packages flagged",
+        "A pull-request check on new dependencies"
+      ],
+      "checklist": [
+        {
+          "name": "Blast radius",
+          "tasks": [
+            "Join interceptions to codebase usage and the vendor, so a bad package shows where it came from and who pulled it in"
+          ]
+        },
+        {
+          "name": "Package threat-indicator feed"
+        },
+        {
+          "name": "Pull-request gate controls",
+          "tasks": [
+            "An operator setting that moves a repo's gate from advisory to enforcing",
+            "Name the installation in the GitHub claim record"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "armory/research-network",
+      "pillar": "armory",
+      "name": "Armory Research Network",
+      "surface": "intelligence mode",
+      "release": "continuous",
+      "status": "partial",
+      "depends_on": [
+        "armory/sandbox-review"
+      ],
+      "summary": "Get sharper verdicts on every package and vendor from research Agents that watch the supply chain at scale, improved the whole way to 1.0 and past it.",
+      "description": "This is the Armory itself: research Agents bound to no org that listen for threats and analyse artifacts. Today the fork monitor and the dependency monitor run, threat feeds are polled and reported to the server, and detections flow through a composable pipeline. The open work connects it end to end, so a finding about a package is stored once and every org that depends on it sees it. No release is cut on it; it runs across all of them.",
+      "shipped": [
+        "Fork and dependency monitors on the projects customers depend on",
+        "Threat feeds polled and reported to the server",
+        "A composable threat-analysis pipeline"
+      ],
+      "checklist": [
+        {
+          "name": "Armory to server",
+          "tasks": [
+            "Ship Armory events to the server as indicators, as threatrelay already does",
+            "Answer questions from other Agents, or drop the claim"
+          ]
+        },
+        {
+          "name": "Research at scale",
+          "tasks": [
+            "Research Agents bound to no org draw artifacts from the research queue",
+            "Findings stored once per artifact and version",
+            "Each org reads findings for its own dependencies only"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "armory/sandbox-review",
+      "pillar": "armory",
+      "name": "Sandbox review of suspicious dependencies",
+      "surface": "hardened_agent mode",
+      "release": "0.4.0",
+      "status": "partial",
+      "summary": "Have a flagged dependency run and reviewed in a throwaway sandbox, with a multi-model verdict, before anyone installs it.",
+      "description": "When the Armory flags a package, the hardened Agent installs it in a sandbox and runs four passes: SBOM and CVEs, static rules, a trace of what the install actually does, and a model review. Several models argue opposing stances and their verdicts combine by majority, quorum or weighted vote. Judging a dependency is Armory work, even though the hardened Agent runs it.",
+      "shipped": [
+        "Multi-model verdicts by majority, quorum or weighted vote"
+      ],
+      "checklist": [
+        {
+          "name": "Four passes end to end",
+          "tasks": [
+            "Confirm each pass runs end to end and finish any that do not",
+            "Fail or flag a run whose trace pass was skipped"
+          ]
+        },
+        {
+          "name": "Runs in the sandbox runner",
+          "tasks": [
+            "Run the review inside the agent-sandbox runner",
+            "Sandbox operations as tools any Agent can call"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "armory/vendor-intelligence",
+      "pillar": "armory",
+      "name": "Vendor Intelligence",
+      "surface": "Vendors pages",
+      "release": "0.1.0",
+      "status": "partial",
+      "depends_on": [
+        "armory/research-network",
+        "armory/package-monitoring"
+      ],
+      "summary": "Know every vendor they rely on and which repos use its packages, send each one a weighted assessment it answers with evidence, and get alerted when one they use is compromised.",
+      "description": "Vendors come into the register by hand, by import, or found in the codebase by the packages they publish. Each one can be sent an assessment: the vendor signs in by magic link, answers with evidence, and the answers are scored against weighted questions. The open work is the vendor's side of that loop, evidence, and connecting the Armory so a vendor's risk reflects what it actually ships and an alert fires when it is compromised.",
+      "shipped": [
+        "A vendor register, typed in, imported or found from the codebase",
+        "Weighted assessments, sent to a vendor who signs in by magic link"
+      ],
+      "checklist": [
+        {
+          "name": "Vendors answer",
+          "tasks": [
+            "The respondent fill flow, so a vendor answers after magic-link sign-in",
+            "Live co-editing completion, with the roster and comments",
+            "Assessment writes scoped to the org"
+          ]
+        },
+        {
+          "name": "Evidence collection",
+          "tasks": [
+            "File upload for evidence",
+            "Evidence produced by Agents, such as scan reports and interceptions, in the evidence list"
+          ]
+        },
+        {
+          "name": "Control alignment",
+          "tasks": [
+            "Per-question control claims in the assessment workspace",
+            "Control coverage for a vendor assessment"
+          ]
+        },
+        {
+          "name": "Risk from real usage",
+          "tasks": [
+            "Keep vendor-to-repo usage from scan reports and show it on the vendor record",
+            "Feed that usage into the vendor's risk"
+          ]
+        },
+        {
+          "name": "Vendor watch",
+          "tasks": [
+            "Turn threat-feed events into alerts on the vendors a customer uses"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "engine/compliance-sync",
+      "pillar": "engine",
+      "name": "Evidence sync to Vanta and Drata",
+      "surface": "Integrations page",
+      "release": "parked",
+      "status": "missing",
+      "summary": "Send Armornet findings and evidence into their own Vanta or Drata account.",
+      "description": "An Agent tool per platform that pushes evidence the console already holds."
+    },
+    {
+      "id": "engine/docs-editor",
+      "pillar": "engine",
+      "name": "Docs editor",
+      "surface": "Docs page",
+      "release": "shipped",
+      "status": "built",
+      "summary": "Write policy documents from templates with a live preview, and have their own Agent open the pull request when they save.",
+      "description": "Policy documents are laid out from templates and can cite controls. Saving queues the edit, and the org's docs_sync Agent opens the pull request against the org's repo, so the server never holds the org's GitHub credentials.",
+      "shipped": [
+        "Policy documents from templates, with live preview",
+        "Saving opens a pull request through the org's own Agent",
+        "Documents that cite controls"
+      ]
+    },
+    {
+      "id": "engine/endpoint-rollout",
+      "pillar": "engine",
+      "name": "Endpoint rollout",
+      "surface": "Installer",
+      "release": "0.3.0",
+      "status": "partial",
+      "summary": "Push Agents to every machine through Jamf, Intune, SCCM or another MDM, or a script or standalone installer.",
+      "description": "One Agent binary carries every mode. The installer serves only verified artifacts from the same signed pipeline the OTA updater uses. The open work is the rollout a security team actually runs: MDM packages with a guide for each, and any version, not only the dev channel, served from verified bytes.",
+      "shipped": [
+        "One Agent binary, every mode, installed from verified artifacts"
+      ],
+      "checklist": [
+        {
+          "name": "MDM rollout",
+          "tasks": [
+            ".pkg and .msi packages",
+            "A rollout guide per MDM, or cut the MDM names from the copy"
+          ]
+        },
+        {
+          "name": "Latest and pinned versions served from the verified store, with no GitHub redirect"
+        },
+        {
+          "name": "One published list of Agent modes",
+          "tasks": [
+            "Reconcile the public \"17 agent types\" with the declared modes and publish one list"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "engine/fedramp-ksi",
+      "pillar": "engine",
+      "name": "FedRAMP KSI alignment",
+      "surface": "Risk & Controls pages",
+      "release": "parked",
+      "status": "missing",
+      "depends_on": [
+        "engine/risk-and-controls"
+      ],
+      "summary": "See their Armornet evidence mapped to FedRAMP Key Security Indicators, starting with Class A.",
+      "description": "A framework module on the control catalog, for the federal path."
+    },
+    {
+      "id": "engine/mssp-console",
+      "pillar": "engine",
+      "name": "Multi-tenant MSSP console",
+      "surface": "MSSP console",
+      "release": "parked",
+      "status": "missing",
+      "summary": "Run relays and monitoring across many customer orgs from one console.",
+      "description": "For managed security providers who operate Armornet on behalf of their clients."
+    },
+    {
+      "id": "engine/policy-training",
+      "pillar": "engine",
+      "name": "Training generated from their policies",
+      "surface": "Training pages",
+      "release": "parked",
+      "status": "missing",
+      "summary": "Get assessments and video training generated from their own policies and procedures.",
+      "description": "Reads the org's ingested policies and produces training and a check that people read them."
+    },
+    {
+      "id": "engine/risk-and-controls",
+      "pillar": "engine",
+      "name": "Risk and controls",
+      "surface": "Risk & Controls pages",
+      "release": "0.3.0",
+      "status": "partial",
+      "depends_on": [
+        "armory/vendor-intelligence"
+      ],
+      "summary": "Bring in their risk register and policies, map each control once and see it satisfied across frameworks and vendor assessments, and tune risk against live Armornet data.",
+      "description": "The control catalog is live: controls, frameworks, and claims from every artifact that satisfies one. A risk register imports from a spreadsheet with AI mapping its columns. The open work maps a control once across frameworks, pulls policies in from where the org keeps them, and fills the fields the mapping cannot.",
+      "shipped": [
+        "Control catalog with claims from every artifact that satisfies a control",
+        "Risk register import, with AI mapping the columns"
+      ],
+      "checklist": [
+        {
+          "name": "Framework crosswalk",
+          "tasks": [
+            "Seed the official crosswalks",
+            "A view that shows one control across frameworks"
+          ]
+        },
+        {
+          "name": "Policy ingestion",
+          "tasks": [
+            "Google Drive ingestion as an Agent tool",
+            "OneDrive and SharePoint ingestion as an Agent tool"
+          ]
+        },
+        {
+          "name": "Agent fallback for register fields the mapping cannot fill"
+        }
+      ]
+    },
+    {
+      "id": "engine/tracker-sync",
+      "pillar": "engine",
+      "name": "Jira, Trello and Linear sync",
+      "surface": "Integrations page",
+      "release": "parked",
+      "status": "partial",
+      "summary": "Send findings to the tracker their team already uses, and build a roadmap from it.",
+      "description": "Linear and GitHub Issues clients exist. Sync runs on the org's Agent as tools, never as a server-side client, and the console reads what the Agent last synced.",
+      "checklist": [
+        {
+          "name": "Jira and Trello as Agent tools"
+        },
+        {
+          "name": "Move the existing clients onto the org's Agent"
+        }
+      ]
+    },
+    {
+      "id": "engine/training-video",
+      "pillar": "engine",
+      "name": "Training video delivery",
+      "surface": "Training pages",
+      "release": "parked",
+      "status": "missing",
+      "summary": "Watch Armornet training video, bought through the Armornet site.",
+      "description": "Training video served through YouTube Premium."
+    },
+    {
+      "id": "line/line",
+      "pillar": "line",
+      "name": "Line",
+      "surface": "line/ package",
+      "release": "0.2.0",
+      "status": "built",
+      "summary": "Connect Agents to the server and to each other over one protocol, sealed end to end so the server cannot read it, and build their own Agent on the published Line package.",
+      "description": "Line is already the only way Agents talk to Armornet. It finds Agents by label, sets up direct Agent-to-Agent links, and lets one Agent ask another for a verdict. This item finishes it as a product: the guarantees it claims are tested, and the package is published so a customer or a third party can build an Agent on it without armornet.",
+      "shipped": [
+        "Agents connect to the server over Line, and every hop is sealed",
+        "Agent-to-Agent traffic sealed end to end, so the server relays what it cannot read",
+        "Agents find each other by label and open direct links",
+        "Verdicts over Line - the server asks each Agent for its verdict, a peer can supply the model, and the reasoning shows in the mesh drawer",
+        "The same Agent runs inside a web page (Breach's game client is one)"
+      ],
+      "checklist": [
+        {
+          "name": "Delivery guarantees, proven",
+          "tasks": [
+            "Replace the remaining hand-rolled acks with Line's own delivery",
+            "Tests for exactly-once, in-order replay and per-capability flow control"
+          ]
+        },
+        {
+          "name": "Browser runtime in CI",
+          "tasks": [
+            "Run the TinyGo size test in CI"
+          ]
+        },
+        {
+          "name": "Line package, published",
+          "tasks": [
+            "Own go.mod, Apache LICENSE and README",
+            "Publish by subtree, like ota and dbmgr"
+          ]
+        },
+        {
+          "name": "Sealing reviewed outside the team",
+          "tasks": [
+            "Confirm end-to-end sealing is on by default",
+            "An outside review of the key hierarchy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mesh/agent-bridge",
+      "pillar": "mesh",
+      "name": "Agent bridge",
+      "surface": "language mode",
+      "release": "0.3.0",
+      "status": "partial",
+      "summary": "Run an Agent with no model API key: a person, or Claude Code, answers for its model, or it reasons on models and credits the customer already pays for.",
+      "description": "Every Agent that reasons needs a model. The language mode can use Anthropic, OpenAI, Ollama, Hugging Face or another Agent over Line, so sensitive material is analysed inside the customer's environment on their own models. The bridge goes further: the model is a person, or a Claude Code session on their machine, answering the Agent's questions as they arrive. The open work makes the bridge safe to hand to a customer.",
+      "shipped": [
+        "An Agent runs with a person or Claude Code answering for its model",
+        "Analysis on the customer's own model providers"
+      ],
+      "checklist": [
+        {
+          "name": "Bridge ready for customers",
+          "tasks": [
+            "Show in the console who answered for the Agent",
+            "Screen what the bridge sends out",
+            "Fail fast when a claimed question is abandoned",
+            "Install the bridge skill with the Agent"
+          ]
+        },
+        {
+          "name": "Supported model providers",
+          "tasks": [
+            "Publish which customer model providers are supported today"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mesh/browser-protection",
+      "pillar": "mesh",
+      "name": "Browser protection",
+      "surface": "browser mode",
+      "release": "0.5.0",
+      "status": "partial",
+      "depends_on": [
+        "line/line"
+      ],
+      "summary": "Have a browser Agent warn before anyone acts on a malicious page, and share that detection with their other Agents.",
+      "description": "The browser mode is a full Agent compiled to WebAssembly and hosted by a page, on the same Line core as every other Agent. Today it runs Breach's game client. This item gives it a job: inspect the page someone is on, warn before they act on a malicious one, and tell the org's other Agents what it saw.",
+      "checklist": [
+        {
+          "name": "Detect a bad page in the browser Agent"
+        },
+        {
+          "name": "Share the detection with other Agents over Line"
+        }
+      ]
+    },
+    {
+      "id": "mesh/data-steward",
+      "pillar": "mesh",
+      "name": "Data Steward",
+      "surface": "model_steward mode",
+      "release": "0.5.0",
+      "status": "partial",
+      "depends_on": [
+        "open-source/products/database-manager"
+      ],
+      "summary": "Run an Agent beside their database that reports its schema and drift and prepares migrations with the Database Manager, so no one else holds the database's credentials.",
+      "description": "The steward is a headless Agent that runs next to the database and is the only thing holding its credentials. It reports the schema over Line, so the console can show it without opening the database. What is left is the other direction: preparing migrations with the open-source Database Manager.",
+      "shipped": [
+        "Schema reports from beside the database, over Line"
+      ],
+      "checklist": [
+        {
+          "name": "Migration preparation with the Database Manager"
+        }
+      ]
+    },
+    {
+      "id": "mesh/dmarc",
+      "pillar": "mesh",
+      "name": "DMARC reports",
+      "surface": "dmarc_reports mode",
+      "release": "parked",
+      "status": "partial",
+      "summary": "See whether mail sent as their domains passes DMARC, from the aggregate reports.",
+      "description": "The DMARC mode drains a folder of aggregate reports and sends the results to the server. Parked 2026-10-01 with posture and Momus.",
+      "shipped": [
+        "An Agent parses DMARC aggregate reports and stores them encrypted per org"
+      ],
+      "checklist": [
+        {
+          "name": "A console page for DMARC results"
+        },
+        {
+          "name": "A mailbox tool, so reports need no cron fetchmail"
+        },
+        {
+          "name": "Public-suffix lookup for the organisational domain"
+        }
+      ]
+    },
+    {
+      "id": "mesh/dns-relay",
+      "pillar": "mesh",
+      "name": "DNS relay",
+      "surface": "dns_proxy mode",
+      "release": "0.1.0",
+      "status": "partial",
+      "summary": "Filter DNS through an Agent, or with nothing installed by pointing a network's DNS at Armornet, and review every block with its reason.",
+      "description": "The DNS mode answers a machine's or network's lookups and sinkholes domains the Armory has flagged. Every block lands in the interceptions history with its reason, and that history is evidence a control is working. The open work is the agentless half: a school or a small business points its DNS at Armornet and gets the same filtering with nothing installed.",
+      "shipped": [
+        "An Agent filters DNS against the Armory's threat cache",
+        "Block history, with the reason for each block"
+      ],
+      "checklist": [
+        {
+          "name": "DNS without an Agent",
+          "tasks": [
+            "Attribute a query to an org with no Agent (a per-org resolver address or DoH path)",
+            "Signup and setup for a school or a small business"
+          ]
+        },
+        {
+          "name": "Live reconfiguration",
+          "tasks": [
+            "DNS rule reconcile and engine-level knobs"
+          ]
+        },
+        {
+          "name": "Blocks as evidence",
+          "tasks": [
+            "Decide whether allow decisions are kept, and store them if they are",
+            "Link interceptions into the evidence list so they can prove a control"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mesh/editor-policy",
+      "pillar": "mesh",
+      "name": "Editor and AI-tool policy",
+      "surface": "editor mode",
+      "release": "0.1.0",
+      "status": "partial",
+      "summary": "See which editor extensions and AI coding tools developers run, start from a baseline built on what they already use, and block what falls outside it.",
+      "description": "The editor mode inventories VS Code and Cursor extensions and Claude Code configuration on each developer machine, then keeps re-asserting the org's policy so a developer cannot quietly undo it. The console shows the inventory, findings and a preview of the compiled policy. What is left is the starting point: a baseline generated from what people already run, so day one is not a blank policy.",
+      "shipped": [
+        "Inventory of editor extensions and AI coding tools per machine",
+        "Enforced policy for VS Code, Cursor and Claude Code"
+      ],
+      "checklist": [
+        {
+          "name": "Baseline policy generated from what developers already run"
+        },
+        {
+          "name": "One supported-editor list",
+          "tasks": [
+            "Settle which editors are supported today; three docs give three lists"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mesh/hardened-ci-runner",
+      "pillar": "mesh",
+      "name": "Hardened CI runner",
+      "surface": "hardened_agent mode",
+      "release": "0.4.0",
+      "status": "missing",
+      "ga_exception": true,
+      "summary": "Run their CI jobs on a hardened runner driven by the Armornet CLI and API.",
+      "description": "The hardened mode already runs untrusted work in a throwaway sandbox for the Armory's dependency review. This item points the same isolation at the customer's own CI: their jobs run on a runner where an install script or a poisoned dependency cannot reach secrets or persist. It is net-new, and allowed before 1.0 by founder decision."
+    },
+    {
+      "id": "mesh/momus-alerting",
+      "pillar": "mesh",
+      "name": "Alerting (Momus)",
+      "surface": "momus mode",
+      "release": "parked",
+      "status": "partial",
+      "summary": "Get told in Slack, email or their own channel when something in the program needs a person.",
+      "description": "Momus watches the security program and sends an alert when something is off. Parked 2026-10-01 with posture and DMARC.",
+      "shipped": [
+        "Alerts to Slack and the org's notification path"
+      ],
+      "checklist": [
+        {
+          "name": "Email delivery, or drop email from the copy"
+        }
+      ]
+    },
+    {
+      "id": "mesh/oauth-protection",
+      "pillar": "mesh",
+      "name": "OAuth protection",
+      "surface": "browser mode",
+      "release": "parked",
+      "status": "missing",
+      "summary": "Catch risky OAuth grants where they are issued and used, without Armornet ever holding anyone's keys.",
+      "description": "The browser Agent watches consent screens, dev-side Agents find exposed client secrets and loose app registrations, and the org's Agent keeps an encrypted inventory of which app holds which scopes for whom.",
+      "checklist": [
+        {
+          "name": "Consent-screen warnings for over-broad scopes, unverified apps and odd redirect URIs"
+        },
+        {
+          "name": "Client secrets and tokens found in repos and environments"
+        },
+        {
+          "name": "Grant inventory pulled from Google and Microsoft admin APIs, stored encrypted"
+        },
+        {
+          "name": "Short-lived tokens minted just in time through the identity-aware proxy"
+        }
+      ]
+    },
+    {
+      "id": "mesh/package-relay",
+      "pillar": "mesh",
+      "name": "Package relay",
+      "surface": "supply_chain_proxy mode",
+      "release": "shipped",
+      "status": "built",
+      "summary": "Route package installs through an Agent that blocks known-bad packages before they reach a developer's machine or a build.",
+      "description": "The package relay sits between developers or CI and the public registries. It checks each install against the Armory's indicators and refuses the bad ones, and every refusal shows in the interceptions history. It has no open work; what it learns about a package feeds Package Monitoring in the Armory.",
+      "shipped": [
+        "Package installs proxied through an Agent, with known-bad packages blocked"
+      ]
+    },
+    {
+      "id": "mesh/posture",
+      "pillar": "mesh",
+      "name": "Posture checks",
+      "surface": "posture mode",
+      "release": "parked",
+      "status": "partial",
+      "summary": "See posture findings for Kubernetes and Agent hosts from their own Agents.",
+      "description": "The posture mode runs the CIS Kubernetes benchmark from inside the customer's cluster and the console shows the result per node. Parked 2026-10-01 with DMARC and Momus.",
+      "shipped": [
+        "CIS Kubernetes benchmark from inside the cluster, per node"
+      ],
+      "checklist": [
+        {
+          "name": "Posture for Agent hosts beyond Kubernetes, or a decision that posture is Kubernetes only"
+        }
+      ]
+    },
+    {
+      "id": "open-source/initiatives/cncf-submission",
+      "pillar": "open-source/initiatives",
+      "name": "CNCF landscape submission",
+      "surface": "Identity Library",
+      "release": "later",
+      "status": "missing",
+      "depends_on": [
+        "open-source/products/identity"
+      ],
+      "summary": "Find the Identity Library on the CNCF landscape, beside the projects it builds on.",
+      "description": "Submit the published identity layer to the CNCF landscape. The relay proxies stay closed, so the submission covers identity only.",
+      "checklist": [
+        {
+          "name": "Submit the Identity Library once it is published"
+        }
+      ]
+    },
+    {
+      "id": "open-source/initiatives/upstream-contribution-program",
+      "pillar": "open-source/initiatives",
+      "name": "Upstream contribution program",
+      "surface": "GitHub and maintainer relationships",
+      "release": "continuous",
+      "status": "missing",
+      "summary": "See Armornet send real, free fixes to the open-source projects they depend on, each reviewed and opened by a person.",
+      "description": "The community side of upstream fix drafts. Armornet contributes meaningful fixes to the projects it and its customers depend on, to help maintainers keep up with AI-generated change, not only work that benefits Armornet. It is meant to be selfless, and it needs funding. It runs the whole time rather than shipping in one release.",
+      "checklist": [
+        {
+          "name": "Pick the first projects and the maintainers to work with"
+        },
+        {
+          "name": "Fund the program"
+        },
+        {
+          "name": "A public record of what was contributed"
+        }
+      ]
+    },
+    {
+      "id": "open-source/initiatives/upstream-fix-drafts",
+      "pillar": "open-source/initiatives",
+      "name": "Upstream fix drafts",
+      "surface": "Armory and a fix-drafting Agent",
+      "release": "0.4.0",
+      "status": "missing",
+      "depends_on": [
+        "armory/research-network",
+        "armory/sandbox-review"
+      ],
+      "summary": "Receive a drafted upstream fix for a vulnerable dependency, ready for a person to review and open as a PR.",
+      "description": "The Armory's dependency monitor watches the projects Armornet and its customers depend on. When one has a fixable vulnerability, an Agent drafts the fix in a fork and it waits in a review queue. A person reviews it and opens the upstream PR; nothing reaches upstream without that step.",
+      "checklist": [
+        {
+          "name": "Pick a candidate from the Armory's dependency watch"
+        },
+        {
+          "name": "An Agent drafts the fix in a fork"
+        },
+        {
+          "name": "Human review queue",
+          "tasks": [
+            "A queue a person works through, who opens the upstream PR",
+            "The server queues the propose command and stores the PR it returns"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "open-source/products/breach-insider-threat",
+      "pillar": "open-source/products",
+      "name": "Breach insider-threat game",
+      "surface": "Breach",
+      "release": "parked",
+      "status": "missing",
+      "depends_on": [
+        "open-source/products/showcase"
+      ],
+      "summary": "Play a lighter Breach variant where players hunt an imposter using clues.",
+      "description": "A shorter Breach variant built around an insider among the players."
+    },
+    {
+      "id": "open-source/products/breach-phishing",
+      "pillar": "open-source/products",
+      "name": "Breach: Phishing",
+      "surface": "Breach",
+      "release": "parked",
+      "status": "missing",
+      "depends_on": [
+        "open-source/products/showcase"
+      ],
+      "summary": "Play a second Breach title where teams phish each other or find evidence of phishing.",
+      "description": "A new Breach title on the same engine, aimed at phishing awareness."
+    },
+    {
+      "id": "open-source/products/database-manager",
+      "pillar": "open-source/products",
+      "name": "Database Manager",
+      "surface": "ArmornetIO/dbmgr",
+      "release": "0.5.0",
+      "status": "built",
+      "summary": "Run schema migrations under Agent control with the published Database Manager, under Apache 2.0.",
+      "description": "dbmgr is a generic Postgres state manager: migrations, a declared resource model, and a schema console. It knows nothing about armornet, which supplies its own migrations. The Data Steward Agent uses it to prepare migrations beside the customer's database.",
+      "shipped": [
+        "Published Database Manager with a declared resource model"
+      ],
+      "checklist": [
+        {
+          "name": "A more generic API, so it fits more projects than armornet"
+        }
+      ]
+    },
+    {
+      "id": "open-source/products/identity",
+      "pillar": "open-source/products",
+      "name": "Identity",
+      "surface": "identity/ module",
+      "release": "0.2.0",
+      "status": "partial",
+      "summary": "Sign in with Google or SSO from outside the company domain, put that sign-in in front of the relay's proxies, and reuse the published Identity Library.",
+      "description": "The Identity Library is Armornet's identity and access layer for people and machines, Agents included, on Dex and OpenFGA. It is a strong-auth broker, not an identity provider, and it stores no personal data. Every request runs one decision pipeline that is recorded. The open work closes the gaps an enterprise buyer will check, puts the identity-aware proxy in front of real destinations, and publishes the library.",
+      "shipped": [
+        "Sign-up and sign-in with Google from outside the company domain",
+        "One recorded authorization decision for every request",
+        "Sign-in in front of the operator access path"
+      ],
+      "checklist": [
+        {
+          "name": "Identity-aware proxy",
+          "tasks": [
+            "Wire the proxy in front of a destination",
+            "Per-destination policy"
+          ]
+        },
+        {
+          "name": "Sign-in completion",
+          "tasks": [
+            "Logged-out state handled correctly",
+            "Show a failed access request to the person who filed it",
+            "An operator screen for the access-request queue",
+            "Sessions declared in the retention policy"
+          ]
+        },
+        {
+          "name": "Decision record completion",
+          "tasks": [
+            "Record unauthenticated refusals",
+            "A way to read the decision record by subject and by resource"
+          ]
+        },
+        {
+          "name": "Revoke tokens when their owner leaves the org"
+        },
+        {
+          "name": "Authn and authz services a second host can use without copying armornet's assembly"
+        },
+        {
+          "name": "Identity Library, published",
+          "tasks": [
+            "Rename the module to its public path and publish by subtree"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "open-source/products/ota-updater",
+      "pillar": "open-source/products",
+      "name": "OTA updater",
+      "surface": "ArmornetIO/ota",
+      "release": "0.1.0",
+      "status": "partial",
+      "summary": "Have every installed Agent update itself in place from signed releases, using the OTA updater, open-sourced as its own repo.",
+      "description": "The updater checks for a signed offer, verifies it, swaps the binary and restarts the service under systemd, launchd or Task Scheduler. It is six modules with no armornet imports, and the installer serves its verified artifacts too. The open work is one signed release proven end to end on every platform, and pushing the repo public.",
+      "shipped": [
+        "Agents update themselves from signed releases"
+      ],
+      "checklist": [
+        {
+          "name": "One signed release installed and updated end to end"
+        },
+        {
+          "name": "Platforms",
+          "tasks": [
+            "A macOS run in CI",
+            "Run Windows in CI, or take it out of scope"
+          ]
+        },
+        {
+          "name": "Push ota/ to ArmornetIO/ota by subtree"
+        }
+      ]
+    },
+    {
+      "id": "open-source/products/owasp-decks",
+      "pillar": "open-source/products",
+      "name": "OWASP decks and assessments",
+      "surface": "Breach",
+      "release": "parked",
+      "status": "missing",
+      "depends_on": [
+        "open-source/products/showcase"
+      ],
+      "summary": "Train on OWASP Top 10, OWASP AI Top 10 and anti-phishing with new Breach decks and structured assessments.",
+      "description": "New Breach decks, each paired with an assessment, that turn the game into training."
+    },
+    {
+      "id": "open-source/products/showcase-brand-ingestion",
+      "pillar": "open-source/products",
+      "name": "Showcase brand ingestion",
+      "surface": "Showcase",
+      "release": "parked",
+      "status": "missing",
+      "depends_on": [
+        "open-source/products/showcase"
+      ],
+      "summary": "Point Showcase at their website and have it adopt their brand styles.",
+      "description": "Reads a site's colours, type and spacing and maps them onto Showcase's design tokens."
+    },
+    {
+      "id": "open-source/products/showcase",
+      "pillar": "open-source/products",
+      "name": "Showcase",
+      "surface": "ArmornetIO/showcase",
+      "release": "0.2.0",
+      "status": "partial",
+      "depends_on": [
+        "line/line"
+      ],
+      "summary": "Build on the published Showcase UI library and its app composition engine, and play Breach, the supply-chain CTF built on it, with its source under Apache 2.0.",
+      "description": "Showcase is the Svelte 5 component library the whole product is built from, and it is already public. Its composition engine assembles several apps behind one front door from a manifest. Breach, the supply-chain card game, ships inside it and its game client is a live Armornet Agent in the browser. The open work is publishing the composition engine cleanly and taking Breach from play-test to finished.",
+      "shipped": [
+        "Showcase published, about 85 components",
+        "Breach playable by anyone, with bots, invitations and an end-game screen"
+      ],
+      "checklist": [
+        {
+          "name": "Composition engine, published",
+          "tasks": [
+            "Apache LICENSE in compose, or say it inherits showcase's",
+            "Fix the build profile glob"
+          ]
+        },
+        {
+          "name": "Breach play-test fixes",
+          "tasks": [
+            "Attribution click, toolbar and buttons",
+            "Logged-out players handled correctly",
+            "Table and socket connection errors",
+            "Show the reason when a player is refused a seat"
+          ]
+        },
+        {
+          "name": "Breach source decision",
+          "tasks": [
+            "Decide whether open-source Breach includes the rules and server; if so, split them into their own module"
+          ]
+        },
+        {
+          "name": "One dressing surface for Breach figures"
+        }
+      ]
+    }
+  ]
+}

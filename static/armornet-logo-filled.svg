@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -0.66 26 26" width="512" height="512" role="img" aria-labelledby="t">
+	<title id="t">Armornet</title>
+	<defs>
+		<mask id="cut" maskUnits="userSpaceOnUse" x="-4" y="-4" width="32" height="32">
+			<rect x="-4" y="-4" width="32" height="32" fill="#fff" />
+			<path d="M9.25 4.42 L9.25 4.9 L14.75 4.9 L14.75 4.42 L19.05 5.43 L19.05 11.08 L19 12.13 L18.85 13.09 L18.61 13.99 L18.27 14.84 L17.83 15.65 L17.29 16.43 L16.64 17.19 L15.86 17.92 L14.97 18.62 L13.96 19.31 L12.81 19.98 L12 20.4 L11.19 19.98 L10.04 19.31 L9.03 18.62 L8.14 17.92 L7.36 17.19 L6.71 16.43 L6.17 15.65 L5.73 14.84 L5.39 13.99 L5.15 13.09 L5 12.13 L4.95 11.08 L4.95 5.43 Z" fill="none" stroke="#000" stroke-width="0.4" />
+			<g transform="translate(-1.8 -4.3) scale(1.15)" fill="none" stroke="#000" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M12 11 L8 14M12 11 L16 14M12 11 L12 16.5" />
+				<circle cx="8" cy="14" r="1" />
+				<circle cx="16" cy="14" r="1" />
+				<circle cx="12" cy="16.5" r="1" />
+				<circle cx="12" cy="11" r="1.3" fill="#000" />
+			</g>
+		</mask>
+	</defs>
+	<path d="M10.3 3.1 L10.3 3.85 L13.7 3.85 L13.7 3.1 L20.1 4.6 L20.1 11.11 C20.1 15.73 17.52 18.92 12 21.58 C6.48 18.92 3.9 15.73 3.9 11.11 L3.9 4.6 Z" fill="#5eead4" stroke="#5eead4" stroke-width="0.5" stroke-linejoin="round" mask="url(#cut)" />
+</svg>

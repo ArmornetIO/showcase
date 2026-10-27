@@ -225,6 +225,16 @@ func TestShellIsNotCached(t *testing.T) {
 	}
 }
 
+// Strong, but not `no-referrer`: BREACH reads the stepper's address off the
+// referrer to skip its start screen.
+func TestReferrerStaysOnOrigin(t *testing.T) {
+	set := compose.MustSet(compose.Root(app("console", "/", "index.html")))
+	rec := serveOnce(t, set, oneHostRules, http.MethodGet, "http://x/")
+	if rp := rec.Header().Get("Referrer-Policy"); rp != "same-origin" {
+		t.Errorf("Referrer-Policy = %q, want same-origin", rp)
+	}
+}
+
 // The shell hook must actually run, and run ONCE per app rather than per
 // request — a host that cannot touch index.html cannot ship an SPA that needs
 // anything from the server at boot, and one that pays for the rewrite on every

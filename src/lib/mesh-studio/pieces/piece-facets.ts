@@ -27,8 +27,8 @@ export const PIECE_LIGHT: Vec3 = { x: -0.42, y: -0.5, z: 0.76 };
  *  keep every plane distinct. */
 export function band(lit: number): number {
 	if (lit > 0.62) return 1;
-	if (lit > 0.22) return 0.76;
-	return 0.54;
+	if (lit > 0.22) return 0.86;
+	return 0.7;
 }
 
 /** A visible face.

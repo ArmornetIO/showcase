@@ -356,7 +356,7 @@
         "name": "stripColor",
         "type": "string",
         "optional": true,
-        "description": "`r, g, b`. Defaults are the spider-verse palette's own values.",
+        "description": "`r, g, b`. Defaults are the misregistered palette's own values.",
         "default": "'255, 47, 176'"
       },
       {
@@ -633,6 +633,44 @@
         "optional": true,
         "description": "Px to lift the artboard by, so the SHIELD's centre — not the 200×220\n box's — lands on the host's centre. `0.005784 × size` is what the\n forged cut needs; a scene registers every layer against the same\n point or the light drifts off the thing it is lighting.",
         "default": "0"
+      },
+      {
+        "name": "lite",
+        "type": "boolean",
+        "optional": true,
+        "description": "Drop the three SVG filters. They are the whole per-frame cost of this\n component: `lamp` moves every frame, so the filter region is re-blurred\n every frame, and a phone spends the entire intro doing it.\n What is lost is small because each filter sits on something already\n soft — the streak is a radial gradient that ends at zero, and the bloom\n is a wide low-opacity restatement of strokes that are drawn crisply\n underneath it anyway. What is lost is NOT nothing: the brushed field\n goes, and with it the sense that the face is a material. That is the\n trade, made where the frames are not there to pay for it.",
+        "default": "false"
+      }
+    ],
+    "interfaces": []
+  },
+  "RimLightGl": {
+    "component": "RimLightGl",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "description": "Rendered width, px — the same number `RimLight` is given, meaning the\n 200×220 artboard's fit height.",
+        "default": "470"
+      },
+      {
+        "name": "quads",
+        "type": "RimQuad[]",
+        "optional": false
+      },
+      {
+        "name": "offsetY",
+        "type": "number",
+        "optional": true,
+        "description": "Px to lift the artboard by. Matches `RimLight.offsetY` exactly or the\n light lands off the thing it is lighting.",
+        "default": "0"
+      },
+      {
+        "name": "onfallback",
+        "type": "() => void",
+        "optional": true,
+        "description": "Reported once, when a context could not be had or was lost past its\n grace. The host swaps back to the SVG passes — a canvas that has held a\n `webgl2` context is no use to anyone afterwards, so this is a signal to\n stop rendering THIS element, not to retry it."
       }
     ],
     "interfaces": []
@@ -823,6 +861,35 @@
     ],
     "interfaces": []
   },
+  "Builder": {
+    "component": "Builder",
+    "props": [
+      {
+        "name": "session",
+        "type": "CanvasSessionPort | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "base",
+        "type": "string",
+        "optional": true,
+        "default": "''"
+      },
+      {
+        "name": "pov",
+        "type": "Snippet<[CharacterSkin, string]>",
+        "optional": true
+      },
+      {
+        "name": "maps",
+        "type": "MapDef[]",
+        "optional": true,
+        "default": "[]"
+      }
+    ],
+    "interfaces": []
+  },
   "CanvasContextMenu": {
     "component": "CanvasContextMenu",
     "props": [
@@ -904,6 +971,39 @@
         "type": "(template: BuilderTemplate) => void",
         "optional": true,
         "description": "Apply a template at the canvas centre."
+      },
+      {
+        "name": "items",
+        "type": "PaletteItem[]",
+        "optional": true,
+        "description": "List these instead of the registry."
+      },
+      {
+        "name": "thumb",
+        "type": "Snippet<[string]>",
+        "optional": true,
+        "description": "Draws an `items` card; required with `items`."
+      },
+      {
+        "name": "noun",
+        "type": "string",
+        "optional": true,
+        "description": "What the counter calls the items.",
+        "default": "'COMPONENTS'"
+      },
+      {
+        "name": "dragKey",
+        "type": "string",
+        "optional": true,
+        "description": "The `dataTransfer` key the drop target reads.",
+        "default": "'component-id'"
+      },
+      {
+        "name": "addHint",
+        "type": "string",
+        "optional": true,
+        "description": "What double-click / Enter does, for the card's tooltip.",
+        "default": "'drop it in the middle'"
       }
     ],
     "interfaces": []
@@ -993,6 +1093,68 @@
       {
         "name": "onchange",
         "type": "(key: string, value: unknown) => void",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "Stage3D": {
+    "component": "Stage3D",
+    "props": [
+      {
+        "name": "items",
+        "type": "CanvasItem[]",
+        "optional": false
+      },
+      {
+        "name": "selectedId",
+        "type": "string | null",
+        "optional": false
+      },
+      {
+        "name": "onselect",
+        "type": "(id: string | null) => void",
+        "optional": false
+      },
+      {
+        "name": "onmove",
+        "type": "(id: string, x: number, z: number) => void",
+        "optional": false,
+        "description": "A drag moved an object to this ground point."
+      },
+      {
+        "name": "ondrop",
+        "type": "(subject: string, x: number, z: number) => void",
+        "optional": false,
+        "description": "A palette card was dropped at this ground point."
+      },
+      {
+        "name": "base",
+        "type": "string",
+        "optional": true,
+        "description": "The BREACH map this page was imported from, whose floor it stands on."
+      }
+    ],
+    "interfaces": []
+  },
+  "StoryboardStrip": {
+    "component": "StoryboardStrip",
+    "props": [
+      {
+        "name": "fit",
+        "type": "(box: Box) => void",
+        "optional": false,
+        "description": "Put the camera on a world-space box. The caller knows which chrome\n covers the canvas; the strip does not."
+      }
+    ],
+    "interfaces": []
+  },
+  "StudioPalette": {
+    "component": "StudioPalette",
+    "props": [
+      {
+        "name": "onopen",
+        "type": "(id: string) => void",
         "optional": false
       }
     ],
@@ -1123,16 +1285,6 @@
     "component": "CharacterStudio",
     "props": [
       {
-        "name": "open",
-        "type": "boolean",
-        "optional": false
-      },
-      {
-        "name": "onclose",
-        "type": "() => void",
-        "optional": false
-      },
-      {
         "name": "pov",
         "type": "Snippet<[CharacterSkin, string]>",
         "optional": true,
@@ -1144,6 +1296,12 @@
         "optional": true,
         "description": "What to call it on the toggle.",
         "default": "'First person'"
+      },
+      {
+        "name": "index",
+        "type": "number",
+        "optional": true,
+        "description": "Which character is on the stage. Bindable so 3D mode's palette and the\n studio's own arrows move one selection."
       }
     ],
     "interfaces": []
@@ -1182,6 +1340,12 @@
         "optional": true,
         "description": "Pull back. `1` frames the head; `2` frames twice as much of the world\naround it, so the character is drawn half the size in the same box.\nThe knob that stops a container from deciding how big a character is.\nWithout it the only way to draw a smaller figure was a smaller box —\nwhich is a different picture, not a smaller one — and every surface\nthat wanted a smaller head instead grew a `scale()` transform, an\ninset, or a table of per-character fudges.",
         "default": "1"
+      },
+      {
+        "name": "ground",
+        "type": "string",
+        "optional": true,
+        "description": "The platform the figure stands on, in the caller's colour.\nHere rather than as an ellipse the caller draws under the element,\nbecause the FLOOR is a number only the renderer has: the hero frame\ncarries swing margin below the boots, and a CSS platform aligned to the\nbottom of the box lands under that air instead of under the feet. A\nfigure a finger's width above its own ground is the levitation this\nprop exists to stop."
       },
       {
         "name": "art",
@@ -1336,13 +1500,13 @@
             "name": "y4",
             "type": "number",
             "optional": true,
-            "description": "Box plot: upper whisker / timeline: event end"
+            "description": "Box plot: upper whisker"
           },
           {
             "name": "x1",
             "type": "number | Date",
             "optional": true,
-            "description": "Timeline: event end time"
+            "description": "Swimlane: span end. Absent, the point is a milestone."
           },
           {
             "name": "r",
@@ -1673,6 +1837,32 @@
         ]
       },
       {
+        "name": "SwimlaneLink",
+        "fields": [
+          {
+            "name": "from",
+            "type": "{ lane: string; x: number | Date }",
+            "optional": false
+          },
+          {
+            "name": "to",
+            "type": "{ lane: string; x: number | Date }",
+            "optional": false
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "optional": true
+          },
+          {
+            "name": "dashArray",
+            "type": "string",
+            "optional": true,
+            "description": "Async / fire-and-forget"
+          }
+        ]
+      },
+      {
         "name": "ChartConfig",
         "fields": [
           {
@@ -1742,6 +1932,12 @@
             "type": "GaugeConfig",
             "optional": true,
             "description": "Gauge only. The READING comes from the first point of the first visible\nseries, the SCALE from `yAxis.domain` (default [0, 100]), and every marked\nvalue — a pass gate, a peer median, an SLA — from `annotations` with\n`axis: 'y'`. Only what is genuinely gauge-specific lives here, so a caller\nalready fluent in the other chart types has one new object to learn."
+          },
+          {
+            "name": "links",
+            "type": "SwimlaneLink[]",
+            "optional": true,
+            "description": "Swimlane only. Lanes are series and spans are points with `x`→`x1`; a\nhandoff belongs to two lanes, so it cannot live on either series."
           },
           {
             "name": "zoomable",
@@ -1883,8 +2079,7 @@
         "name": "flagsHref",
         "type": "string",
         "optional": true,
-        "description": "Where flags and serve mode live now.",
-        "default": "'/admin/flags'"
+        "description": "Where flags and serve mode live. No link when the host has none."
       },
       {
         "name": "nitConfig",
@@ -1898,6 +2093,13 @@
         "type": "ConsoleConfig",
         "optional": true,
         "default": "DEFAULT_CONSOLE_CONFIG"
+      },
+      {
+        "name": "injected",
+        "type": "boolean",
+        "optional": true,
+        "description": "Set only by the framework's own mount (standalone.ts). A host never\npasses it: an app's console claims the page, the injected one yields.",
+        "default": "false"
       }
     ],
     "interfaces": []
@@ -1956,6 +2158,17 @@
     ],
     "interfaces": []
   },
+  "BrowseGroup": {
+    "component": "BrowseGroup",
+    "props": [
+      {
+        "name": "apps",
+        "type": "AppEntry[]",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
   "CaptureGroup": {
     "component": "CaptureGroup",
     "props": [
@@ -1989,8 +2202,7 @@
         "name": "flagsHref",
         "type": "string",
         "optional": true,
-        "description": "Where flags and serve mode live now. One link, not a sentence.",
-        "default": "'/admin/flags'"
+        "description": "Where flags and serve mode live. One link, not a sentence; none when unset."
       },
       {
         "name": "onClose",
@@ -2391,6 +2603,12 @@
         "description": "Label in the header strip. Omit for a bare block."
       },
       {
+        "name": "lang",
+        "type": "string",
+        "optional": true,
+        "description": "Language chip shown beside the title.\nSeparate from `title` because a fence carries two facts a reader uses\ndifferently: ```go tool/dnsproxy/proxy.go is a language AND a path. One\ntitle slot forced the caller to pick, so the path won and the language\nwent missing from every block that named a file."
+      },
+      {
         "name": "dedent",
         "type": "boolean",
         "optional": true,
@@ -2477,6 +2695,13 @@
         "optional": false
       },
       {
+        "name": "copy",
+        "type": "boolean",
+        "optional": true,
+        "description": "Copy-to-clipboard button. A block someone is meant to RUN needs it —\nCodeBlock already had one, which was pushing callers into the wrong\ncomponent for a curl sample just to get the button.",
+        "default": "false"
+      },
+      {
         "name": "chrome",
         "type": "boolean",
         "optional": true,
@@ -2495,6 +2720,38 @@
         "type": "string",
         "optional": true,
         "description": "CSS length that caps the body's height and scrolls the overflow."
+      },
+      {
+        "name": "inline",
+        "type": "boolean",
+        "optional": true,
+        "description": "One command on one line — `$ cmd` with its actions as icons at the end.\nFor a command someone runs, where a header bar and traffic lights are\nmore chrome than content. Ignores `chrome`, `title` and `dense`.",
+        "default": "false"
+      },
+      {
+        "name": "download",
+        "type": "{ href: string; label: string }",
+        "optional": true,
+        "description": "A file to download instead of running the command — the same thing,\nfetched by the browser. Shown as a download icon beside copy."
+      },
+      {
+        "name": "prompt",
+        "type": "string",
+        "optional": true,
+        "description": "`inline` only: the glyph before the content — `$` for a command,\n `''` for a value you paste rather than run.",
+        "default": "'$'"
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": true,
+        "description": "`inline` only: a named cell before the content (`id`, `secret`)."
+      },
+      {
+        "name": "lead",
+        "type": "Snippet",
+        "optional": true,
+        "description": "`inline` only: a control in the leading cell — e.g. a platform picker\n that decides which command and download the bar offers. Wins over `label`."
       },
       {
         "name": "class",
@@ -3122,6 +3379,13 @@
         "type": "number",
         "optional": true,
         "default": "32"
+      },
+      {
+        "name": "shape",
+        "type": "'square' | 'round'",
+        "optional": true,
+        "description": "`round` is for a PERSON — a byline, an author card. The hairline square is\nfor an entity: a service, an org, a node. Same component because the\nconstruction is identical; the shape is the only thing that says which\nkind of thing this is, so it is a prop rather than a second component.",
+        "default": "'square'"
       }
     ],
     "interfaces": []
@@ -4128,6 +4392,13 @@
         "type": "StepLabelSize",
         "optional": true,
         "default": "'xs'"
+      },
+      {
+        "name": "emphasizeActive",
+        "type": "boolean",
+        "optional": true,
+        "description": "Fill the `active` step's block with the brand emphasis hue rather than\nringing it in the variant colour, so \"where you are\" reads as a different\nKIND of state from \"what is done\" instead of a brighter shade of it.\nA fill and not a ring: at 6px tall an outline is most of the block, so\nthe ring reads as a colour change anyway — just a muddier one.\nOpt-in, and not a `ProgressVariant`: the variant vocabulary is shared by\nthe whole progress family and is semantic (success/warn/error), while\nthis is one stepper's emphasis. Adding a colour to that enum for a single\ncaller would have meant touching eight maps across five components.",
+        "default": "false"
       }
     ],
     "interfaces": []
@@ -4193,6 +4464,13 @@
         "name": "onRowClick",
         "type": "(row: Row) => void",
         "optional": true
+      },
+      {
+        "name": "selected",
+        "type": "Row | null",
+        "optional": true,
+        "description": "The row a click opened, kept highlighted while its detail is showing.",
+        "default": "null"
       },
       {
         "name": "cell",
@@ -4534,6 +4812,42 @@
     ],
     "interfaces": []
   },
+  "Byline": {
+    "component": "Byline",
+    "props": [
+      {
+        "name": "author",
+        "type": "BylineAuthor",
+        "optional": false
+      },
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "description": "Avatar diameter. Default 24 — sized to sit in a text line, not above one.",
+        "default": "24"
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "optional": true,
+        "description": "Hide the role even when the author has one, for a dense listing row.",
+        "default": "false"
+      }
+    ],
+    "interfaces": []
+  },
+  "ChangeKindList": {
+    "component": "ChangeKindList",
+    "props": [
+      {
+        "name": "changes",
+        "type": "Change[]",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
   "DocsBreadcrumbs": {
     "component": "DocsBreadcrumbs",
     "props": [
@@ -4680,6 +4994,67 @@
         "optional": true,
         "description": "Label above the TOC list. Default: `'On this page'`.",
         "default": "'On this page'"
+      },
+      {
+        "name": "headings",
+        "type": "TocHeading[]",
+        "optional": true,
+        "description": "Supply the outline instead of scanning the DOM for it.\nThe scan exists for pages that render prose they did not author. When the\noutline is already a known value — docgen computes one per document,\nanchors included — scanning re-derives it from markup that has to be\nmounted first, which makes the rail arrive a frame late and disagree with\nthe build about what a heading is.\nActive-heading tracking still observes the real elements, so this changes\nwhere the LIST comes from and nothing else."
+      },
+      {
+        "name": "variant",
+        "type": "'outline' | 'numbered'",
+        "optional": true,
+        "description": "`numbered` draws a zero-padded ordinal per entry instead of indenting by\nlevel — for a sequence, where the order IS the navigation and a reader\nasks \"which step am I on\", not \"where does this nest\".",
+        "default": "'outline'"
+      }
+    ],
+    "interfaces": []
+  },
+  "MonthGroupHeader": {
+    "component": "MonthGroupHeader",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "optional": false,
+        "description": "Display label, e.g. \"June 2026\"."
+      },
+      {
+        "name": "count",
+        "type": "number",
+        "optional": true,
+        "description": "Item count, shown at the far end when supplied."
+      }
+    ],
+    "interfaces": []
+  },
+  "PinnedPane": {
+    "component": "PinnedPane",
+    "props": [
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false
+      },
+      {
+        "name": "steps",
+        "type": "number",
+        "optional": false,
+        "description": "Total steps, for the indicator."
+      },
+      {
+        "name": "current",
+        "type": "number",
+        "optional": false,
+        "description": "Zero-based index of the step currently being read."
+      },
+      {
+        "name": "topOffset",
+        "type": "string",
+        "optional": true,
+        "description": "CSS top offset — match the app header height so the pane pins below it.",
+        "default": "'0px'"
       }
     ],
     "interfaces": []
@@ -4690,8 +5065,14 @@
       {
         "name": "html",
         "type": "string",
-        "optional": false,
-        "description": "Raw HTML string — typically from docgen's goldmark renderer."
+        "optional": true,
+        "description": "Raw HTML string — typically from docgen's goldmark renderer, a customer's\nrendered policy, or a legal agreement.\nNote what an HTML string CANNOT carry: a component. Prose reached this way\ngets code blocks styled by the rules below, never a real `CodeBlock` with\na copy button — `{@html}` cannot instantiate one. A generated document is\na compiled `.svelte` file and does get the real components; that asymmetry\nis why the code-block styling here still has to exist."
+      },
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Authored markup instead of an HTML string, for a page writing its own prose."
       },
       {
         "name": "maxWidth",
@@ -4704,7 +5085,655 @@
         "name": "as",
         "type": "'article' | 'div' | 'section'",
         "optional": true,
-        "description": "Override the element wrapping the HTML. Default: 'article'."
+        "description": "Override the element wrapping the content. Default: 'article'."
+      },
+      {
+        "name": "face",
+        "type": "'sans' | 'serif'",
+        "optional": true,
+        "description": "`serif` is for an essay read once, start to finish. It is not a theme\nswitch — the mono and sans faces still carry every label, chip and code\nspan; only the body measure changes.",
+        "default": "'sans'"
+      },
+      {
+        "name": "density",
+        "type": "'page' | 'compact'",
+        "optional": true,
+        "description": "`compact` is prose inside something else — a clause in a panel, an evidence\nexcerpt, a preview. Same rules at a smaller scale and tighter rhythm, so a\nquoted paragraph does not out-weigh the UI holding it.\nIt exists because the alternative kept being a second prose component with\nits own copy of these rules, which then drifted on table borders and list\nmarkers.",
+        "default": "'page'"
+      },
+      {
+        "name": "class",
+        "type": "string",
+        "optional": true,
+        "description": "Utilities for the wrapper — a scroll height, padding."
+      }
+    ],
+    "interfaces": []
+  },
+  "ProseFigure": {
+    "component": "ProseFigure",
+    "props": [
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false,
+        "description": "The illustration: inline SVG, an `<img>`, a canvas."
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "width",
+        "type": "'measure' | 'bleed'",
+        "optional": true,
+        "description": "`bleed` lets a wide diagram break the prose measure.",
+        "default": "'measure'"
+      }
+    ],
+    "interfaces": []
+  },
+  "PullQuote": {
+    "component": "PullQuote",
+    "props": [
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false
+      },
+      {
+        "name": "cite",
+        "type": "string",
+        "optional": true,
+        "description": "Attribution, when the line is genuinely a quotation."
+      }
+    ],
+    "interfaces": []
+  },
+  "ReleaseEntry": {
+    "component": "ReleaseEntry",
+    "props": [
+      {
+        "name": "version",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "date",
+        "type": "string",
+        "optional": true,
+        "description": "ISO `YYYY-MM-DD`."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "author",
+        "type": "BylineAuthor",
+        "optional": true,
+        "description": "Who cut the release."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "optional": true,
+        "description": "Permalink to this release."
+      },
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false
+      },
+      {
+        "name": "topOffset",
+        "type": "string",
+        "optional": true,
+        "description": "CSS top offset for the sticky rail — match the app header height.",
+        "default": "'0px'"
+      }
+    ],
+    "interfaces": []
+  },
+  "SubscribeForm": {
+    "component": "SubscribeForm",
+    "props": [
+      {
+        "name": "onsubmit",
+        "type": "(email: string) => void",
+        "optional": false,
+        "description": "Called with a trimmed, browser-validated address."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "optional": true,
+        "default": "'you@example.com'"
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": true,
+        "default": "'Get new posts by email'"
+      },
+      {
+        "name": "cta",
+        "type": "string",
+        "optional": true,
+        "default": "'Subscribe'"
+      },
+      {
+        "name": "busy",
+        "type": "boolean",
+        "optional": true,
+        "description": "Disables the form while a submission is in flight.",
+        "default": "false"
+      },
+      {
+        "name": "done",
+        "type": "string",
+        "optional": true,
+        "description": "Shown in place of the form once the caller reports success."
+      }
+    ],
+    "interfaces": []
+  },
+  "ApiReference": {
+    "component": "ApiReference",
+    "props": [
+      {
+        "name": "data",
+        "type": "ApiIsland",
+        "optional": false
+      },
+      {
+        "name": "specHref",
+        "type": "string",
+        "optional": true,
+        "description": "Where the machine-readable spec is served.",
+        "default": "'/openapi.yaml'"
+      },
+      {
+        "name": "homeHref",
+        "type": "string",
+        "optional": true,
+        "description": "Makes the wordmark a link. Omitted, it is plain text — this component\n knows no route table of its own."
+      },
+      {
+        "name": "height",
+        "type": "string",
+        "optional": true,
+        "description": "Only read when `chrome` is on: how tall the self-chromed reader is.",
+        "default": "'100vh'"
+      },
+      {
+        "name": "chrome",
+        "type": "boolean",
+        "optional": true,
+        "description": "The reference's own top bar. OFF inside an app that already has one —\n a page carrying a second wordmark and a second search reads as a\n different product. Chromeless, the contents column sticks under the\n host's header and the window does the scrolling.",
+        "default": "true"
+      },
+      {
+        "name": "stickyTop",
+        "type": "string",
+        "optional": true,
+        "description": "Chromeless only: how far down the host's own header sits.",
+        "default": "'0px'"
+      }
+    ],
+    "interfaces": []
+  },
+  "DocCommitButton": {
+    "component": "DocCommitButton",
+    "props": [
+      {
+        "name": "count",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "verb",
+        "type": "string",
+        "optional": true,
+        "description": "The verb — \"Commit\", \"Propose\".",
+        "default": "'Commit'"
+      },
+      {
+        "name": "done",
+        "type": "string",
+        "optional": true,
+        "description": "Shown at zero once something has been sent, so the bar can say the tree is clean."
+      },
+      {
+        "name": "busy",
+        "type": "boolean",
+        "optional": true,
+        "default": "false"
+      },
+      {
+        "name": "onclick",
+        "type": "() => void",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "DocEditorFrame": {
+    "component": "DocEditorFrame",
+    "props": [
+      {
+        "name": "header",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Full width, unstyled — the host brings its own page header."
+      },
+      {
+        "name": "rail",
+        "type": "Snippet",
+        "optional": true
+      },
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "DocRail": {
+    "component": "DocRail",
+    "props": [
+      {
+        "name": "nodes",
+        "type": "FileTreeNode[]",
+        "optional": false
+      },
+      {
+        "name": "selectedPath",
+        "type": "string | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "onselect",
+        "type": "(path: string) => void",
+        "optional": false
+      },
+      {
+        "name": "ontoggle",
+        "type": "(path: string) => void",
+        "optional": true
+      },
+      {
+        "name": "query",
+        "type": "string",
+        "optional": true,
+        "default": "$bindable('')"
+      },
+      {
+        "name": "ref",
+        "type": "string",
+        "optional": true,
+        "description": "Branch or ref the tree is read at — or, for a source that is not git, its\nname. Omit when the host's page header already states it."
+      },
+      {
+        "name": "icon",
+        "type": "IconName",
+        "optional": true,
+        "default": "'git-branch'"
+      },
+      {
+        "name": "sha",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "shaHref",
+        "type": "string",
+        "optional": true,
+        "description": "Links the sha to its commit on the upstream forge."
+      },
+      {
+        "name": "status",
+        "type": "StatusLevel",
+        "optional": true
+      },
+      {
+        "name": "statusTip",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "lines",
+        "type": "string[]",
+        "optional": true,
+        "description": "Quiet lines under the ref — last commit message, author, sync time.",
+        "default": "[]"
+      },
+      {
+        "name": "action",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Beside the status dot — a sync button, say."
+      },
+      {
+        "name": "header",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Above the git state — a repository picker, when there is more than one."
+      },
+      {
+        "name": "trailing",
+        "type": "Snippet<[FileTreeNode]>",
+        "optional": true,
+        "description": "Right edge of each document row."
+      },
+      {
+        "name": "searchable",
+        "type": "boolean",
+        "optional": true,
+        "description": "False when the host's page header owns search.",
+        "default": "true"
+      },
+      {
+        "name": "footer",
+        "type": "[string, string?]",
+        "optional": true
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "optional": true,
+        "default": "'Find a document…'"
+      }
+    ],
+    "interfaces": []
+  },
+  "DocSegments": {
+    "component": "DocSegments",
+    "props": [
+      {
+        "name": "options",
+        "type": "DocSegment[]",
+        "optional": false
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "onchange",
+        "type": "(value: string) => void",
+        "optional": false
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": false,
+        "description": "Names the group for assistive tech — the toolbar has more than one."
+      }
+    ],
+    "interfaces": []
+  },
+  "DocToolbar": {
+    "component": "DocToolbar",
+    "props": [
+      {
+        "name": "id",
+        "type": "string",
+        "optional": true,
+        "description": "Accent-toned lead — a document id, or its family."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "status",
+        "type": "{ label: string; color: string }",
+        "optional": true
+      },
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Figures and chips after the identity."
+      },
+      {
+        "name": "end",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Right-aligned — view switches, sign-off."
+      }
+    ],
+    "interfaces": []
+  },
+  "InsertMenu": {
+    "component": "InsertMenu",
+    "props": [
+      {
+        "name": "open",
+        "type": "boolean",
+        "optional": false
+      },
+      {
+        "name": "items",
+        "type": "InsertItem[]",
+        "optional": false
+      },
+      {
+        "name": "x",
+        "type": "number",
+        "optional": false,
+        "description": "Anchor in the positioned parent, in px."
+      },
+      {
+        "name": "y",
+        "type": "number",
+        "optional": false
+      },
+      {
+        "name": "oninsert",
+        "type": "(item: InsertItem) => void",
+        "optional": false
+      },
+      {
+        "name": "onclose",
+        "type": "() => void",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "SectionCallout": {
+    "component": "SectionCallout",
+    "props": [
+      {
+        "name": "icon",
+        "type": "IconName",
+        "optional": false
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": false,
+        "description": "The over-label, e.g. \"CHECKS · 2 TOOLS\"."
+      },
+      {
+        "name": "accent",
+        "type": "string",
+        "optional": true,
+        "default": "'var(--accent)'"
+      },
+      {
+        "name": "status",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Right-aligned on the label row."
+      },
+      {
+        "name": "children",
+        "type": "Snippet",
+        "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "SectionCanvas": {
+    "component": "SectionCanvas",
+    "props": [
+      {
+        "name": "mode",
+        "type": "CanvasMode",
+        "optional": false
+      },
+      {
+        "name": "sections",
+        "type": "CanvasSection[]",
+        "optional": false
+      },
+      {
+        "name": "source",
+        "type": "string",
+        "optional": false,
+        "description": "The whole file, for raw mode."
+      },
+      {
+        "name": "path",
+        "type": "string",
+        "optional": false,
+        "description": "Title of the raw view — the file path."
+      },
+      {
+        "name": "lead",
+        "type": "string",
+        "optional": true,
+        "description": "Rendered prose ahead of the first heading, which belongs to no section.",
+        "default": "''"
+      },
+      {
+        "name": "loading",
+        "type": "boolean",
+        "optional": true,
+        "default": "false"
+      },
+      {
+        "name": "selectedId",
+        "type": "string | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "onselect",
+        "type": "(id: string | null) => void",
+        "optional": true
+      },
+      {
+        "name": "onheading",
+        "type": "(id: string, text: string) => void",
+        "optional": true
+      },
+      {
+        "name": "onbody",
+        "type": "(id: string, markdown: string) => void",
+        "optional": true
+      },
+      {
+        "name": "onreorder",
+        "type": "(fromId: string, toId: string, edge: 'above' | 'below') => void",
+        "optional": true,
+        "description": "Enables the drag grip."
+      },
+      {
+        "name": "insertItems",
+        "type": "InsertItem[]",
+        "optional": true,
+        "description": "Enables the insert `+`."
+      },
+      {
+        "name": "oninsert",
+        "type": "(afterId: string, item: InsertItem) => void",
+        "optional": true
+      },
+      {
+        "name": "onappend",
+        "type": "(title: string, body: string) => void",
+        "optional": true,
+        "description": "Enables the standing tail draft: a new-section affordance that is always\n there but stays local until something is written into it."
+      },
+      {
+        "name": "dock",
+        "type": "Snippet<[CanvasSection]>",
+        "optional": true,
+        "description": "Right-margin dock for a section."
+      },
+      {
+        "name": "pinDock",
+        "type": "(s: CanvasSection) => boolean",
+        "optional": true,
+        "description": "Keeps a section's dock visible at rest — it carries something worth seeing."
+      },
+      {
+        "name": "panel",
+        "type": "Snippet<[CanvasSection]>",
+        "optional": true,
+        "description": "Expanded under a section's text — a dock item's panel."
+      },
+      {
+        "name": "frontmatter",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Folded metadata above the first section."
+      },
+      {
+        "name": "frontmatterSummary",
+        "type": "string",
+        "optional": true,
+        "description": "Shown beside the fold's label while closed.",
+        "default": "''"
+      },
+      {
+        "name": "footer",
+        "type": "string",
+        "optional": true,
+        "description": "The quiet line that closes the document."
+      },
+      {
+        "name": "emptyMessage",
+        "type": "string",
+        "optional": true,
+        "default": "'This document has no content.'"
+      }
+    ],
+    "interfaces": []
+  },
+  "SectionDock": {
+    "component": "SectionDock",
+    "props": [
+      {
+        "name": "items",
+        "type": "DockItem[]",
+        "optional": false
+      },
+      {
+        "name": "open",
+        "type": "string | null",
+        "optional": false,
+        "description": "The item whose panel is open under the section, if any."
+      },
+      {
+        "name": "ontoggle",
+        "type": "(id: string) => void",
+        "optional": false
       }
     ],
     "interfaces": []
@@ -4746,62 +5775,6 @@
         "name": "value",
         "type": "number | string",
         "optional": false
-      }
-    ],
-    "interfaces": []
-  },
-  "ArmornetCrest": {
-    "component": "ArmornetCrest",
-    "props": [
-      {
-        "name": "size",
-        "type": "number",
-        "optional": true,
-        "default": "64"
-      },
-      {
-        "name": "color",
-        "type": "string",
-        "optional": true,
-        "description": "Brand colour of the whole mark.",
-        "default": "'var(--accent)'"
-      },
-      {
-        "name": "meshColor",
-        "type": "string",
-        "optional": true,
-        "description": "Overrides the inner mesh only. Defaults to `color` — the mark is monochrome."
-      },
-      {
-        "name": "glow",
-        "type": "boolean",
-        "optional": true,
-        "description": "Blurred underlay behind the mark — atmosphere, not structure.",
-        "default": "true"
-      },
-      {
-        "name": "mesh",
-        "type": "boolean",
-        "optional": true,
-        "description": "The inner mesh tying the crossbar to the feet. Drop it below ~32px.",
-        "default": "true"
-      },
-      {
-        "name": "title",
-        "type": "string",
-        "optional": true,
-        "default": "'Armornet'"
-      },
-      {
-        "name": "class",
-        "type": "string",
-        "optional": true
-      },
-      {
-        "name": "style",
-        "type": "string",
-        "optional": true,
-        "default": "''"
       }
     ],
     "interfaces": []
@@ -4870,69 +5843,6 @@
         "optional": true,
         "description": "0–1. How far the A grows PAST the shield boundary: at 1 the apex crosses\n the crown and the feet cross the lower flanks, so the mark reads as\n overlaid on the shield rather than contained by it.",
         "default": "0"
-      },
-      {
-        "name": "title",
-        "type": "string",
-        "optional": true,
-        "default": "'Armornet'"
-      },
-      {
-        "name": "class",
-        "type": "string",
-        "optional": true
-      },
-      {
-        "name": "style",
-        "type": "string",
-        "optional": true,
-        "default": "''"
-      }
-    ],
-    "interfaces": []
-  },
-  "ArmornetCrestHub": {
-    "component": "ArmornetCrestHub",
-    "props": [
-      {
-        "name": "size",
-        "type": "number",
-        "optional": true,
-        "default": "64"
-      },
-      {
-        "name": "color",
-        "type": "string",
-        "optional": true,
-        "default": "'var(--accent)'"
-      },
-      {
-        "name": "look",
-        "type": "'hollow' | 'weight' | 'plated'",
-        "optional": true,
-        "description": "How the letter separates itself from the mesh:\n  'hollow' — members stroked wide with their core cut out (default)\n  'weight' — one solid weight, heavier than the mesh\n  'plated' — solid members over a soft wide underplate\n'plated' leans on opacity; prefer 'hollow' or 'weight' for one-colour\nreproduction.",
-        "default": "'hollow'"
-      },
-      {
-        "name": "spokes",
-        "type": "'full' | 'stem' | 'bar'",
-        "optional": true,
-        "description": "Which spokes leave the hub, on top of the bar it always sits on:\n  'full' — stem up to the apex and down to both feet (default)\n  'stem' — stem only\n  'bar'  — none, so the A's counter stays open",
-        "default": "'full'"
-      },
-      {
-        "name": "tethers",
-        "type": "boolean",
-        "optional": true,
-        "description": "The tethers binding the A to the shield wall. Drop them below ~32px.",
-        "default": "true"
-      },
-      {
-        "name": "glow",
-        "type": "boolean",
-        "optional": true,
-        "description": "Blurred underlay behind the mark — atmosphere, not structure.",
-        "default": "true"
       },
       {
         "name": "title",
@@ -5138,7 +6048,7 @@
       },
       {
         "name": "shape",
-        "type": "CrestMeshShape",
+        "type": "ChromeShape",
         "optional": true,
         "description": "Same idea for the shield grids: you clicked `merlon`, so the shield\n knob opens on `merlon` rather than on the mark's default."
       },
@@ -5146,6 +6056,23 @@
         "name": "onclose",
         "type": "() => void",
         "optional": false
+      }
+    ],
+    "interfaces": []
+  },
+  "PlatformMark": {
+    "component": "PlatformMark",
+    "props": [
+      {
+        "name": "goos",
+        "type": "string",
+        "optional": false
+      },
+      {
+        "name": "size",
+        "type": "number",
+        "optional": true,
+        "default": "12"
       }
     ],
     "interfaces": []
@@ -5289,6 +6216,13 @@
         "type": "Snippet",
         "optional": true,
         "description": "The left pane, in place of the statement — for a screen whose left half\n IS the thing rather than a claim about it (a live board, a preview).\n It fills the pane edge to edge, so `mark`/`statement`/`sub` are ignored\n when it is given. The flow's own heading then has to live on the right,\n which is what `.auth-title` is for."
+      },
+      {
+        "name": "wide",
+        "type": "boolean",
+        "optional": true,
+        "description": "The flow pane at the width a `visual` screen gets, beside the\n statement: for a step that lists things (the workspace picker) rather\n than asking for one field. Implied by `visual`.",
+        "default": "false"
       }
     ],
     "interfaces": []
@@ -5312,6 +6246,50 @@
         "type": "string",
         "optional": true,
         "description": "Extra CSS classes on the root element."
+      },
+      {
+        "name": "showLabels",
+        "type": "boolean",
+        "optional": true,
+        "description": "Print each button's label under its icon.\nFor a rail that is the primary way through a screen — a settings panel\nembedded in a page — where an icon alone makes the reader hover every\nbutton to find out what it does. A compact toolbar beside content it\nacts on leaves this off and keeps the tooltip.",
+        "default": "false"
+      },
+      {
+        "name": "bare",
+        "type": "boolean",
+        "optional": true,
+        "description": "Drop the toolbar's own border, background and radius.\nFor a rail docked inside a surface that already draws them —\n`EdgeToolbarCard`, a panel edge — where the toolbar's chrome would sit\nas a second box inside the first.",
+        "default": "false"
+      }
+    ],
+    "interfaces": []
+  },
+  "WorkspacePicker": {
+    "component": "WorkspacePicker",
+    "props": [
+      {
+        "name": "workspaces",
+        "type": "WorkspaceChoice[]",
+        "optional": false
+      },
+      {
+        "name": "lastId",
+        "type": "string",
+        "optional": true,
+        "description": "The expected answer, lifted out above the rest.",
+        "default": "''"
+      },
+      {
+        "name": "busyId",
+        "type": "string",
+        "optional": true,
+        "description": "The row being entered; every row is disabled while it is set.",
+        "default": "''"
+      },
+      {
+        "name": "onpick",
+        "type": "(id: string) => void",
+        "optional": true
       }
     ],
     "interfaces": []
@@ -5330,6 +6308,11 @@
         "type": "[number, number, number]",
         "optional": true,
         "default": "[0.13, 0.83, 0.93] as [number, number, number]"
+      },
+      {
+        "name": "occlusion",
+        "type": "LandOcclusion",
+        "optional": true
       }
     ],
     "interfaces": []
@@ -5456,6 +6439,12 @@
         "default": "false"
       },
       {
+        "name": "occlusion",
+        "type": "LandOcclusion",
+        "optional": true,
+        "description": "Land between the eye and the links, on a globe — lines under it are\n buried the way the crest is. See `LandOcclusion`."
+      },
+      {
         "name": "onSelect",
         "type": "(id: string | null) => void",
         "optional": true
@@ -5470,6 +6459,12 @@
         "type": "(nodeId: string, mode: string, index: number) => void",
         "optional": true,
         "description": "A fanned-out mode facet was clicked. `index` is the facet's occurrence\n among same-mode facets (0-based), for instance-precise targeting."
+      },
+      {
+        "name": "onFoldToggle",
+        "type": "(id: string) => void",
+        "optional": true,
+        "description": "A `foldable` node's \"+\" toggle was clicked."
       },
       {
         "name": "onNodeHover",
@@ -5541,6 +6536,11 @@
       {
         "name": "onFacetSelect",
         "type": "(nodeId: string, mode: string, index: number) => void",
+        "optional": true
+      },
+      {
+        "name": "onFoldToggle",
+        "type": "(id: string) => void",
         "optional": true
       },
       {
@@ -5688,11 +6688,25 @@
         "default": "false"
       },
       {
+        "name": "labelScale",
+        "type": "number",
+        "optional": true,
+        "description": "Scale the node NAME relative to everything else — passed through to\n MeshStudio, whose prop this is. A caption that has been moved OUT of the\n disc has the room to be legible and nothing to be legible against unless\n it is allowed to grow.",
+        "default": "1"
+      },
+      {
         "name": "typeLabels",
         "type": "boolean",
         "optional": true,
         "description": "Print the node's TYPE as an eyebrow above its name (passed through to\n MeshStudio). On a mesh of infrastructure the kind of node is half the\n story; on a mesh whose labels are already real names it is the same word\n stamped on everything. Defaults on, matching MeshStudio.",
         "default": "true"
+      },
+      {
+        "name": "scene",
+        "type": "\"sky\" | \"world\"",
+        "optional": true,
+        "description": "What kind of place this canvas is.\n `'sky'` — a composed shot. Screen-fixed stars behind a scene that carries\n its own structure, which is what an overview wants: one frame, looked at.\n `'world'` — somewhere to go. The canvas's grid comes back as ground, so a\n pan moves you across something instead of dragging a fixed backdrop's\n contents around. Only honoured on a FLAT layout; a globe is a shot by\n construction and puts its own graticule in the frame.\n Defaults to `'sky'`, since sharing one backdrop is what the overview is\n for and a screen that wants roaming knows that about itself.",
+        "default": "\"sky\""
       },
       {
         "name": "tuning",
@@ -5883,6 +6897,12 @@
       },
       {
         "name": "selectedId",
+        "type": "string | null",
+        "optional": true,
+        "default": "null"
+      },
+      {
+        "name": "hoveredId",
         "type": "string | null",
         "optional": true,
         "default": "null"
@@ -6395,11 +7415,6 @@
     "component": "PieceStudio",
     "props": [
       {
-        "name": "open",
-        "type": "boolean",
-        "optional": false
-      },
-      {
         "name": "items",
         "type": "StudioPiece[]",
         "optional": false
@@ -6410,11 +7425,6 @@
         "optional": false,
         "description": "Which one is on the stage. Bindable so the page and the studio's own\n arrows move one selection rather than two that drift.",
         "default": "$bindable(0)"
-      },
-      {
-        "name": "onclose",
-        "type": "() => void",
-        "optional": false
       }
     ],
     "interfaces": []
@@ -6736,6 +7746,19 @@
     ],
     "interfaces": []
   },
+  "ModelStudio": {
+    "component": "ModelStudio",
+    "props": [
+      {
+        "name": "model",
+        "type": "Model",
+        "optional": true,
+        "description": "What is on the stage — picked in the Builder's 3D palette.",
+        "default": "MODELS[0]"
+      }
+    ],
+    "interfaces": []
+  },
   "Flourish": {
     "component": "Flourish",
     "props": [
@@ -6928,7 +7951,7 @@
       },
       {
         "name": "placement",
-        "type": "ActionsMenuPlacement",
+        "type": "SelectPlacement",
         "optional": true,
         "default": "'bottom-end'"
       },
@@ -6942,7 +7965,7 @@
         "name": "trigger",
         "type": "Snippet<[{ open: boolean; toggle: () => void }]>",
         "optional": true,
-        "description": "Custom trigger snippet — receives `{ open }`. Defaults to the ⋮ kebab button."
+        "description": "Custom trigger snippet. Defaults to the ⋮ kebab button."
       },
       {
         "name": "label",
@@ -6955,32 +7978,31 @@
         "name": "closeOnSelect",
         "type": "boolean",
         "optional": true,
-        "description": "Whether picking an item closes the menu. Default true — one action, done.\nPass false for a multi-select set (`selected` on every item), where\nclosing after each tick makes choosing three things cost three openings.",
+        "description": "False for a multi-select set (`selected` on every item).",
         "default": "true"
       },
       {
         "name": "footer",
         "type": "Snippet",
         "optional": true,
-        "description": "Arbitrary content pinned below the items, under a separator — for the\none input a menu of choices cannot express (a free-text value, a link\nout). Clicks inside it do not dismiss the menu. Keep it small: a menu\nthat grows a form is a popover wearing the wrong component."
+        "description": "Content pinned below the items, under a separator."
       },
       {
         "name": "autoDismiss",
-        "type": "ActionsMenuDismiss",
+        "type": "SelectDismiss",
         "optional": true,
-        "description": "Close the menu after a period of no hover and no focus, playing the\nexit animation as the node is destroyed. Off unless asked for; see\n`ACTIONS_MENU_DISMISS` for the shared defaults.\n  autoDismiss                      → on, 2s, collapse\n  autoDismiss={{ idleMs: 5000 }}   → on, 5s\n  autoDismiss={false}              → off (the default)"
+        "description": "Close after a period of no hover and no focus. Off unless asked for."
       },
       {
         "name": "ondismiss",
         "type": "() => void",
-        "optional": true,
-        "description": "Fired when the idle timer — not a click or Escape — closed the menu."
+        "optional": true
       },
       {
         "name": "flourish",
         "type": "FlourishKind",
         "optional": true,
-        "description": "Selection flourish played on the default kebab when it opens the menu.\nOmit to follow the user's \"Nav selection effect\" theme setting, which is\nthe point — one preference drives the side nav and the kebabs alike.\nPass `'none'` to opt this menu out regardless of the setting.\nOnly applies to the built-in trigger: a custom `trigger` snippet is the\ncaller's markup, so its flourish is the caller's to render."
+        "description": "Flourish played on the default kebab. Omit to follow the user's \"Nav\nselection effect\" setting — one preference drives the side nav and the\nkebabs alike. `'none'` opts out. A custom `trigger` renders its own."
       }
     ],
     "interfaces": []
@@ -7115,7 +8137,7 @@
         "name": "externalFilter",
         "type": "boolean",
         "optional": true,
-        "description": "Host owns filtering: when true, `commands` is rendered verbatim (no internal\nranking pass) so the host can return its own ranked results — a host that\nsearches a live corpus knows things the label text does not. Pair with\n`onquery`. Default false runs the built-in fuzzy ranking.",
+        "description": "Host owns filtering: when true, `commands` is rendered verbatim (no internal\nranking pass) so the host can return its own ranked results — a host that\nsearches a live index knows things the label text does not. Pair with\n`onquery`. Default false runs the built-in fuzzy ranking.",
         "default": "false"
       },
       {
@@ -7203,10 +8225,37 @@
         "default": "[]"
       },
       {
+        "name": "display",
+        "type": "ActionMenuItem[]",
+        "optional": true,
+        "description": "Extra Display rows — how the page draws its content (layout, folding), under the sort.",
+        "default": "[]"
+      },
+      {
         "name": "menu",
         "type": "ActionMenuItem[]",
         "optional": true,
         "default": "[]"
+      },
+      {
+        "name": "menuIcon",
+        "type": "IconName",
+        "optional": true,
+        "description": "Swaps the ⋯ trigger, e.g. `plus` when the menu is a set of create actions.",
+        "default": "'more-horizontal'"
+      },
+      {
+        "name": "menuLabel",
+        "type": "string",
+        "optional": true,
+        "default": "'More actions'"
+      },
+      {
+        "name": "menuPrimary",
+        "type": "boolean",
+        "optional": true,
+        "description": "Gives the trigger the primary action's accent, for when the menu replaces `primary`.",
+        "default": "false"
       },
       {
         "name": "primary",
@@ -7218,6 +8267,12 @@
         "type": "Snippet",
         "optional": true,
         "description": "Page-specific control (e.g. a mesh layout picker) rendered at the start\n of the toolbar, before the standard filter/display controls."
+      },
+      {
+        "name": "actions",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Page-specific control rendered at the start of the actions zone."
       }
     ],
     "interfaces": []
@@ -7309,6 +8364,13 @@
         "optional": true,
         "description": "What a plain left-drag means. `select` leaves the marquee in charge and\npanning to the reserved gestures; `pan` hands the ordinary drag to the\ncamera, which is the only arrangement most people find without being\ntold. Defaults to `select` so every existing canvas is unchanged.",
         "default": "'select'"
+      },
+      {
+        "name": "ground",
+        "type": "boolean",
+        "optional": true,
+        "description": "The hairline GRID behind the scene.\nOn for a flat diagram, where it is the only thing the eye can measure a\npan or a zoom against. OFF for a scene that brings its own structure — a\nglobe already has a graticule, and a flat 64px grid outside its limb is a\nSECOND grid at a different scale and perspective, which reads as two\nbackgrounds fighting rather than as ground.\nOff does not mean bare: the grid is replaced by a STARFIELD over the same\naurora (`--glass-space`). Points have nothing to duplicate — the globe\nowns every line in the frame — and they say the one thing a grid behind a\nplanet says wrongly, which is where the camera is.",
+        "default": "true"
       },
       {
         "name": "minZoom",
@@ -8420,6 +9482,13 @@
         "optional": true
       },
       {
+        "name": "dense",
+        "type": "boolean",
+        "optional": true,
+        "description": "Compact size for pickers and dense grids: less padding, smaller type.",
+        "default": "false"
+      },
+      {
         "name": "class",
         "type": "string",
         "optional": true
@@ -8473,6 +9542,13 @@
         "name": "viz",
         "type": "Snippet",
         "optional": true
+      },
+      {
+        "name": "vizPlacement",
+        "type": "'beside' | 'behind'",
+        "optional": true,
+        "description": "Where `viz` sits. `beside` is the default — a diagram the headline refers\nto. `behind` puts it full-bleed underneath the text, for a hero whose art\nis the mood rather than the content; the text then needs its own contrast\nfloor, which the layer below supplies.",
+        "default": "'beside'"
       },
       {
         "name": "class",
@@ -8532,6 +9608,13 @@
         "name": "onCta",
         "type": "() => void",
         "optional": true
+      },
+      {
+        "name": "ctaDisabled",
+        "type": "boolean",
+        "optional": true,
+        "description": "Shows the call to action but makes it inert: a choice the viewer can\n see and cannot make (a plan they are already on, or one only an owner\n may buy). A live-looking button that does nothing reads as broken.",
+        "default": "false"
       },
       {
         "name": "pending",
@@ -9285,6 +10368,12 @@
         "type": "string[]",
         "optional": true,
         "default": "[]"
+      },
+      {
+        "name": "row",
+        "type": "Snippet<[ChoiceOption]>",
+        "optional": true,
+        "description": "What sits beside each box, when the label alone is not enough — a\n swatch, a size. Defaults to the option's label."
       }
     ],
     "interfaces": []
@@ -9319,32 +10408,120 @@
         "type": "boolean",
         "optional": true,
         "default": "false"
+      },
+      {
+        "name": "sortable",
+        "type": "boolean",
+        "optional": true,
+        "description": "Order is meaning (a priority list): chips are numbered, draggable,\n and move with Alt+←/→ when focused.",
+        "default": "false"
       }
     ],
     "interfaces": []
   },
-  "Combobox": {
-    "component": "Combobox",
+  "DateSelect": {
+    "component": "DateSelect",
     "props": [
       {
-        "name": "value",
-        "type": "string[]",
+        "name": "variant",
+        "type": "DateSelectVariant",
         "optional": true,
-        "description": "Current set of selected chip values.",
-        "default": "$bindable([])"
+        "default": "'input'"
       },
       {
-        "name": "suggestions",
-        "type": "string[]",
+        "name": "value",
+        "type": "ISODate | null",
         "optional": true,
-        "description": "Suggestions shown in the dropdown (filtered by query).",
+        "default": "$bindable(null)"
+      },
+      {
+        "name": "from",
+        "type": "ISODate | null",
+        "optional": true,
+        "description": "`range` only.",
+        "default": "$bindable(null)"
+      },
+      {
+        "name": "to",
+        "type": "ISODate | null",
+        "optional": true,
+        "default": "$bindable(null)"
+      },
+      {
+        "name": "min",
+        "type": "ISODate",
+        "optional": true
+      },
+      {
+        "name": "max",
+        "type": "ISODate",
+        "optional": true
+      },
+      {
+        "name": "today",
+        "type": "ISODate",
+        "optional": true,
+        "description": "Pin \"today\" — screenshots and tests; the local day otherwise.",
+        "default": "todayISO()"
+      },
+      {
+        "name": "events",
+        "type": "DateEvent[]",
+        "optional": true,
+        "description": "`calendar` only.",
         "default": "[]"
+      },
+      {
+        "name": "presets",
+        "type": "DatePreset[]",
+        "optional": true,
+        "description": "`range` only.",
+        "default": "[\n\t\t\t{ label: '7D', days: 7 },\n\t\t\t{ label: '30D', days: 30 },\n\t\t\t{ label: '90D', days: 90 }\n\t\t]"
+      },
+      {
+        "name": "order",
+        "type": "DateOrder",
+        "optional": true,
+        "description": "How typed all-numeric dates read (`03/04`); from `locale` when absent."
+      },
+      {
+        "name": "locale",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "output",
+        "type": "DateOutput",
+        "optional": true,
+        "default": "{ kind: 'date' }"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "optional": true,
+        "description": "Submits the `output`-shaped value through a hidden input. Not for `range`."
+      },
+      {
+        "name": "id",
+        "type": "string",
+        "optional": true
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": true,
+        "description": "Accessible name when there is no `FormField` label pointing at `id`."
       },
       {
         "name": "placeholder",
         "type": "string",
+        "optional": true
+      },
+      {
+        "name": "size",
+        "type": "'sm' | 'md'",
         "optional": true,
-        "default": "'Add…'"
+        "default": "'md'"
       },
       {
         "name": "disabled",
@@ -9353,9 +10530,29 @@
         "default": "false"
       },
       {
+        "name": "required",
+        "type": "boolean",
+        "optional": true,
+        "description": "Hides Clear: the field cannot be emptied from the calendar.",
+        "default": "false"
+      },
+      {
+        "name": "error",
+        "type": "string",
+        "optional": true,
+        "description": "Out: why the typed text was not accepted. Bind it into `FormField`'s `error`.",
+        "default": "$bindable()"
+      },
+      {
         "name": "onchange",
-        "type": "(values: string[]) => void",
+        "type": "(out: string | number | null, day: ISODate | null) => void",
         "optional": true
+      },
+      {
+        "name": "onrangechange",
+        "type": "(from: ISODate | null, to: ISODate | null) => void",
+        "optional": true,
+        "description": "Fires once a range is complete, or cleared — not on the first click."
       }
     ],
     "interfaces": []
@@ -9692,12 +10889,14 @@
       {
         "name": "id",
         "type": "string",
-        "optional": true
+        "optional": true,
+        "description": "On the trigger, so a `<label for>` focuses it."
       },
       {
         "name": "name",
         "type": "string",
-        "optional": true
+        "optional": true,
+        "description": "Submits `value` with a surrounding form, as a native select would."
       },
       {
         "name": "value",
@@ -9718,18 +10917,18 @@
         "default": "[]"
       },
       {
+        "name": "items",
+        "type": "SelectItem[]",
+        "optional": true,
+        "description": "Full control over the rows — headers, separators, actions. Wins over\n `options` and `groups`."
+      },
+      {
         "name": "placeholder",
         "type": "string",
         "optional": true
       },
       {
         "name": "disabled",
-        "type": "boolean",
-        "optional": true,
-        "default": "false"
-      },
-      {
-        "name": "required",
         "type": "boolean",
         "optional": true,
         "default": "false"
@@ -9745,8 +10944,105 @@
         "optional": true
       },
       {
+        "name": "size",
+        "type": "'md' | 'sm'",
+        "optional": true,
+        "description": "`md` is a form field; `sm` sits inline in a table row or toolbar.",
+        "default": "'md'"
+      },
+      {
+        "name": "width",
+        "type": "string",
+        "optional": true,
+        "description": "Trigger width. A prop, not a class: scoped styles outrank utilities.\n Defaults to 260px at `md` and to its content at `sm`."
+      },
+      {
         "name": "onchange",
-        "type": "(e: Event & { currentTarget: HTMLSelectElement }) => void",
+        "type": "(value: string) => void",
+        "optional": true,
+        "description": "Fired with the picked value, only when it changed."
+      },
+      {
+        "name": "multiple",
+        "type": "boolean",
+        "optional": true,
+        "description": "Pick several: chips in the field, checkbox rows, and the panel stays\n open between picks. Reads and writes `values`, not `value`.",
+        "default": "false"
+      },
+      {
+        "name": "values",
+        "type": "string[]",
+        "optional": true,
+        "default": "$bindable([])"
+      },
+      {
+        "name": "onvalues",
+        "type": "(values: string[]) => void",
+        "optional": true
+      },
+      {
+        "name": "searchable",
+        "type": "boolean",
+        "optional": true,
+        "description": "Type in the field to filter the rows. With `multiple` this is the\n chips-plus-typeahead autocomplete."
+      },
+      {
+        "name": "creatable",
+        "type": "boolean",
+        "optional": true,
+        "description": "Offer the typed text as a row of its own when nothing matches it —\n for open sets like domains and tags. Implies `searchable`.",
+        "default": "false"
+      },
+      {
+        "name": "trigger",
+        "type": "Snippet<[{ open: boolean; toggle: () => void }]>",
+        "optional": true,
+        "description": "Replace the default field-style trigger."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "optional": true,
+        "description": "Accessible name for the trigger."
+      },
+      {
+        "name": "placement",
+        "type": "SelectPlacement",
+        "optional": true,
+        "default": "'bottom-start'"
+      },
+      {
+        "name": "closeOnSelect",
+        "type": "boolean",
+        "optional": true,
+        "description": "Defaults to `!multiple`: closing after each tick makes choosing three\n things cost three openings."
+      },
+      {
+        "name": "footer",
+        "type": "Snippet",
+        "optional": true,
+        "description": "Content pinned under the rows — for the one input a list cannot\n express. Clicks inside it do not dismiss the panel."
+      },
+      {
+        "name": "header",
+        "type": "Snippet",
+        "optional": true,
+        "description": "The same, above the rows — a page's own search box, say."
+      },
+      {
+        "name": "autoDismiss",
+        "type": "SelectDismiss",
+        "optional": true
+      },
+      {
+        "name": "ondismiss",
+        "type": "() => void",
+        "optional": true,
+        "description": "Fired when the idle timer — not a click or Escape — closed the panel."
+      },
+      {
+        "name": "onopenchange",
+        "type": "(open: boolean) => void",
         "optional": true
       }
     ],
@@ -9837,6 +11133,25 @@
         "type": "string",
         "optional": true,
         "description": "Colour for the value text — a per-value hue, if the set carries one."
+      },
+      {
+        "name": "variant",
+        "type": "'inline' | 'tile'",
+        "optional": true,
+        "description": "`inline` is `‹ value ›`; `tile` stacks icon, stepper and caption.",
+        "default": "'inline'"
+      },
+      {
+        "name": "icon",
+        "type": "IconName",
+        "optional": true,
+        "description": "Tile only: drawn above the stepper."
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "optional": true,
+        "description": "Tile only: the line under the stepper — the unit or the name."
       },
       {
         "name": "class",
@@ -10034,6 +11349,31 @@
         "optional": true
       },
       {
+        "name": "tint",
+        "type": "string",
+        "optional": true,
+        "description": "An arbitrary hue, for vocabularies the closed `color` set cannot name —\na blog's topic tags, a changelog's change kinds. Any CSS colour; the\nchip derives its ink, edge and tint from it by `color-mix`, so one value\nproduces the same relationships the named colours have.\nPrefer `color` when a named one fits. This exists because a tag palette\nis content, not design vocabulary, and adding a member per topic would\nput the blog's editorial choices in the design system."
+      },
+      {
+        "name": "selected",
+        "type": "boolean",
+        "optional": true,
+        "description": "Pressed state, for a chip acting as a filter.",
+        "default": "false"
+      },
+      {
+        "name": "onclick",
+        "type": "() => void",
+        "optional": true,
+        "description": "Makes the chip a real `<button>`. Without it a chip is inert text — a\nfilter bar needs the element to be focusable and announce itself, which\na `<span>` with a handler does not."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "optional": true,
+        "description": "Accessible label when the chip's own text is not enough."
+      },
+      {
         "name": "children",
         "type": "Snippet",
         "optional": false
@@ -10081,6 +11421,13 @@
         "type": "Snippet",
         "optional": true,
         "description": "Optional action (e.g. a danger Button) placed at the right end."
+      },
+      {
+        "name": "tone",
+        "type": "'danger' | 'caution'",
+        "optional": true,
+        "description": "`danger` is something broken. `caution` is something that WILL break if\nyou do not read it — a breaking change in a release, a one-way migration\nstep. Both need the same \"stop and read this\" weight, which is why they\nare one component; red for a warning about the future would cry wolf, and\na second component would drift from this one's proportions.",
+        "default": "'danger'"
       }
     ],
     "interfaces": []
@@ -10370,18 +11717,6 @@
         "type": "boolean",
         "optional": true,
         "default": "true"
-      }
-    ],
-    "interfaces": []
-  },
-  "SceneConversation": {
-    "component": "SceneConversation",
-    "props": [
-      {
-        "name": "scene",
-        "type": "Scene",
-        "optional": false,
-        "default": "$bindable()"
       }
     ],
     "interfaces": []
@@ -10807,6 +12142,13 @@
         "optional": true,
         "description": "Draw the panel's own border, background and shadow. Off when a popover\nalready provides them — otherwise the two frames nest and the panel wears\na second outline nobody asked for.",
         "default": "true"
+      },
+      {
+        "name": "sideRail",
+        "type": "boolean",
+        "optional": true,
+        "description": "Dock a labelled rail against the panel's left edge, in `EdgeToolbarCard`,\ninstead of the compact icon rail across the top.\nFor a panel embedded in a page (onboarding's \"Look & feel\"), where the\nrail is how somebody discovers the groups exist. The popover keeps the\ntop rail: it is narrow, and there the reader knows what they came for.\nImplies the card's frame, so `framed` is ignored.",
+        "default": "false"
       }
     ],
     "interfaces": []

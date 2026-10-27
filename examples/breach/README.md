@@ -37,7 +37,7 @@ internal/breach/cards.yaml  the deck.        ┐ canonical. Generated into this
 internal/breach/rules.yaml  the board+roster ┘ directory; never edited here.
 internal/breach/breachview/ the wire shapes, and nothing else.
 internal/proto/breachproto/ the protocol: Intent, Snapshot, Event, Error.
-server/opamp/breach.go      the Line host: identity, fog, fan-out.
+server/linehub/breach.go      the Line host: identity, fog, fan-out.
 ```
 
 If you are reading this from inside the `showcase` repository, none of those

@@ -61,4 +61,21 @@ describe('StepSwitcher', () => {
 		await value.element().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
 		expect(picked).toBe('high');
 	});
+
+	// The unit lives in the caption, so the value stays the bare option label.
+	it('tile draws the caption apart from the value', async () => {
+		render(StepSwitcher, {
+			options: [
+				{ value: '4p', label: '4' },
+				{ value: '5p', label: '5' }
+			],
+			value: '4p',
+			onpick: () => {},
+			variant: 'tile',
+			icon: 'users',
+			caption: 'players'
+		});
+		await expect.element(page.getByRole('button', { name: 'Option: 4' })).toBeInTheDocument();
+		await expect.element(page.getByText('players')).toBeInTheDocument();
+	});
 });

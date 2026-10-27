@@ -13,6 +13,11 @@
 		timestamp?: number;
 		/** Display name shown above the bubble (e.g. the commenter). */
 		author: string;
+		/** Slack-style threading: id of the parent entry this one replies to.
+		 *  Absent = a top-level message. Replies render indented under their
+		 *  parent; every thread but the newest collapses to an "N replies"
+		 *  toggle, so live replies stay visible while history stays short. */
+		threadId?: string;
 	}
 
 	interface Props {
@@ -36,6 +41,34 @@
 
 	let draft = $state('');
 	let listEl = $state<HTMLElement | undefined>();
+
+	// Threading. Roots keep message order; replies group under their parent.
+	// A reply whose parent never arrived degrades to a root rather than vanish.
+	const roots = $derived(
+		messages.filter((m) => !m.threadId || !messages.some((p) => p.id === m.threadId))
+	);
+	const repliesOf = $derived.by(() => {
+		const map = new Map<string, ChatEntry[]>();
+		for (const m of messages) {
+			if (!m.threadId || !messages.some((p) => p.id === m.threadId)) continue;
+			const list = map.get(m.threadId) ?? [];
+			list.push(m);
+			map.set(m.threadId, list);
+		}
+		return map;
+	});
+	const lastThreadedRootId = $derived.by(() => {
+		for (let i = roots.length - 1; i >= 0; i--) {
+			if (repliesOf.has(roots[i].id)) return roots[i].id;
+		}
+		return undefined;
+	});
+	// User toggles override the default (only the newest thread open).
+	let threadOverrides = $state<Record<string, boolean>>({});
+	const threadOpen = (id: string) => threadOverrides[id] ?? id === lastThreadedRootId;
+	const toggleThread = (id: string) => {
+		threadOverrides = { ...threadOverrides, [id]: !threadOpen(id) };
+	};
 
 	$effect(() => {
 		const _ = messages.length;
@@ -66,13 +99,33 @@
 				<div class="chat-empty-text">Start by describing the feature you want to design</div>
 			</div>
 		{/if}
-		{#each messages as msg (msg.id)}
+		{#each roots as msg (msg.id)}
 			<ChatMessage
 				role={msg.role}
 				author={msg.author}
 				content={msg.content}
 				timestamp={msg.timestamp}
 			/>
+			{#if repliesOf.has(msg.id)}
+				{@const replies = repliesOf.get(msg.id)!}
+				<button class="chat-thread-toggle" onclick={() => toggleThread(msg.id)}>
+					{threadOpen(msg.id) ? '▾' : '▸'}
+					{replies.length}
+					{replies.length === 1 ? 'reply' : 'replies'}
+				</button>
+				{#if threadOpen(msg.id)}
+					<div class="chat-thread-replies">
+						{#each replies as reply (reply.id)}
+							<ChatMessage
+								role={reply.role}
+								author={reply.author}
+								content={reply.content}
+								timestamp={reply.timestamp}
+							/>
+						{/each}
+					</div>
+				{/if}
+			{/if}
 		{/each}
 	</div>
 
@@ -114,6 +167,31 @@
 		overflow-y: auto;
 		padding: 8px 0;
 		scroll-behavior: smooth;
+	}
+
+	/* ── Threads ─────────────────────────────────────────────────────────────── */
+	.chat-thread-toggle {
+		display: block;
+		margin: 0 0 4px 24px;
+		padding: 2px 6px;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		font-family: var(--mono);
+		font-size: 10px;
+		letter-spacing: 0.15em;
+		text-transform: uppercase;
+		color: var(--fg-dim);
+	}
+
+	.chat-thread-toggle:hover {
+		color: var(--fg-muted);
+	}
+
+	.chat-thread-replies {
+		margin-left: 24px;
+		padding-left: 12px;
+		border-left: 1px solid var(--border);
 	}
 
 	.chat-empty {

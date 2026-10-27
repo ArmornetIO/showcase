@@ -35,7 +35,17 @@
 	]);
 </script>
 
-<div class="relative w-[150px] shrink-0 self-stretch overflow-hidden rounded-[8px]">
+<!-- Its children are all absolutely positioned, so this box has no min-content of
+     its own to stop it collapsing — hence an explicit floor rather than the
+     `shrink-0` that used to hold it open. 104px is the seam plus both numerals
+     at their inset; below that the diagonal starts cutting digits.
+
+     The round and clock blocks either side of it cannot give ground — their
+     captions are their own minimum — so when the bar has to fit a phone this is
+     the only part of it with slack to hand back. -->
+<div
+	class="relative w-[124px] min-w-[104px] self-stretch overflow-hidden rounded-[8px] xl:w-[150px]"
+>
 	{#each halves as half (half.faction)}
 		{@const flag = teamFlags.get(half.faction)}
 		{@const em = EMBLEMS[flag.emblem]}

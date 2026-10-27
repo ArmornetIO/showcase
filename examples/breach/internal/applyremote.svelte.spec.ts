@@ -14,6 +14,8 @@ import { describe, expect, it } from 'vitest';
 import { flushSync, untrack } from 'svelte';
 
 import { BreachMatch, type RemoteMatchView } from './match.svelte.js';
+import { BreachLobby } from './lobby.svelte.js';
+import { DEFAULT_APPEARANCE, type Appearance } from './appearance.js';
 
 function snapshot(over: Partial<RemoteMatchView> = {}): RemoteMatchView {
 	return {
@@ -57,5 +59,56 @@ describe('applyRemote inside an $effect', () => {
 		// would pass on a loop that merely ran forty times before giving up.
 		expect(runs).toBe(1);
 		expect(untrack(() => match.charges).sweep).toBe(2);
+	});
+});
+
+// The lobby has the same method, called from the same shape — two effects, in
+// `Lobby.svelte` and `Breach.svelte` — and it grew the same self-subscription
+// the moment seats started carrying an appearance to merge. It reached a player
+// as a lobby that froze on filling with bots, opening an invite or joining a
+// side: every one of those is the first snapshot in which a seat is dressed.
+describe('BreachLobby.applyRemote inside an $effect', () => {
+	function seating(appearance?: Appearance) {
+		return {
+			your_seat: 'R1',
+			lobby: {
+				phase: 'waiting',
+				mode: 'draft',
+				size: '2v2',
+				seats: [
+					{ id: 'R1', side: 'red', appearance, occupant: { kind: 'human', user_id: 'u1' } },
+					{ id: 'R2', side: 'red', occupant: { kind: 'open' } }
+				]
+			}
+		};
+	}
+
+	it('settles instead of re-triggering itself', () => {
+		const lobby = new BreachLobby();
+		let runs = 0;
+
+		const stop = $effect.root(() => {
+			$effect(() => {
+				runs++;
+				// A dressed seat is the trigger: with no `appearance` anywhere in
+				// the view the merge writes back an equal map and the loop never
+				// shows itself, which is why this fixture carries one.
+				lobby.applyRemote(seating(DEFAULT_APPEARANCE));
+			});
+		});
+		flushSync();
+		stop();
+
+		expect(runs).toBe(1);
+	});
+
+	it('keeps a look the view said nothing about', () => {
+		// Why the merge exists, and so why the untracked read cannot just become
+		// a plain overwrite: a partial view must not undress the rest of table.
+		const lobby = new BreachLobby();
+		lobby.setLook('B1', DEFAULT_APPEARANCE);
+		lobby.applyRemote(seating(DEFAULT_APPEARANCE));
+
+		expect(untrack(() => lobby.looks).B1).toBeDefined();
 	});
 });

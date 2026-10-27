@@ -14,7 +14,8 @@ function ended(winner: 'red' | 'blue', seat: string, links: number, revealed = 0
 	m.footholds = CHAIN.slice(0, links).map((s, i) => ({
 		structure_id: s.id,
 		seat_key: 'maintainer',
-		persistent: true,
+		kind: 'permanent' as const,
+		cost_ap: 2,
 		revealed: i < revealed,
 		sleeper: false,
 		placed_round: 2,

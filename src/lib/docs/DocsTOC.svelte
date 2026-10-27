@@ -36,6 +36,25 @@
 		rootMargin?: string;
 		/** Label above the TOC list. Default: `'On this page'`. */
 		label?: string;
+		/**
+		 * Supply the outline instead of scanning the DOM for it.
+		 *
+		 * The scan exists for pages that render prose they did not author. When the
+		 * outline is already a known value — docgen computes one per document,
+		 * anchors included — scanning re-derives it from markup that has to be
+		 * mounted first, which makes the rail arrive a frame late and disagree with
+		 * the build about what a heading is.
+		 *
+		 * Active-heading tracking still observes the real elements, so this changes
+		 * where the LIST comes from and nothing else.
+		 */
+		headings?: TocHeading[];
+		/**
+		 * `numbered` draws a zero-padded ordinal per entry instead of indenting by
+		 * level — for a sequence, where the order IS the navigation and a reader
+		 * asks "which step am I on", not "where does this nest".
+		 */
+		variant?: 'outline' | 'numbered';
 	}
 
 	let {
@@ -44,17 +63,41 @@
 		key = undefined,
 		headingSelector = 'h2, h3',
 		rootMargin = '-15% 0px -65% 0px',
-		label = 'On this page'
+		label = 'On this page',
+		headings: given,
+		variant = 'outline'
 	}: DocsTOCProps = $props();
 
-	let headings = $state<TocHeading[]>([]);
+	let scanned = $state<TocHeading[]>([]);
+	// A supplied outline wins outright; the scan is not even a fallback for it,
+	// because a caller that states its headings and then gets different ones has
+	// no way to tell.
+	const headings = $derived(given ?? scanned);
 	let activeId = $state('');
+	// A jump to an anchor parks the heading at the top of the viewport, above the
+	// observer's band, so the observer never reports it. The chosen heading holds
+	// until the reader scrolls on their own.
+	let pinned = false;
+
+	function pin(id: string) {
+		activeId = id;
+		pinned = true;
+	}
+
+	function unpin() {
+		pinned = false;
+	}
 
 	// ── Effect 1 — Scan + MutationObserver ───────────────────────────────────
 	// Reactive on: key, containerEl, containerSelector, headingSelector.
 	// Sets up a MutationObserver so dynamically-loaded content (async imports,
 	// route transitions) is captured without the caller having to signal again.
 	$effect(() => {
+		// Nothing to scan for when the outline was supplied — and observing the DOM
+		// anyway would spend a MutationObserver per page to compute a value the
+		// caller already handed us.
+		if (given) return;
+
 		// Force dependency tracking on all props that should trigger a re-scan.
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		void key;
@@ -76,7 +119,7 @@
 					text: el.textContent?.trim() ?? '',
 					level: Number(el.tagName[1])
 				}));
-			headings = extracted;
+			scanned = extracted;
 		}
 
 		function scheduleRescan() {
@@ -109,6 +152,7 @@
 
 		const io = new IntersectionObserver(
 			(entries) => {
+				if (pinned) return;
 				let best: IntersectionObserverEntry | null = null;
 				for (const entry of entries) {
 					if (entry.isIntersecting && entry.intersectionRatio >= latestRatio) {
@@ -128,20 +172,29 @@
 			if (el) io.observe(el);
 		}
 
-		// Seed active to the first heading if nothing is set yet.
-		if (!activeId && headings.length) activeId = headings[0].id;
+		// Seed active from the URL's anchor, else the first heading.
+		const hash = decodeURIComponent(location.hash.slice(1));
+		if (headings.some((h) => h.id === hash)) pin(hash);
+		else if (!activeId) activeId = headings[0].id;
 
 		return () => io.disconnect();
 	});
 </script>
 
+<svelte:window onwheel={unpin} ontouchmove={unpin} onkeydown={unpin} />
+
 {#if headings.length}
-	<nav class="doc-toc" aria-label="On this page">
+	<nav class="doc-toc" aria-label={label} data-variant={variant}>
 		<p class="doc-toc-label">{label}</p>
 		<ul class="doc-toc-list" role="list">
-			{#each headings as h (h.id)}
+			{#each headings as h, i (h.id)}
 				<li class="doc-toc-item" class:active={activeId === h.id} data-level={h.level}>
-					<a href="#{h.id}">{h.text}</a>
+					<a href="#{h.id}" onclick={() => pin(h.id)}>
+						{#if variant === 'numbered'}
+							<span class="doc-toc-num">{String(i + 1).padStart(2, '0')}</span>
+						{/if}
+						<span class="doc-toc-text">{h.text}</span>
+					</a>
 				</li>
 			{/each}
 		</ul>
@@ -196,5 +249,27 @@
 	.doc-toc-item.active a {
 		color: var(--accent);
 		border-left-color: var(--accent);
+	}
+
+	/* ── numbered ────────────────────────────────────────────────────────────
+	   A sequence reads by ordinal, so the indent-by-level rules are overridden
+	   rather than combined: a step that also happened to be an h3 would otherwise
+	   sit half-indented and break the column the numbers form. */
+	.doc-toc[data-variant='numbered'] .doc-toc-item a {
+		display: flex;
+		gap: 0.6rem;
+		align-items: baseline;
+		padding-left: 0.75rem;
+		font-size: 0.82rem;
+	}
+	.doc-toc-num {
+		flex-shrink: 0;
+		font-family: var(--mono);
+		font-size: 0.68rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--fg-dim);
+	}
+	.doc-toc-item.active .doc-toc-num {
+		color: var(--accent);
 	}
 </style>

@@ -3,20 +3,7 @@
 	import { theme } from './store.svelte.js';
 	import { THEMES, type ThemeChoice, type ThemeKey } from './themes.js';
 	import AdvancedSettingsPanel from '../settings/AdvancedSettingsPanel.svelte';
-
-	// Move a node to <body> so its `position: fixed` is viewport-relative, not
-	// trapped by an ancestor that establishes a containing block for fixed elements
-	// (a transform/filter/backdrop-filter anywhere up the sidebar tree does this).
-	// Without it the menu is clipped inside the sidebar's overflow and reads as
-	// hidden behind the page content.
-	function portal(node: HTMLElement) {
-		document.body.appendChild(node);
-		return {
-			destroy() {
-				node.remove();
-			}
-		};
-	}
+	import { portal } from '../primitives/portal.js';
 
 	interface ThemePickerProps {
 		variant?: 'icon' | 'hud';
@@ -60,15 +47,23 @@
 	// a picker that still lists them offers a choice the store will not honour.
 	// Derived rather than built once — the host declares the capability during
 	// layout setup, which can land after this component is first constructed.
-	const rows = $derived<Array<{ key: ThemeChoice; label: string; description: string }>>([
+	const rows = $derived<
+		Array<{ key: ThemeChoice; label: string; description: string; comingSoon: boolean }>
+	>([
 		{
 			key: 'system',
 			label: 'System',
 			// It cannot follow an OS set to light if light is off, and a row that
 			// promises something the store will not do is worse than no row.
-			description: theme.allowLight ? 'Follows your OS setting.' : 'Dark while light is off.'
+			description: theme.allowLight ? 'Follows your OS setting.' : 'Dark while light is off.',
+			comingSoon: false
 		},
-		...theme.available.map((t) => ({ key: t.key, label: t.label, description: t.description }))
+		...theme.available.map((t) => ({
+			key: t.key,
+			label: t.label,
+			description: t.description,
+			comingSoon: !!t.comingSoon
+		}))
 	]);
 
 	// HUD variant: gradient diagonal swatches + sublabels per theme
@@ -341,8 +336,10 @@
 				<button
 					type="button"
 					class="theme-row"
+					class:theme-row-soon={row.comingSoon}
 					role="menuitemradio"
 					aria-checked={activeKey === row.key}
+					disabled={row.comingSoon}
 					onclick={() => pick(row.key)}
 				>
 					<span class="theme-swatch" aria-hidden="true">
@@ -372,7 +369,10 @@
 					</span>
 
 					<span class="theme-meta">
-						<span class="theme-name">{row.label}</span>
+						<span class="theme-name">
+							{row.label}
+							{#if row.comingSoon}<span class="theme-soon">Coming soon</span>{/if}
+						</span>
 						<span class="theme-desc">{row.description}</span>
 					</span>
 
@@ -465,6 +465,30 @@
 		text-transform: uppercase;
 		color: var(--fg-muted);
 	}
+	/* Dimmed and inert, but still listed with its swatch: the row is advertising
+	   a palette that is coming, so hiding it would defeat the point. The swatch
+	   keeps full opacity — it is the part that does the advertising. */
+	.theme-row-soon {
+		opacity: 0.55;
+		cursor: not-allowed;
+	}
+	.theme-row-soon:hover {
+		background: transparent;
+	}
+
+	.theme-soon {
+		margin-left: 0.4rem;
+		font-family: var(--mono);
+		font-size: 0.55rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		padding: 0.1rem 0.3rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		color: var(--fg-dim);
+		white-space: nowrap;
+	}
+
 	.theme-row {
 		display: grid;
 		grid-template-columns: 64px 1fr 18px;

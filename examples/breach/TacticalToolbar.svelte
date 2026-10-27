@@ -1,20 +1,26 @@
 <script lang="ts">
 	// ── The tactical toolbar ─────────────────────────────────────────────────────
-	// The camera controls, re-pointed at the GAME. A raw zoom-in/zoom-out pair is
-	// a viewer's control; a commander wants "show me the objective", "show me
-	// what I hold", "show me the whole theatre" — the camera move is the same, but
-	// the button names a decision rather than a transform.
+	// Two controls, lying flat, at every width.
 	//
-	// It is `IconToolbar` because that is what a vertical icon rail with tooltips,
-	// dividers and dropdowns already is. Nothing here re-implements a toolbar.
+	// It was nine, in a vertical column, on anything wider than a phone. The
+	// narrow layout cut it to two on the argument that seven of them were a
+	// mouse's conveniences — and having played both, the two-item bar is simply
+	// the better control surface, mouse or not. `Closer`/`Wider` are a worse copy
+	// of the scroll wheel; `Objective` and `Hottest region` fly the camera
+	// somewhere the objective strip already names in words; `Clear target` is a
+	// click on empty board. None of those stop being true when a cursor arrives —
+	// a desktop just has enough room to hide that they were never earning it.
+	//
+	// What is left is the pair a player cannot do any other way: get the view back
+	// when they have spun the globe into empty space, and see the other board.
+	//
+	// It is `IconToolbar` because that is what an icon bar with tooltips and
+	// dropdowns already is. Nothing here re-implements a toolbar.
 	import { IconToolbar, type IconToolbarItem } from 'showcase';
 	import type { CanvasCamera, MeshLayoutId } from 'showcase';
-	import { CHAIN, CORE_ID, TERRITORIES, TERRITORY_ORDER } from './internal/rules.js';
-	import type { BreachMatch } from './internal/match.svelte.js';
 	import { PRESENCE_MODES, type PresenceRenderMode } from './presence/index.js';
 
 	interface Props {
-		match: BreachMatch;
 		camera: CanvasCamera | undefined;
 		/** Bound to the canvas so the view menu can drive it. Typed against the
 		 *  canvas's own ids rather than `string`: the rail used to offer "Force" and
@@ -23,14 +29,15 @@
 		 *  buttons ended up drawing the same thing. */
 		layout: MeshLayoutId;
 		onlayout: (id: MeshLayoutId) => void;
-		/** Player-presence modes currently drawing. */
+		/** Player-presence modes currently drawing. Host-supplied: this example
+		 *  never wires `onpresence`, so the menu is absent here and present for an
+		 *  embedder that wants it. */
 		presenceModes?: PresenceRenderMode[];
 		onpresence?: (id: PresenceRenderMode) => void;
 		class?: string;
 	}
 
 	let {
-		match,
 		camera,
 		layout,
 		onlayout,
@@ -38,13 +45,6 @@
 		onpresence,
 		class: cls = ''
 	}: Props = $props();
-
-	/** The building the player most likely wants to look at: what they are
-	 *  aiming at, else the next step of the path, else the core. */
-	const focus = $derived(
-		match.selectedId ??
-			(match.seat.faction === 'red' ? (match.chainNext?.id ?? CORE_ID) : CORE_ID)
-	);
 
 	/** Two views of ONE board, and deliberately not a menu of arrangements.
 	 *
@@ -69,72 +69,55 @@
 	);
 
 	const items = $derived<IconToolbarItem[]>([
-		{
-			icon: 'crestlink',
-			label: 'Objective — fly to the next step',
-			onclick: () => {
-				match.selectedId = match.chainNext?.id ?? CORE_ID;
-				void camera?.flyTo(match.chainNext?.id ?? CORE_ID, { duration: 700 });
-			}
-		},
-		{
-			icon: 'flame',
-			label: 'Hottest region',
-			disabled: TERRITORY_ORDER.every((t) => match.heat[t] === 0),
-			onclick: () => {
-				const hottest = TERRITORY_ORDER.reduce((a, b) =>
-					match.heat[a] >= match.heat[b] ? a : b
-				);
-				const anchor = CHAIN.find((s) => s.territory === hottest);
-				void camera?.flyTo(anchor?.id ?? CORE_ID, { duration: 700 });
-			}
-		},
-		{
-			icon: 'home',
-			label: 'Recentre on the core',
-			onclick: () => void camera?.flyTo(CORE_ID, { duration: 600 })
-		},
-		{ divider: true },
 		{ icon: 'maximize', label: 'Fit the whole theatre', onclick: () => camera?.fitAll() },
-		{ icon: 'zoom-in', label: 'Closer', onclick: () => camera?.zoomIn() },
-		{ icon: 'zoom-out', label: 'Wider', onclick: () => camera?.zoomOut() },
-		{ divider: true },
 		{
 			icon: OTHER.icon,
 			label: `Board view — switch to ${OTHER.label}`,
 			onclick: () => onlayout(OTHER.id)
 		},
-		// The table, as a set of layers rather than a panel. It sits with the
-		// camera controls because it is the same kind of decision: not a move, but
-		// how the commander wants to be shown the board.
-		{
-			icon: 'users',
-			label: `Player presence — ${presenceModes.length} of ${PRESENCE_MODES.length} on`,
-			active: presenceModes.length > 0,
-			disabled: !onpresence,
-			menu: [
-				{ kind: 'header' as const, label: 'Presence modes' },
-				...PRESENCE_MODES.map((m) => ({
-					label: m.name,
-					icon: m.icon,
-					selected: presenceModes.includes(m.id),
-					color: presenceModes.includes(m.id) ? undefined : 'var(--fg-dim)',
-					onclick: () => onpresence?.(m.id)
-				}))
-			]
-		},
-		{
-			icon: 'eye',
-			label: match.selectedId
-				? `Clear target — ${TERRITORIES[
-						CHAIN.find((s) => s.id === focus)?.territory ?? 'marches'
-					].name}`
-				: 'Nothing targeted',
-			active: !!match.selectedId,
-			disabled: !match.selectedId,
-			onclick: () => (match.selectedId = null)
-		}
+		// Only for a host that wired it. This is the toolbar's one remaining menu
+		// and it is not a camera decision, so it does not get to set the shape of
+		// the bar for the app that never passes the handler — where it drew a
+		// permanently disabled ninth glyph.
+		...(onpresence
+			? [
+					{
+						icon: 'users',
+						label: `Player presence — ${presenceModes.length} of ${PRESENCE_MODES.length} on`,
+						active: presenceModes.length > 0,
+						menu: [
+							{ kind: 'header' as const, label: 'Presence modes' },
+							...PRESENCE_MODES.map((m) => ({
+								label: m.name,
+								icon: m.icon,
+								selected: presenceModes.includes(m.id),
+								color: presenceModes.includes(m.id) ? undefined : 'var(--fg-dim)',
+								onclick: () => onpresence(m.id)
+							}))
+						]
+					} satisfies IconToolbarItem
+				]
+			: [])
 	]);
 </script>
 
-<IconToolbar {items} orientation="vertical" class={cls} />
+<IconToolbar items={items} orientation="horizontal" class="tac-rail {cls}" />
+
+<style>
+	/* The buttons are laid out for a cursor. A finger needs 44px, and the
+	   toolbar's own sizing lives in the library — so the size is overridden here,
+	   where the decision that this bar is played on a phone is actually made.
+
+	   The container has to grow with them: `height` now rather than `width`, the
+	   bar being horizontal at every size. A 44px button in a 44px track with auto
+	   margins overflows by exactly the margin. */
+	@media (pointer: coarse) {
+		:global(.tac-rail) {
+			height: 54px;
+		}
+		:global(.tac-rail .toolbar-btn) {
+			width: 44px;
+			height: 44px;
+		}
+	}
+</style>

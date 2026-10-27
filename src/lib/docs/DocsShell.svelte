@@ -48,7 +48,10 @@
 	const centerStyle = $derived(
 		`padding-left: calc(${leftPad}px + 2.5rem); padding-right: calc(${rightPad}px + 2.5rem);`
 	);
-	const drawerStyle = $derived(`top: ${topOffset}; height: calc(100vh - ${topOffset});`);
+	// 100% rather than 100vh: for a fixed element they are the same viewport, but 100%
+	// also honours a host that gives the shell its own containing block (the editor's
+	// preview pane), where 100vh would run the drawer off the bottom.
+	const drawerStyle = $derived(`top: ${topOffset}; height: calc(100% - ${topOffset});`);
 	// Built here rather than inline: a `${}` written into the attribute itself is
 	// literal text to the compiler, so the whole declaration is invalid CSS and
 	// the browser silently drops it — which parked the tab at the top of the page.

@@ -81,6 +81,9 @@ export interface CrestOpts {
 	/** Which material paints it. `trim` is the player's own hue, which is what
 	 *  the HUD's crests have always been. */
 	mat?: Part['mat'];
+	/** Corners on the ring. Six is the HUD's hexagon; enough of them and it is
+	 *  a round porthole, which is what Insider Threat's plate stands in. */
+	sides?: number;
 }
 
 const DEFAULTS = {
@@ -108,7 +111,8 @@ const DEFAULTS = {
 	// crest and becomes a barrel.
 	thick: 0.12,
 	face: 0,
-	mat: 'trim' as const
+	mat: 'trim' as const,
+	sides: 6
 };
 
 /** A pointy-top hexagon, in the plane this is authored flat in.
@@ -117,9 +121,9 @@ const DEFAULTS = {
  *  stands up, so the vertex has to be the point at maximum `n` here to be the
  *  point at the top there. Authored the other way round it stands up flat-top
  *  and stops matching every other hexagon in the HUD. */
-const hex = (r: number, turnBy = 0): [number, number][] =>
-	Array.from({ length: 6 }, (_, i) => {
-		const a = (i / 6) * Math.PI * 2 + turnBy;
+const hex = (r: number, sides = 6, turnBy = 0): [number, number][] =>
+	Array.from({ length: sides }, (_, i) => {
+		const a = (i / sides) * Math.PI * 2 + turnBy;
 		return [r * Math.sin(a), r * Math.cos(a)] as [number, number];
 	});
 
@@ -151,16 +155,17 @@ export function crestParts(shape: Shape, opts: CrestOpts = {}): Part[] {
 	// the whole plate with a hue turns the card into a coloured slab with a
 	// person in it.
 	const ring = (r0: number, r1: number, mat: Part['mat'], base: number, lit: boolean): Part[] => {
-		const A = hex(r0);
-		const B = hex(r1);
-		return Array.from({ length: 6 }, (_, i) => {
-			const j = (i + 1) % 6;
+		const n = o.sides;
+		const A = hex(r0, n);
+		const B = hex(r1, n);
+		return Array.from({ length: n }, (_, i) => {
+			const j = (i + 1) % n;
 			const foot = ccw([B[i], B[j], A[j], A[i]]);
 			// Stand it up, square it to the camera, then lift it to height. Turning
 			// after the tip and before the lift keeps the rotation about the ring's
 			// own centre rather than about the character's feet.
 			const solid: Solid = lift(turn(tip(prism(foot, -t / 2, t / 2), stand), o.face), h);
-			return { solid, tint: base * (lit ? segTint((i + 0.5) / 6) : 1), mat, tag: undefined };
+			return { solid, tint: base * (lit ? segTint((i + 0.5) / n) : 1), mat, tag: undefined };
 		});
 	};
 

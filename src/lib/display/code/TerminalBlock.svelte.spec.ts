@@ -23,4 +23,16 @@ describe('TerminalBlock', () => {
 		const { container } = render(TerminalBlock, { content: '' });
 		expect(container.querySelectorAll('.tb-dot')).toHaveLength(3);
 	});
+
+	it('offers a copy button when asked', async () => {
+		render(TerminalBlock, { content: 'curl https://example.com', copy: true });
+		await expect.element(page.getByLabelText('Copy to clipboard')).toBeInTheDocument();
+	});
+
+	// Without chrome and without a title there is no bar to hang it on, so the
+	// bar has to appear for `copy` alone.
+	it('shows the copy button with chrome off and no title', async () => {
+		render(TerminalBlock, { content: '{}', chrome: false, copy: true });
+		await expect.element(page.getByLabelText('Copy to clipboard')).toBeInTheDocument();
+	});
 });

@@ -71,6 +71,45 @@ function points(radii: number[], h: number, s: number, rot: number, wedge: numbe
 	return radii.map((_, i) => placeAt(i, h, s, rot, wedge));
 }
 
+/** The wedge keeps the spiral's bearings but not its single spacing constant.
+ *
+ *  Taking the golden angle modulo a wedge loses the full turn's guarantee that
+ *  far-apart indices sit far apart in angle, so two bodies can land on nearly
+ *  the same bearing a sliver apart in radius — and a single constant bisected
+ *  until THAT pair clears spreads every other pair by the same amount. On an
+ *  18-node fan it was reaching 2.5× further than the bodies needed, and every
+ *  line read as a long empty run. So each body walks out along its own bearing
+ *  only until it clears the hub and the bodies already placed: same fan, each
+ *  body at contact. */
+function packWedge(
+	radii: number[],
+	margin: number,
+	clear: number,
+	rot: number,
+	wedge: number
+): SunflowerPlacement {
+	const pts: { x: number; y: number }[] = [];
+	radii.forEach((ri, i) => {
+		const a = rot + (((i * GOLDEN_ANGLE) % wedge) - wedge / 2);
+		const cx = Math.cos(a);
+		const cy = Math.sin(a);
+		let d = clear + ri;
+		// Step out by the deepest overlap each round; bounded so it cannot spin.
+		for (let k = 0; k < 1000; k++) {
+			let worst = 0;
+			for (let j = 0; j < i; j++) {
+				const pen = ri + radii[j] + margin - Math.hypot(cx * d - pts[j].x, cy * d - pts[j].y);
+				if (pen > worst) worst = pen;
+			}
+			if (worst <= 0) break;
+			d += Math.max(worst, 0.5);
+		}
+		pts.push({ x: cx * d, y: cy * d });
+	});
+	const radius = Math.max(...pts.map((p, i) => Math.hypot(p.x, p.y) + radii[i]));
+	return { points: pts, radius, spacing: 0 };
+}
+
 /** Do any two bodies overlap at this spacing? Brute force — tens of bodies. */
 function fits(radii: number[], pts: { x: number; y: number }[], margin: number): boolean {
 	for (let i = 0; i < pts.length; i++)
@@ -97,6 +136,8 @@ export function packSunflower(radii: number[], opts: SunflowerOpts = {}): Sunflo
 	// spiral, which has no seam where the wedge would wrap onto itself.
 	const wedge = spread && spread < 360 ? (Math.max(1, spread) * Math.PI) / 180 : 0;
 	if (!radii.length) return { points: [], radius: Math.max(hubR + hubMargin, 1), spacing: 0 };
+
+	if (wedge > 0) return packWedge(radii, margin, hubR + hubMargin, rot, wedge);
 
 	const maxR = Math.max(...radii);
 	// The innermost body must clear the hub, so the spiral starts outside it.

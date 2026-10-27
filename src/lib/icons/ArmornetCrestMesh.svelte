@@ -69,8 +69,8 @@
 	export type Pt = readonly [number, number];
 
 	/**
-	 * The interior, lifted verbatim from `ICONS.crestlink` — the glyph the console
-	 * already draws at the centre of the mesh for a control-plane node.
+	 * The interior, lifted verbatim from the `crestlink` glyph the console used to
+	 * draw for a server node (deleted since: `ICONS.armornet` is this logo now).
 	 *
 	 * Verbatim is the point. This mark exists to put the product's own centre
 	 * object behind a shield wall, so the moment the satellites get re-placed to
@@ -203,17 +203,38 @@
 		// The peak split by a square slot instead of a V — crest crossed with
 		// keyed. The slot bottom cannot go below ~4.6: its two inner corners are
 		// right angles, so they mitre 1.48 down, and the hub is under them.
+		//
+		// This one is THE LOGO, so it is cut to the mark rather than to the family
+		// crown line above: the crown runs shallower (0.292 against the family's
+		// 0.395) and the slot is cut half as deep. Both moves are about the gap.
+		// On the family line the shoulders drop 2.57 from the crown and the slot
+		// swallows 1.87 of a 19-unit shield, so the top reads as a wedge with a
+		// bite out of it; held up, the slot stays a SLOT at small sizes and the
+		// crown stays a crown. The BODY leaves the family too, and in the same
+		// direction: the flank breaks at 11.11 rather than 12.9 and the point
+		// lands at 21.58 rather than 21.9, so the sweep starts higher, carries
+		// further and arrives blunter. The family's late break holds the shield
+		// wide to the waist and then turns hard — armour, and correct for a badge
+		// in a run of badges. The logo wants the taper to be the shape rather
+		// than a corner at the end of the flanks.
+		//
+		// These numbers are a least-squares fit to the mark, not eyeballing:
+		// twelve rows off the reference, residuals under 0.06. Nudging one by
+		// hand un-fits it, so move the fit, not the point.
 		crestkey: {
-			start: [10.4, 2.73],
+			// The ears stand 1.5 above the shoulder line, not 1.87. At the old
+			// height they read as horns on the mark rather than as a key cut into
+			// the crown — the difference is small at 240px and decisive at 26.
+			start: [10.3, 3.1],
 			segs: [
-				{ to: [10.4, 4.6] },
-				{ to: [13.6, 4.6] },
-				{ to: [13.6, 2.73] },
-				{ to: [20.1, 5.3] },
-				{ to: [20.1, 12.9] },
-				{ c1: [20.1, 17.4], c2: [16.7, 20.5], to: [12, 21.9] },
-				{ c1: [7.3, 20.5], c2: [3.9, 17.4], to: [3.9, 12.9] },
-				{ to: [3.9, 5.3] }
+				{ to: [10.3, 3.85] },
+				{ to: [13.7, 3.85] },
+				{ to: [13.7, 3.1] },
+				{ to: [20.1, 4.6] },
+				{ to: [20.1, 11.11] },
+				{ c1: [20.1, 15.73], c2: [17.52, 18.92], to: [12, 21.58] },
+				{ c1: [6.48, 18.92], c2: [3.9, 15.73], to: [3.9, 11.11] },
+				{ to: [3.9, 4.6] }
 			]
 		},
 		// Battlements on a crest body. The crown goes flat to carry them — merlons
@@ -675,30 +696,26 @@
 		`M${insetPoints(p, t).map(xy).join(' L')} Z`;
 
 	/**
-	 * Hub → every satellite, stopped ON the ring instead of run through to the
-	 * satellite's centre.
+	 * Hub → every satellite, run THROUGH the ring to the satellite's centre, as
+	 * crestlink itself draws it.
 	 *
-	 * crestlink itself draws the spoke to the centre, and at console scale that is
-	 * fine. As a logo it is not: the stub inside the ring fills the one counter
-	 * the figure has, and at favicon size the satellite silts up into a bullseye
-	 * dot indistinguishable from the hub. Ending the spoke on the ring leaves all
-	 * three circles open, so the ring keeps reading as a place an edge ARRIVES at
-	 * rather than as a dot someone drew a circle around.
+	 * This was trimmed to the ring once, on the theory that a stub inside the
+	 * counter silts up at favicon size and that an open circle reads better as a
+	 * place an edge arrives at. Held against the mark, that is wrong twice over.
+	 * The stub is what makes the satellite a TERMINUS — a line that stops at a
+	 * ring's edge has been interrupted; one that reaches the centre has arrived —
+	 * and the counter is not filled by it, it is halved, which is a shape rather
+	 * than a blob. It is also the whole reason the interior is lifted verbatim:
+	 * the moment a stroke is re-cut to suit the shield it stops being crestlink
+	 * and becomes a drawing of it.
 	 *
-	 * The trim lands on the ring's centreline, not outside it — the cap is then
-	 * covered by the ring's own stroke and the join is seamless. Stopping short of
-	 * the ring instead leaves a visible hairline gap at large sizes.
+	 * The round cap carries a quarter-weight past the centre. That is the drawn
+	 * look and it is deliberate — squaring the cap to land dead on centre reads
+	 * as a hairline that ran out of ink.
 	 */
-	export const CRESTLINK_SPOKES = CRESTLINK_NODES.map((n) => {
-		const dx = n[0] - CRESTLINK_HUB[0];
-		const dy = n[1] - CRESTLINK_HUB[1];
-		const L = Math.hypot(dx, dy) || 1;
-		const end: Pt = [
-			n[0] - (dx / L) * CRESTLINK_NODE_R,
-			n[1] - (dy / L) * CRESTLINK_NODE_R
-		];
-		return `M${xy(CRESTLINK_HUB)} L${xy(end)}`;
-	}).join('');
+	export const CRESTLINK_SPOKES = CRESTLINK_NODES.map(
+		(n) => `M${xy(CRESTLINK_HUB)} L${xy(n)}`
+	).join('');
 
 	/**
 	 * Where the crestlink figure sits inside a given shield: uniform scale `k`
@@ -716,6 +733,24 @@
 	export function fitTransform(g: ShapeDef): string {
 		const { k, tx, ty } = figureFit(g);
 		return `translate(${f(tx)} ${f(ty)}) scale(${k})`;
+	}
+
+	/**
+	 * The square the mark is drawn in, centred on the shield's OWN bbox.
+	 *
+	 * A fixed `-1 -1 26 26` is not centred and never was: no shield here spans
+	 * y symmetrically about 12 — crestkey sits 2.73…21.9, which is 0.63 more air
+	 * above the crown than under the point. The mark then rides low in every slot
+	 * it is dropped into, and the miss is invisible in isolation and obvious the
+	 * moment it sits beside a wordmark. Deriving the box means it tracks the
+	 * silhouette instead of being re-eyeballed whenever one is tuned.
+	 *
+	 * x needs no such treatment — every shield is symmetric on x = 12.
+	 */
+	export function viewBoxFor(g: ShapeDef): string {
+		const ys = outlinePoly(g).map((p) => p[1]);
+		const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+		return `-1 ${f(cy - 13)} 26 26`;
 	}
 
 	export interface PlacedFigure {
@@ -763,7 +798,7 @@
 	/**
 	 * Armornet crest, mesh cut — the shield with the console's mesh centre in it.
 	 *
-	 * The interior is `ICONS.crestlink`: a solid hub, straight spokes, ringed
+	 * The interior is the crestlink figure: a solid hub, straight spokes, ringed
 	 * satellites, all at one weight. Which shield it sits behind is what this
 	 * component is for choosing, so the figure stays fixed and only the wall
 	 * around it varies.
@@ -782,8 +817,7 @@
 	 * · The inner wall is MITRED off the outer, and both come off one segment
 	 *   list, so the two contours cannot disagree about the silhouette.
 	 *
-	 * Sibling marks: `ArmornetCrest.svelte` (the A monogram, shipped brand mark)
-	 * and `ArmornetCrestHub.svelte` (the A spelled out of hub-and-spoke).
+	 * Sibling mark: `ArmornetCrestChrome.svelte`.
 	 */
 	interface CrestMeshProps {
 		size?: number;
@@ -833,6 +867,7 @@
 	const outline = $derived(outlinePath(g));
 	const inner = $derived(insetPolygon(outlinePoly(g), 1.05));
 	const fit = $derived(fitTransform(g));
+	const box = $derived(viewBoxFor(g));
 </script>
 
 <svg
@@ -840,7 +875,7 @@
 	{style}
 	width={size}
 	height={size}
-	viewBox="-1 -1 26 26"
+	viewBox={box}
 	role="img"
 	aria-label={title}
 >
@@ -855,8 +890,11 @@
 			<!-- White keeps, black cuts. The satellites are stroked with NO fill so
 			     each one cuts a ring and leaves its own centre solid — the same
 			     hollow dot the outline variant draws, read the other way round. -->
-			<mask id={cutId} maskUnits="userSpaceOnUse" x="-1" y="-1" width="26" height="26">
-				<rect x="-1" y="-1" width="26" height="26" fill="#fff" />
+			<!-- Deliberately larger than any viewBox `viewBoxFor` can hand back: a
+			     mask region that merely matches the box clips the fill the moment
+			     the box shifts to centre a taller shield. -->
+			<mask id={cutId} maskUnits="userSpaceOnUse" x="-4" y="-4" width="32" height="32">
+				<rect x="-4" y="-4" width="32" height="32" fill="#fff" />
 				{#if innerWall}
 					<path d={inner} fill="none" stroke="#000" stroke-width="0.4" />
 				{/if}

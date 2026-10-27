@@ -84,7 +84,9 @@ interface EdgeRun {
 	nh: number;
 }
 
-function build(piece: Piece): PieceMesh {
+/** Flatten any piece, not only a catalogued building — `game/map` bakes its
+ *  props through this so they share the buildings' edge dedupe. */
+export function meshPiece(piece: Piece): PieceMesh {
 	let maxH = 0;
 	for (const solid of piece) for (const v of solid.verts) if (v.h > maxH) maxH = v.h;
 	// A flat piece would be a bug upstream, not something to render; the guard is
@@ -195,7 +197,7 @@ function build(piece: Piece): PieceMesh {
 
 /** Every building in the settlement, flattened. */
 export const PIECE_MESHES: Record<string, PieceMesh> = Object.freeze(
-	Object.fromEntries(Object.entries(ALL_PIECES).map(([id, piece]) => [id, build(piece)]))
+	Object.fromEntries(Object.entries(ALL_PIECES).map(([id, piece]) => [id, meshPiece(piece)]))
 );
 
 /** Mode key → mesh, mirroring MODE_PIECES.

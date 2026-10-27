@@ -44,10 +44,8 @@ export const ALL_PIECES: Record<string, Piece> = {
  *  build. Keyed by the generated union, a new mode fails `npm run check` right
  *  here, naming the key that owes a building. */
 export const MODE_PIECES: Record<ModeKey, string> = {
-	// The two originals, from `pieces.ts`. Where packages come from, and the
-	// third-party production the platform is getting assurance over.
-	supply_chain_proxy: 'house',
-	vendor_management: 'factory',
+	// The original, from `pieces.ts`: where packages come from.
+	relay: 'house',
 	...WORKS_MODE_PIECES,
 	...CIVIC_MODE_PIECES,
 	// LAST, and that is load-bearing: this quarter re-answers modes the two above
@@ -55,7 +53,33 @@ export const MODE_PIECES: Record<ModeKey, string> = {
 	// building. `checkpoint` is not deleted — it falls out of MODE_PIECES and
 	// shows up unclaimed, which is what makes the swap reviewable side by side
 	// rather than a commit you have to revert to compare against.
-	...GLYPH_MODE_PIECES
+	...GLYPH_MODE_PIECES,
+	// Adopts the checkpoint the glyph quarter freed when the DNS mode became a
+	// namebar (it has since folded into the relay). The building was drawn for a gate you pass through rather than a
+	// wall, which is what this mode is: it forwards only what the access check
+	// passes, and the thing being inspected still gets through.
+	access: 'checkpoint',
+	// Provisional: borrowed from unclaimed stock so the map stays total, not
+	// designed for these modes. A survey station for the mode that surveys a
+	// schema; a sealed hall for a member holding blocks it cannot read; an
+	// instrument face for the one that reports cluster conditions.
+	model_steward: 'mark',
+	// Provisional too: the GitHub App's agent and the sandboxed worker it hands
+	// issues to.
+	github: 'mark',
+	github_work: 'mark',
+	// Provisional too: armornet's own PR preview agent.
+	preview: 'mark',
+	// armornet's own coordinator; never drawn on a customer's map.
+	armory: 'mark',
+	shard_store: 'forge',
+	shard_coordinator: 'panel',
+	// The mode that makes physical things stands in the one building that does.
+	printer: 'factory',
+	// Provisional: the mode that presses physical buttons borrows it too.
+	scada: 'factory',
+	// armornet's own outbound mail; never drawn on a customer's map.
+	mailer: 'mark'
 };
 
 /** The building a mode stands in, or undefined if it has none yet.

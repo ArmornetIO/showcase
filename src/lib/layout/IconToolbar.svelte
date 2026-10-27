@@ -34,9 +34,32 @@
 		orientation?: IconToolbarOrientation;
 		/** Extra CSS classes on the root element. */
 		class?: string;
+		/**
+		 * Print each button's label under its icon.
+		 *
+		 * For a rail that is the primary way through a screen — a settings panel
+		 * embedded in a page — where an icon alone makes the reader hover every
+		 * button to find out what it does. A compact toolbar beside content it
+		 * acts on leaves this off and keeps the tooltip.
+		 */
+		showLabels?: boolean;
+		/**
+		 * Drop the toolbar's own border, background and radius.
+		 *
+		 * For a rail docked inside a surface that already draws them —
+		 * `EdgeToolbarCard`, a panel edge — where the toolbar's chrome would sit
+		 * as a second box inside the first.
+		 */
+		bare?: boolean;
 	}
 
-	let { items, orientation = 'vertical', class: cls = '' }: IconToolbarProps = $props();
+	let {
+		items,
+		orientation = 'vertical',
+		class: cls = '',
+		showLabels = false,
+		bare = false
+	}: IconToolbarProps = $props();
 
 	const tooltipPlacement = $derived(orientation === 'vertical' ? 'left' : 'bottom');
 	// A right-edge vertical rail wants the menu anchored to the button's right edge
@@ -44,7 +67,12 @@
 	const menuPlacement = $derived(orientation === 'vertical' ? 'bottom-end' : 'bottom-start');
 </script>
 
-<div class="icon-toolbar orientation-{orientation} {cls}" role="toolbar">
+<div
+	class="icon-toolbar orientation-{orientation} {cls}"
+	class:with-labels={showLabels}
+	class:bare
+	role="toolbar"
+>
 	{#each items as item, i (item.divider ? `div-${i}` : item.label)}
 		{#if item.divider}
 			<div class="divider" role="separator" aria-hidden="true"></div>
@@ -72,7 +100,7 @@
 				{/snippet}
 			</ActionsMenu>
 		{:else}
-			<Tooltip content={item.label} placement={tooltipPlacement} delay={300}>
+			{#snippet actionBtn()}
 				<button
 					type="button"
 					class="toolbar-btn"
@@ -83,11 +111,21 @@
 					aria-pressed={item.active}
 				>
 					<Icon name={item.icon} size={16} strokeWidth={1.75} />
+					{#if showLabels}<span class="btn-label">{item.label}</span>{/if}
 					{#if item.badge !== undefined}
 						<span class="badge" aria-label="{item.badge} notifications">{item.badge}</span>
 					{/if}
 				</button>
-			</Tooltip>
+			{/snippet}
+			<!-- Rendered bare when the label is printed: a hover card repeating the
+			     word already under the icon is noise, and Tooltip has no "off". -->
+			{#if showLabels}
+				{@render actionBtn()}
+			{:else}
+				<Tooltip content={item.label} placement={tooltipPlacement} delay={300}>
+					{@render actionBtn()}
+				</Tooltip>
+			{/if}
 		{/if}
 	{/each}
 </div>
@@ -126,6 +164,49 @@
 		width: 24px;
 		height: 1px;
 		margin: 4px auto;
+	}
+
+	.bare {
+		background: transparent;
+		border: 0;
+		border-radius: 0;
+	}
+
+	/* ── Labelled variant ────────────────────────────────────────────────── */
+	/* The bar stops being a fixed 32px-button strip and sizes to the stacked
+	   icon+label, so the buttons still read as one attached group rather than
+	   separate chips. */
+	.with-labels .toolbar-btn {
+		flex-direction: column;
+		gap: 4px;
+		width: auto;
+		height: auto;
+		min-width: 62px;
+		padding: 8px 10px;
+	}
+	.btn-label {
+		font-family: var(--mono);
+		font-size: 0.56rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		line-height: 1;
+		white-space: nowrap;
+	}
+	/* The vertical rail widens to fit the label under each icon. The tick stays
+	   short and centred: a full-width rule would cut the column into separate
+	   buttons, and these are one attached group. */
+	.with-labels.orientation-vertical {
+		width: auto;
+		min-width: 78px;
+		padding: 6px 4px;
+	}
+	.with-labels.orientation-vertical .toolbar-btn {
+		width: 100%;
+		margin: 2px 0;
+	}
+	.with-labels.orientation-vertical .divider {
+		width: 32px;
+		margin: 3px auto;
 	}
 
 	.orientation-horizontal .divider {

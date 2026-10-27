@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { loadWasmModule } from '../../agent/loader.js';
+
 	// ── WASM agent probe ─────────────────────────────────────────────────────
 	// Connects the browser's WebAssembly Agent Line client to the live server, from
 	// wherever you happen to be standing.
@@ -67,33 +69,12 @@
 			.map((s) => s.trim())
 			.filter(Boolean);
 
-	/** wasm_exec.js is a classic script defining a global `Go`, not a module, so
-	 *  it cannot simply be imported. */
-	function loadExec(): Promise<void> {
-		if ('Go' in window) return Promise.resolve();
-		return new Promise((resolve, reject) => {
-			const s = document.createElement('script');
-			s.src = EXEC_URL;
-			s.onload = () => resolve();
-			s.onerror = () =>
-				reject(new Error(`${EXEC_URL} did not load — run \`make build-agent-wasm\``));
-			document.head.appendChild(s);
-		});
-	}
-
 	async function load() {
 		busy = true;
 		try {
-			await loadExec();
-			/* eslint-disable @typescript-eslint/no-explicit-any */
-			const go = new (window as any).Go();
-			const res = await WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject);
-			// NOT awaited: the module's main parks forever on purpose. Returning
-			// from it would tear down the Go runtime under the callbacks we hold.
-			void go.run(res.instance);
-			const published = (window as any).armornetAgent as Agent | undefined;
-			/* eslint-enable @typescript-eslint/no-explicit-any */
-			if (!published) throw new Error('module ran but published no namespace');
+			// The shared loader, not a copy: it checks what the server actually sent,
+			// so a missing build names itself instead of `Go is not a constructor`.
+			const published = await loadWasmModule<Agent>(WASM_URL, 'armornetAgent', EXEC_URL);
 			agent = published;
 			say('module', `loaded, version ${published.version}`, 'ok');
 		} catch (e) {
@@ -121,7 +102,7 @@
 			// armornet auth runs.
 			const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
 			// No token: the session cookie IS the credential.
-			const r = await agent.connect(`${proto}//${location.host}/v1/opamp`, '', caps());
+			const r = await agent.connect(`${proto}//${location.host}/v1/line`, '', caps());
 			connected = true;
 			say('connected', `uid ${r.instance_uid.slice(0, 12)}… · ${r.capabilities} capabilities`, 'ok');
 		} catch (e) {

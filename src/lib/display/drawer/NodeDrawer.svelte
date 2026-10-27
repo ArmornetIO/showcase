@@ -35,6 +35,7 @@
 		'agentic': [
 			{ id: 'overview',   label: 'Overview'    },
 			{ id: 'tools',      label: 'Tools'       },
+			{ id: 'queries',    label: 'Reasoning'   },
 			{ id: 'intercepts', label: 'Relays'      },
 			{ id: 'history',    label: 'History'     },
 			{ id: 'deploy',     label: 'Deploy'      },
@@ -311,7 +312,7 @@
 			<div
 				class="dc-icon {iconMarkup
 					? 'is-glyph'
-					: ''} w-[32px] h-[32px] shrink-0 flex items-center justify-center border-[1.5px] border-solid relative font-[var(--mono)] text-[0.625rem] font-bold tracking-[0.1em]"
+					: ''} w-[32px] h-[32px] shrink-0 flex items-center justify-center border-[1.5px] border-solid relative font-(family-name:--mono) text-[0.625rem] font-bold tracking-[0.1em]"
 				style:border-color={cfg.accent}
 				style:background={cfg.accentFaint}
 				style:color={cfg.accent}
@@ -341,7 +342,7 @@
 				     here bought nothing; whether the node is HEALTHY or DEGRADED is what
 				     the reader opened the drawer to find. -->
 				<div
-					class="inline-flex items-center gap-[6px] px-2 py-[3px] border r-hairline font-[var(--mono)] text-[0.5rem] tracking-[0.2em]"
+					class="inline-flex items-center gap-[6px] px-2 py-[3px] border r-hairline font-(family-name:--mono) text-[0.5rem] tracking-[0.2em]"
 					style:border-color={statusBorder}
 					style:background={statusBg}
 					style:color={statusColor}
@@ -351,15 +352,15 @@
 				</div>
 				<div
 					class="{titleIsId
-						? 'font-[var(--mono)] text-[0.8125rem] tracking-[0.04em]'
-						: `font-[var(--sans-brand)] text-[1.25rem] font-bold`} text-[var(--fg)] leading-[1.2] mt-[2px] truncate"
+						? 'font-(family-name:--mono) text-[0.8125rem] tracking-[0.04em]'
+						: `font-(family-name:--sans-brand) text-[1.25rem] font-bold`} text-[var(--fg)] leading-[1.2] mt-[2px] truncate"
 					title={title}
 				>{title}</div>
 			</div>
 
 			<!-- Close button -->
 			<button
-				class="w-[28px] h-[28px] shrink-0 flex items-center justify-center border border-[var(--border-accent)] r-hairline bg-[var(--bg)] text-[var(--fg-muted)] font-[var(--mono)] text-[1rem] font-bold leading-none cursor-pointer p-0 transition-[color,border-color,background] duration-[150ms] hover:text-[var(--type-accent)] hover:border-[var(--type-accent)] hover:bg-[var(--type-accent-faint)] active:scale-[0.92]"
+				class="w-[28px] h-[28px] shrink-0 flex items-center justify-center border border-[var(--border-accent)] r-hairline bg-[var(--bg)] text-[var(--fg-muted)] font-(family-name:--mono) text-[1rem] font-bold leading-none cursor-pointer p-0 transition-[color,border-color,background] duration-[150ms] hover:text-[var(--type-accent)] hover:border-[var(--type-accent)] hover:bg-[var(--type-accent-faint)] active:scale-[0.92]"
 				onclick={onclose}
 				title="Back to overview (Esc)"
 				aria-label="Close"
@@ -374,7 +375,7 @@
 			<!-- Short id, click to copy the full value -->
 			{#if !titleIsId && nodeId}
 				<button
-					class="ml-auto shrink-0 flex items-center gap-[5px] px-2 py-[3px] border r-hairline bg-transparent font-[var(--mono)] text-[0.5625rem] tracking-[0.1em] cursor-pointer transition-[color,border-color] duration-[150ms] {copied
+					class="ml-auto shrink-0 flex items-center gap-[5px] px-2 py-[3px] border r-hairline bg-transparent font-(family-name:--mono) text-[0.5625rem] tracking-[0.1em] cursor-pointer transition-[color,border-color] duration-[150ms] {copied
 						? 'text-[var(--type-accent)] border-[var(--type-accent)]'
 						: 'text-[var(--fg-dim)] border-[var(--border-accent)] hover:text-[var(--type-accent)] hover:border-[var(--type-accent)]'}"
 					onclick={copyId}
@@ -395,7 +396,7 @@
 				aria-selected={activeTab === tab.id}
 				aria-disabled={isDisabled}
 				disabled={isDisabled}
-				class="dc-tab relative px-[16px] py-[12px] font-[var(--mono)] text-[0.625rem] tracking-[0.25em] uppercase bg-transparent border-none transition-colors duration-[200ms] ease-in-out {isDisabled
+				class="dc-tab relative px-[16px] py-[12px] font-(family-name:--mono) text-[0.625rem] tracking-[0.25em] uppercase bg-transparent border-none transition-colors duration-[200ms] ease-in-out {isDisabled
 					? 'opacity-25 cursor-not-allowed text-[var(--fg-dim)]'
 					: activeTab === tab.id
 						? 'text-[var(--type-accent)] dc-tab-active cursor-pointer'
@@ -414,7 +415,7 @@
 					{#if SNIPPET_MAP[tab.id]}
 						{@render SNIPPET_MAP[tab.id]?.()}
 					{:else}
-						<p class="font-[var(--mono)] text-[0.6875rem] text-[var(--fg-dim)] italic">
+						<p class="font-(family-name:--mono) text-[0.6875rem] text-[var(--fg-dim)] italic">
 							No content provided for <span class="text-[var(--type-accent)]">{tab.label}</span>.
 						</p>
 					{/if}

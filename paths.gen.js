@@ -19,8 +19,10 @@ export const APP_BASE = {
 	console: '',
 	showcase: '/showcase',
 	breach: '/breach',
+	roadmap: '/roadmap',
 	jobboard: '',
-	installer: ''
+	god: '',
+	dbmgr: '/dbmgr'
 };
 
 /** Where each toolchain writes its bundle, relative to the app's source.
@@ -30,8 +32,10 @@ export const APP_BUILD_DIR = {
 	console: 'build',
 	showcase: 'build',
 	breach: 'dist',
+	roadmap: 'dist',
 	jobboard: 'build',
-	installer: 'dist'
+	god: 'build',
+	dbmgr: 'dist'
 };
 
 /** Each app's private asset namespace, derived from its NAME. */
@@ -39,6 +43,8 @@ export const APP_ASSETS = {
 	console: '/_apps/console',
 	showcase: '/_apps/showcase',
 	breach: '/_apps/breach',
+	roadmap: '/_apps/roadmap',
 	jobboard: '/_apps/jobboard',
-	installer: '/_apps/installer'
+	god: '/_apps/god',
+	dbmgr: '/_apps/dbmgr'
 };

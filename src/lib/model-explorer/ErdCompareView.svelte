@@ -6,6 +6,7 @@
 	import Icon from '../icons/Icon.svelte';
 	import Chip from '../primitives/status/Chip.svelte';
 	import Button from '../primitives/actions/Button.svelte';
+	import Select from '../primitives/forms/Select.svelte';
 	import type { ErdDiff, ObjectDiff } from './types.js';
 
 	let {
@@ -41,16 +42,12 @@
 	<div class="cmp-head">
 		<div class="pick">
 			<span class="pick-lbl">source</span>
-			<select bind:value={source}>
-				{#each sources as s (s.value)}<option value={s.value}>{s.label}</option>{/each}
-			</select>
+			<Select size="sm" label="Source" bind:value={source} options={sources} />
 		</div>
 		<Icon name="arrow-right" size={15} />
 		<div class="pick">
 			<span class="pick-lbl">target</span>
-			<select bind:value={target}>
-				{#each sources as s (s.value)}<option value={s.value}>{s.label}</option>{/each}
-			</select>
+			<Select size="sm" label="Target" bind:value={target} options={sources} />
 		</div>
 		<Button variant="primary" size="sm" onclick={onCompare} disabled={loading}>
 			<Icon name="git-fork" size={13} /> {loading ? 'Comparing…' : 'Compare'}
@@ -108,19 +105,6 @@
 		font-family: var(--mono);
 		font-size: 0.7rem;
 		color: var(--fg-muted);
-	}
-	.pick select {
-		border: 1px solid var(--border);
-		border-radius: var(--radius-control);
-		background: var(--input-bg);
-		color: var(--fg);
-		padding: 5px 8px;
-		font-family: var(--mono);
-		font-size: 0.76rem;
-		outline: none;
-	}
-	.pick select:focus {
-		border-color: var(--accent);
 	}
 	.cmp-body {
 		display: flex;

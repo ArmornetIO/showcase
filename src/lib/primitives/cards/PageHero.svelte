@@ -11,6 +11,13 @@
 		overlay?: boolean;
 		cta?: Snippet;
 		viz?: Snippet;
+		/**
+		 * Where `viz` sits. `beside` is the default — a diagram the headline refers
+		 * to. `behind` puts it full-bleed underneath the text, for a hero whose art
+		 * is the mood rather than the content; the text then needs its own contrast
+		 * floor, which the layer below supplies.
+		 */
+		vizPlacement?: 'beside' | 'behind';
 		class?: string;
 	}
 
@@ -23,8 +30,11 @@
 		overlay = true,
 		cta,
 		viz,
+		vizPlacement = 'beside',
 		class: cls = ''
 	}: Props = $props();
+
+	const behind = $derived(vizPlacement === 'behind' && Boolean(viz));
 </script>
 
 <section
@@ -32,6 +42,16 @@
 	style:--grad-from={gradFrom}
 	style:--grad-to={gradTo}
 >
+	{#if behind}
+		<div class="ph-bleed absolute inset-0 pointer-events-none" aria-hidden="true">
+			{@render viz?.()}
+		</div>
+		<!-- The scrim is not decoration: art chosen for mood has no contrast
+		     guarantee, and a headline that disappears over the light part of an
+		     illustration is the failure this prevents. -->
+		<div class="ph-scrim absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+	{/if}
+
 	{#if overlay}
 		<div class="ph-grid-overlay absolute inset-0 pointer-events-none" aria-hidden="true"></div>
 		<div class="ph-scanline absolute inset-0 pointer-events-none" aria-hidden="true"></div>
@@ -43,13 +63,13 @@
 		<div class="flex-1 max-w-[44rem] flex flex-col gap-[1.25rem]">
 			{#if kicker}
 				<div
-					class="font-[var(--mono)] text-[0.625rem] tracking-[0.35em] uppercase text-[var(--fg-dim)]"
+					class="font-(family-name:--mono) text-[0.625rem] tracking-[0.35em] uppercase text-[var(--fg-dim)]"
 				>
 					{kicker}
 				</div>
 			{/if}
 			<h1
-				class="ph-headline font-[var(--sans-brand)] font-bold leading-[1.05] m-0"
+				class="ph-headline font-(family-name:--sans-brand) font-bold leading-[1.05] m-0"
 			>
 				<span class="ph-grad">{headline}</span>
 			</h1>
@@ -60,13 +80,34 @@
 				<div class="flex flex-wrap gap-[0.875rem] items-center mt-2">{@render cta()}</div>
 			{/if}
 		</div>
-		{#if viz}
+		{#if viz && !behind}
 			<div class="shrink-0">{@render viz()}</div>
 		{/if}
 	</div>
 </section>
 
 <style>
+	/* ── full-bleed viz ──────────────────────────────────────────────────────── */
+	.ph-bleed {
+		z-index: 0;
+		overflow: hidden;
+	}
+	.ph-bleed :global(svg),
+	.ph-bleed :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.ph-scrim {
+		z-index: 1;
+		background: linear-gradient(
+			to right,
+			var(--bg) 0%,
+			color-mix(in srgb, var(--bg) 70%, transparent) 45%,
+			transparent 100%
+		);
+	}
+
 	/* Grid overlay and scanline use complex multi-value background-image patterns */
 	.ph-grid-overlay {
 		background-image:

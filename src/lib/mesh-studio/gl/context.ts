@@ -65,6 +65,10 @@ export interface GlContextOpts {
 	 *  "blank on one OS only" bug that no amount of correct GL code can defend
 	 *  against. Nothing here waits on a frame to answer a click. */
 	lowLatency?: boolean;
+	/** Allocate a depth buffer. Off for the globe (see the attribute below); a
+	 *  scene with an opaque camera inside it — buildings in front of buildings —
+	 *  has no draw order that sorts it, and needs one. */
+	depth?: boolean;
 	/** Called after the driver hands the context back. EVERY GL object made
 	 *  before the loss is dead by then — programs, buffers, VAOs, textures — so
 	 *  this is a rebuild-from-scratch signal, not a resume. */
@@ -111,7 +115,7 @@ export function createGlContext(
 		// translucent sphere into an opaque ball. Draw order is the depth cue here
 		// (see physics/sphere's `depth`), so the buffer is pure cost: memory,
 		// bandwidth, and a clear every frame.
-		depth: false,
+		depth: opts.depth ?? false,
 		// Opt-in, not on: see `GlContextOpts.lowLatency`. A decorative layer gains
 		// nothing from skipping the compositor handshake and inherits a
 		// per-platform presentation path by doing it.

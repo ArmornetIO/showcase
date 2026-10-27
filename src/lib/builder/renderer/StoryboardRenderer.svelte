@@ -1,47 +1,32 @@
 <script lang="ts">
-	// Storyboard pieces. Three of them are containers, and the builder has no
-	// nesting model, so their slot shows a `__children` string that tells you
-	// what would go inside.
-	import StoryboardCanvas from '../../storyboard/StoryboardCanvas.svelte';
-	import SwimLane from '../../storyboard/SwimLane.svelte';
-	import StoryboardFrame from '../../storyboard/StoryboardFrame.svelte';
-	import StoryboardArrow from '../../storyboard/StoryboardArrow.svelte';
-	import StoryboardBranch from '../../storyboard/StoryboardBranch.svelte';
+	// The Storyboard family's one placeable piece: a scene replay. Storyboards
+	// themselves are built from frames in the filmstrip, not dropped as items.
+	import ScenePlayer from '../../scene/ScenePlayer.svelte';
+	import { sceneById } from '../../scene/catalogue.js';
 	import { accessors } from './accessors.js';
 	import type { RendererProps } from './types.js';
 
-	let { componentId, props }: RendererProps = $props();
-	const { s, b, n, e } = accessors(() => props);
+	let { componentId, props, h }: RendererProps = $props();
+	const { s, b } = accessors(() => props);
 </script>
 
-{#if componentId === 'StoryboardCanvas'}
-	<StoryboardCanvas title={s('title', '')}>
-		<p class="slot">{s('__children', 'Drop swim lanes here.')}</p>
-	</StoryboardCanvas>
-
-{:else if componentId === 'SwimLane'}
-	<SwimLane pill={s('pill', 'LANE')} label={s('label', '')} sub={s('sub', '')}>
-		<p class="slot">{s('__children', 'Drop storyboard frames here.')}</p>
-	</SwimLane>
-
-{:else if componentId === 'StoryboardFrame'}
-	<StoryboardFrame
-		step={n('step', 1)}
-		route={s('route', '/ path')}
-		badge={s('badge', '')}
-		badgeVariant={e('badgeVariant', 'default')}
-		dashed={b('dashed')}
-	>
-		<p class="slot">{s('__children', 'Frame content.')}</p>
-	</StoryboardFrame>
-
-{:else if componentId === 'StoryboardArrow'}
-	<StoryboardArrow label={s('label', '')} tall={b('tall')} />
-
-{:else if componentId === 'StoryboardBranch'}
-	<StoryboardBranch connector={s('connector', '↓')} label={s('label', '')}>
-		<p class="slot">{s('__children', 'Branch content.')}</p>
-	</StoryboardBranch>
+{#if componentId === 'ScenePlayer'}
+	<!-- ScenePlayer fills its box, so it needs one; a document embed gets its
+	     height from the fence's reserved `h`.
+	     The fallback is for a stale id held in a saved canvas or scene file. A
+	     document fence cannot reach it: `scene` is an enum, so the embed coercer
+	     clamps an unknown id to the default before it arrives — which means a
+	     doc naming a deleted scene quietly replays a different one. -->
+	<!-- ponytail: no drift test ties committed doc fences to SCENE_IDS; add one
+	     if a scene is ever renamed out from under a published document. -->
+	{@const scene = sceneById(s('scene', ''))}
+	{#if scene}
+		<div style:width="100%" style:height="{h || 360}px" style:position="relative">
+			<ScenePlayer {scene} autoplay={b('autoplay', true)} loop={b('loop')} />
+		</div>
+	{:else}
+		<p class="slot">Unknown scene: {s('scene', '')}</p>
+	{/if}
 {/if}
 
 <style>

@@ -70,6 +70,13 @@ export interface SolveMeshLayoutOpts {
 	 */
 	pinned?: boolean[];
 	/**
+	 * Per-spoke: where an UN-pinned spoke starts, instead of the layout's seed.
+	 * For a node that came out of another one (an unfolded stack): starting on
+	 * its parent's spot lets the pack settle it there, rather than in whatever
+	 * gap the layout's own pattern happens to leave free.
+	 */
+	seedAt?: ({ x: number; y: number } | undefined)[];
+	/**
 	 * Hold each hub→spoke line clear of every other node (radial only). Every node
 	 * then needs its own bearing off the crest — which IS a ring — so it only makes
 	 * sense for the one layout that already is one. Ignored for other layouts.
@@ -137,9 +144,10 @@ export function solveMeshLayout<T extends Placeable>(spokes: T[], opts: SolveMes
 			// and re-solving must never move it (invMass 0). Only new/un-pinned
 			// spokes seed from the layout and are free to be packed (invMass 1).
 			const keep = pinned?.[i];
+			const at = opts.seedAt?.[i];
 			return {
-				x: keep ? s.x : hub.x + seed.points[i].x,
-				y: keep ? s.y : hub.y + seed.points[i].y,
+				x: keep ? s.x : (at?.x ?? hub.x + seed.points[i].x),
+				y: keep ? s.y : (at?.y ?? hub.y + seed.points[i].y),
 				r: radii[i],
 				invMass: keep ? 0 : 1
 			};

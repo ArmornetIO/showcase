@@ -63,7 +63,7 @@ func bindInputs(fs *flag.FlagSet, traits *traitOverrides) func() (inputs, error)
 }
 
 func decodeManifest(path string) (compose.Manifest, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 -- CLI operator's file to validate
 	if err != nil {
 		return compose.Manifest{}, fmt.Errorf("opening %s: %w", path, err)
 	}

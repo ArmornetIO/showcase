@@ -41,12 +41,15 @@ export interface Capabilities {
 	schema: string;
 }
 
-// The bundle is served from the same origin as the API, so paths are relative.
+// The API sits beside the bundle, under whatever prefix the host mounted both
+// at — `/` for `dbmgr ui`, `/dbmgr/` inside armornet's god console — so it is
+// addressed from the bundle's base, never from the origin root, where a host
+// may already serve an `/api` of its own.
 // A 500 from this API carries {"error": "..."} — surface that rather than a
 // bare status code, since the usual cause is a missing connection string and
 // the message says which one.
 async function get<T>(path: string): Promise<T> {
-	const res = await fetch(`/api/${path}`);
+	const res = await fetch(`${import.meta.env.BASE_URL}api/${path}`);
 	const text = await res.text();
 	let body: unknown;
 	try {

@@ -185,12 +185,12 @@
 	{/if}
 
 	<div
-		class="font-[var(--mono-display)] font-black leading-none text-[var(--c-value)] transition-colors duration-200 {SIZE_VALUE[size]}"
+		class="font-(family-name:--mono-display) font-black leading-none text-[var(--c-value)] transition-colors duration-200 {SIZE_VALUE[size]}"
 	>
 		{value}
 	</div>
 	<div
-		class="font-[var(--mono)] text-[0.625rem] uppercase text-[var(--c-label)] whitespace-nowrap transition-colors duration-200 {SIZE_LABEL[size]}"
+		class="font-(family-name:--mono) text-[0.625rem] uppercase text-[var(--c-label)] whitespace-nowrap transition-colors duration-200 {SIZE_LABEL[size]}"
 	>
 		{label}
 	</div>

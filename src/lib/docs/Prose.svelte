@@ -1,18 +1,70 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import { hydrateEmbeds } from './embeds.js';
+
 	interface ProseProps {
-		/** Raw HTML string — typically from docgen's goldmark renderer. */
-		html: string;
+		/**
+		 * Raw HTML string — typically from docgen's goldmark renderer, a customer's
+		 * rendered policy, or a legal agreement.
+		 *
+		 * Note what an HTML string CANNOT carry: a component. Prose reached this way
+		 * gets code blocks styled by the rules below, never a real `CodeBlock` with
+		 * a copy button — `{@html}` cannot instantiate one. A generated document is
+		 * a compiled `.svelte` file and does get the real components; that asymmetry
+		 * is why the code-block styling here still has to exist.
+		 */
+		html?: string;
+		/** Authored markup instead of an HTML string, for a page writing its own prose. */
+		children?: Snippet;
 		/** Maximum content width. Default: '720px'. */
 		maxWidth?: string;
-		/** Override the element wrapping the HTML. Default: 'article'. */
+		/** Override the element wrapping the content. Default: 'article'. */
 		as?: 'article' | 'div' | 'section';
+		/**
+		 * `serif` is for an essay read once, start to finish. It is not a theme
+		 * switch — the mono and sans faces still carry every label, chip and code
+		 * span; only the body measure changes.
+		 */
+		face?: 'sans' | 'serif';
+		/**
+		 * `compact` is prose inside something else — a clause in a panel, an evidence
+		 * excerpt, a preview. Same rules at a smaller scale and tighter rhythm, so a
+		 * quoted paragraph does not out-weigh the UI holding it.
+		 *
+		 * It exists because the alternative kept being a second prose component with
+		 * its own copy of these rules, which then drifted on table borders and list
+		 * markers.
+		 */
+		density?: 'page' | 'compact';
+		/** Utilities for the wrapper — a scroll height, padding. */
+		class?: string;
 	}
 
-	let { html, maxWidth = '720px', as: Tag = 'article' }: ProseProps = $props();
+	let {
+		html,
+		children,
+		maxWidth = '720px',
+		as: Tag = 'article',
+		face = 'sans',
+		density = 'page',
+		class: cls = ''
+	}: ProseProps = $props();
 </script>
 
-<svelte:element this={Tag} class="prose" style:max-width={maxWidth}>
-	{@html html}
+<svelte:element
+	this={Tag}
+	class="prose {cls}"
+	data-face={face}
+	data-density={density}
+	style:max-width={maxWidth}
+	{@attach (node: HTMLElement) => {
+		// Reading `html` re-runs the attachment after each {@html} swap, so
+		// embeds mounted into the old markup are torn down with it.
+		void html;
+		return hydrateEmbeds(node);
+	}}
+>
+	{#if children}{@render children()}{:else}{@html html ?? ''}{/if}
 </svelte:element>
 
 <style>
@@ -21,6 +73,17 @@
 		color: var(--fg);
 		font-size: 0.98rem;
 		line-height: 1.65;
+	}
+
+	/* Body copy only. Headings keep the system's face so an essay still reads as
+	   the same product, and the looser measure comes with the face because a serif
+	   at sans leading reads cramped. */
+	.prose[data-face='serif'] :global(p),
+	.prose[data-face='serif'] :global(li),
+	.prose[data-face='serif'] :global(blockquote) {
+		font-family: var(--serif, Georgia, 'Times New Roman', serif);
+		font-size: 1.08rem;
+		line-height: 1.75;
 	}
 
 	/* ── Headings ────────────────────────────────────────────────────────────── */
@@ -277,6 +340,14 @@
 		background: var(--surface-raised);
 	}
 
+	/* ── Component embeds ────────────────────────────────────────────────────────
+	   Block rhythm like any other figure. Unhydrated (no registry, or a name the
+	   allowlist refused), the inner <pre> fallback picks up the code-block rules
+	   above — nothing here may fight them. */
+	.prose :global(.doc-component) {
+		margin: 1.25rem 0;
+	}
+
 	/* ── Blockquotes (non-callout) ───────────────────────────────────────────── */
 	.prose :global(blockquote) {
 		margin: 1.25rem 0;
@@ -291,6 +362,43 @@
 		border: none;
 		border-top: 1px solid var(--border);
 		margin: 2rem 0;
+	}
+
+	/* ── compact ─────────────────────────────────────────────────────────────────
+	   Absorbed from what used to be a second prose component for policy clauses.
+	   Only scale and rhythm change; every rule above still decides what a table, a
+	   list marker or a code span looks like, which is the point of folding it in. */
+	.prose[data-density='compact'] {
+		font-size: 0.875rem;
+		line-height: 1.6;
+	}
+	.prose[data-density='compact'] :global(h1),
+	.prose[data-density='compact'] :global(h2),
+	.prose[data-density='compact'] :global(h3) {
+		margin: 1.2em 0 0.4em;
+		line-height: 1.3;
+	}
+	.prose[data-density='compact'] :global(h1) {
+		font-size: 1.4rem;
+	}
+	.prose[data-density='compact'] :global(h2) {
+		font-size: 1.15rem;
+	}
+	.prose[data-density='compact'] :global(h3) {
+		font-size: 1rem;
+	}
+	.prose[data-density='compact'] :global(p),
+	.prose[data-density='compact'] :global(li) {
+		margin: 0.5em 0;
+	}
+	.prose[data-density='compact'] :global(ul),
+	.prose[data-density='compact'] :global(ol) {
+		margin: 0.5em 0;
+	}
+	.prose[data-density='compact'] :global(pre),
+	.prose[data-density='compact'] :global(.terminal),
+	.prose[data-density='compact'] :global(table) {
+		margin: 0.8em 0;
 	}
 
 	/* ── Reduced motion ──────────────────────────────────────────────────────── */

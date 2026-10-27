@@ -831,7 +831,9 @@
 							<span
 								class="font-mono text-[7px] font-bold tracking-[0.12em] uppercase px-[3px] rounded"
 								style:color="#0b0f16"
-								style:background="#F472B6">{b.persistent ? 'dug in' : 'held'}</span
+								style:background="#F472B6">{b.kind === 'temporary' && b.roundsLeft != null
+									? `temporary · ${b.roundsLeft}r`
+									: (b.kind ?? 'held')}</span
 							>
 						{/if}
 						{#if b.staged}

@@ -11,7 +11,7 @@
 	// grew, and a player who never leaves the board would otherwise be told the
 	// print is true. The full list is on the rules page; the ones here are the
 	// ones somebody would actually plan a turn around and lose.
-	import { Panel } from 'showcase';
+	import { Icon, Panel } from 'showcase';
 	import { OUTCOME_COLOR, type Klass, type Outcome } from './internal/rules.js';
 
 	interface Props {
@@ -46,7 +46,7 @@
 	const CHAIN_NOTES: Array<[string, string, string]> = [
 		['Order is an incentive, not a rule.', 'var(--fg)', 'The first four steps of the payload path are open whenever — take them in any order you like. Only the payload itself is gated, and it needs the other four held. Sequence is simply the cheapest line, because the step before a target pays on the roll.'],
 		['Quarantine cuts the line.', '#A78BFA', 'A sealed building cannot be attacked at all, and the legs of the path either side of it are drawn CUT — nothing advances THROUGH it while the seal holds. It does not take ground back: a step red already stands on still counts towards red’s win while it is sealed.'],
-		['A foothold pays on the next step.', '#F472B6', 'Holding the previous building is +1 on the attack, each implant you left there is another +1 (to 2), and playing a card on ground you ALREADY hold digs in instead of taking it twice — persistent, staged, and worth +2 more.'],
+		['A foothold pays on the next step.', '#F472B6', 'Holding the previous building is +1 on the attack, each implant you left there is another +1 (to 2), and playing a card on ground you ALREADY hold digs in instead of taking it twice — one rung harder to remove, staged, and worth +2 more.'],
 		['An implant you ignore is not neutral.', '#FB7185', 'Every round it stands, it burrows: −1 hardening off the building it is in, and heat as it works. Leave two in the same place and the wall comes down on its own. Cleanup is a move you have to spend.']
 	];
 
@@ -64,7 +64,7 @@
 		['Quarantine', '“Anything held inside it cannot advance the chain.” It blocks attacks THROUGH a building; it does not un-hold one red already has.'],
 		['Segment', '“Cut a lane. Nothing crosses it.” Only on the Relay Beacon does it seal anything. Anywhere else it is a reveal-and-clean at one building.'],
 		['Harden', '“+3 hardening, permanently.” The +3 is three figures on the wall, and a red hit knocks them off one at a time.'],
-		['Rebuild From Source', '“Evicts any non-persistent foothold.” Nothing in the game removes a foothold. It pulls out implant figures.'],
+		['Rebuild From Source', '“Evicts any non-persistent foothold in the Foundry.” It evicts, but at one building, and a 3 AP foothold has to be revealed first.'],
 		['Sleeper Implant', '“Hidden for 2 rounds.” There is no timer — it hides from Sweep and from the detection-80 reveal permanently.'],
 		['Certificate Pressure', '“This round.” The softening runs for two.'],
 		['Release Divergence', '“Only an artifact-to-source diff can see it.” Sweep finds it like anything else.'],
@@ -94,18 +94,41 @@
 	</div>
 {/snippet}
 
+<!-- `safe center`, not `center`. Plain centring put the top of this 1809px panel
+     at −571px on a 375×667 phone, and a scroll container's scrollable area only
+     ever extends DOWNWARD — so the title, the close hint and the whole "four
+     numbers" column had no scroll position that could reach them. `safe` falls
+     back to start alignment exactly when the item overflows, which is the only
+     case where centring was ever wrong. -->
 <div
-	class="fixed inset-0 z-[75] grid place-items-center px-6 overflow-y-auto
+	class="fixed inset-0 z-[75] grid justify-items-center [align-items:safe_center]
+	       overflow-y-auto overscroll-contain
 	       bg-[color-mix(in_srgb,var(--bg,#05080d)_82%,transparent)] backdrop-blur-sm"
+	style="padding: calc(1.25rem + var(--safe-t)) calc(1rem + var(--safe-r))
+	       calc(1.25rem + var(--safe-b)) calc(1rem + var(--safe-l));"
 	role="presentation"
 	onclick={onclose}
 >
-	<Panel padding="dense" class="w-[min(92vw,50rem)] my-8 pointer-events-auto">
+	<Panel padding="dense" class="w-full max-w-[50rem] pointer-events-auto">
 		<div class="flex flex-col gap-3">
 			<div class="flex items-center gap-2">
 				<span class="font-mono text-[0.9rem] font-bold tracking-[0.16em]">HOW BREACH WORKS</span>
 				<span class="flex-1"></span>
-				<span class="font-mono text-[0.56rem] text-[var(--fg-dim)]">click anywhere to close</span>
+				<span class="hidden font-mono text-[0.56rem] text-[var(--fg-dim)] sm:inline">
+					click anywhere to close
+				</span>
+				<!-- The backdrop closes this, but a backdrop is not a target: on a phone
+				     the panel fills the frame and there is nothing else left to tap.
+				     Negative margin keeps the 44px target from growing the header row. -->
+				<button
+					type="button"
+					class="-my-2 -mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-full
+					       text-[var(--fg-muted)] transition-colors hover:text-[var(--fg)]"
+					onclick={onclose}
+					aria-label="close"
+				>
+					<Icon name="x" size={16} />
+				</button>
 			</div>
 
 			<div class="grid gap-x-6 gap-y-3 sm:grid-cols-2">

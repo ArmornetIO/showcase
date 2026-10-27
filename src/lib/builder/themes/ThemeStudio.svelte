@@ -14,7 +14,7 @@
 	import ComponentRenderer from '../ComponentRenderer.svelte';
 	import PropEditor from '../PropEditor.svelte';
 	import { builder } from '../store.svelte.js';
-	import { THEMES } from '$lib/theme/themes.js';
+	import { THEMES } from '../../theme/themes.js';
 	import { ThemeStudioState } from './studio.svelte.js';
 	import { applyPreviewRadius } from './preview-radius.js';
 	import ComponentRail from './ComponentRail.svelte';

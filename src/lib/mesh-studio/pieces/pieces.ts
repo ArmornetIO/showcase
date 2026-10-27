@@ -174,6 +174,85 @@ export function tooth(e0: number, e1: number, n0: number, n1: number, h0: number
 	};
 }
 
+// ── Openings ─────────────────────────────────────────────────────────────────
+// Born on the BREACH cards (`card-scene.ts`), shared so a map's office can glaze
+// its walls with the same window a card looks through. In the (e, n, h) frame:
+// a wall stands in the e–h plane, `n` is its thickness.
+
+/**
+ * A flat shape standing up, extruded a little way into the page.
+ *
+ * `prism` extrudes a footprint UPWARD, which is the right primitive for a
+ * building and the wrong one for a wall: a wall is a shape in elevation. This
+ * takes the outline in the plane the viewer is looking at — `e` right, `h` up,
+ * wound counter-clockwise as you would draw it — and gives it thickness in `n`.
+ * It is what lets a wall have a slanted top; built out of `box` alone the seam
+ * between two buildings can only ever be a step.
+ */
+export function panel(outline: [number, number][], t = 0.07): Solid {
+	// Reversed, so the ring reads counter-clockwise seen from BEHIND — which is
+	// the orientation `box`'s face winding assumes of its second ring.
+	const r = [...outline].reverse();
+	const k = r.length;
+	const verts: PieceVert[] = [...r.map(([e, h]) => ({ e, n: -t, h })), ...r.map(([e, h]) => ({ e, n: t, h }))];
+	const near = [0, ...Array.from({ length: k - 1 }, (_, i) => k - 1 - i)];
+	const far = Array.from({ length: k }, (_, i) => k + i);
+	const sides = Array.from({ length: k }, (_, i) => {
+		const j = (i + 1) % k;
+		return [i, j, k + j, k + i];
+	});
+	return { verts, faces: [near, far, ...sides] };
+}
+
+/**
+ * A wall `2w` wide and `h` high with a hole `2ow` wide from `sill` to `head`.
+ *
+ * Four boxes round an opening, not one box with a lit slab stuck on it: there
+ * are no apertures, so the only way to see INTO a room — or out of one — is to
+ * leave the gap out of the geometry and put the far world behind it.
+ *
+ * At the default 0.07 the reveal round the opening is a couple of pixels on a
+ * card, which is a window. Any thicker and it is an embrasure; a building's
+ * outer wall passes its own `t`.
+ */
+export function windowWall(w: number, h: number, ow: number, sill: number, head: number, t = 0.07): Piece {
+	return [
+		box(-w, w, -t, t, 0, sill),
+		box(-w, w, -t, t, head, h),
+		box(-w, -ow, -t, t, sill, head),
+		box(ow, w, -t, t, sill, head),
+	];
+}
+
+/**
+ * The frame in the hole: `2w` by `2h` round centre height `cy`, split into
+ * `cols` × `rows` panes.
+ *
+ * A gap with light behind it is a rectangle of light. What makes it a window is
+ * the BARS — a sill proud of the wall, a reveal, and mullions across it. A
+ * rectangle is a rectangle at any scale; a rectangle with a cross in it is a
+ * window. Sits a little proud of the wall so the sill catches the light.
+ */
+export function windowFrame(w: number, h: number, cy: number, cols: number, rows: number, t = 0.035): Piece {
+	const parts: Solid[] = [
+		box(-w - 2 * t, w + 2 * t, -t, t, cy + h, cy + h + 2 * t),
+		// The sill alone is deeper than the rest — the one member of a window
+		// frame that sticks out far enough to stand something on.
+		box(-w - 2 * t, w + 2 * t, -2.5 * t, 2.5 * t, cy - h - 2.5 * t, cy - h),
+		box(-w - 2 * t, -w, -t, t, cy - h, cy + h),
+		box(w, w + 2 * t, -t, t, cy - h, cy + h),
+	];
+	for (let i = 1; i < cols; i++) {
+		const e = -w + (2 * w * i) / cols;
+		parts.push(box(e - t, e + t, -t, t, cy - h, cy + h));
+	}
+	for (let i = 1; i < rows; i++) {
+		const y = cy - h + (2 * h * i) / rows;
+		parts.push(box(-w, w, -t, t, y - t, y + t));
+	}
+	return parts;
+}
+
 // ── The pieces themselves ────────────────────────────────────────────────────
 // Written in node radii: 1.0 east is one radius right of centre, 1.0 high is one
 // radius off the surface. A piece is sized so its FOOTPRINT sits inside the disc

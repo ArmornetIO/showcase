@@ -190,13 +190,13 @@ describe('piece-shaders', () => {
 
 	describe('shading', () => {
 		it('reproduces band() as a step ladder', () => {
-			// 0.54 / 0.76 / 1.0 at the same two thresholds NodePiece used.
+			// 0.7 / 0.86 / 1.0 at the same two thresholds NodePiece used.
 			const band = (lit: number) =>
-				0.54 + 0.22 * (lit >= 0.22 ? 1 : 0) + 0.24 * (lit >= 0.62 ? 1 : 0);
-			expect(band(-1)).toBeCloseTo(0.54);
-			expect(band(0.4)).toBeCloseTo(0.76);
+				0.7 + 0.16 * (lit >= 0.22 ? 1 : 0) + 0.14 * (lit >= 0.62 ? 1 : 0);
+			expect(band(-1)).toBeCloseTo(0.7);
+			expect(band(0.4)).toBeCloseTo(0.86);
 			expect(band(0.9)).toBeCloseTo(1);
-			expect(PIECE_FRAG).toContain('0.54 + 0.22 * step(0.22, lit) + 0.24 * step(0.62, lit)');
+			expect(PIECE_FRAG).toContain('0.7 + 0.16 * step(0.22, lit) + 0.14 * step(0.62, lit)');
 		});
 
 		it('culls faces pointing away, at NodePiece’s epsilon', () => {

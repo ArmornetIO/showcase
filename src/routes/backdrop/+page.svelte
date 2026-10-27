@@ -56,7 +56,7 @@
 			Compositions are authored in the
 			<a class="demo-link" href="mockups/background-studio">background studio</a> and consumed here
 			by name. <code class="demo-code">mr robot</code> is the cheapest — three strips, one traveller,
-			no hue flow — and <code class="demo-code">spider-verse</code> the most expensive, since every
+			no hue flow — and <code class="demo-code">misregistered</code> the most expensive, since every
 			strip is drawn twice for its misregistration ghost.
 		</p>
 	</ShowcaseBlock>

@@ -49,14 +49,14 @@ export const CARD_NOTES: Record<string, CardNote> = {
 	},
 	fixture: {
 		play: 'The Maintainer’s POWER, one charge a match. A real attack roll against the building’s hardening; on a hit red takes a foothold AND leaves 2 implant figures standing in it, hidden.',
-		partial: 'The foothold is “dislodgeable” — it is not persistent. Everything else is the same.',
+		partial: 'The foothold lands one rung weaker than a clean hit would leave it. Everything else is the same.',
 		miss: 'Chips 1 off the building’s hardening anyway (a botch does not even manage that, and costs you a figure). Heat: 6 on a hit, 12 on a fail, 18 on a botch.',
 		caveat:
 			'The implants are what make this move. Each one left standing burrows at the start of every round: −1 more hardening and +2 heat, each, forever, until somebody reads the tree.'
 	},
 	divergence: {
 		play: 'A hard attack roll (+4) at the Forge or the Silos — steps 3 and 4 of the payload path. Takes the foothold and leaves nothing behind.',
-		partial: 'Foothold is dislodgeable, not persistent.',
+		partial: 'The foothold lands one rung weaker.',
 		miss: 'Chips 1 hardening. Heat: 12 on a hit, 24 on a fail, 36 on a botch.',
 		caveat:
 			'“Only an artifact-to-source diff can see it” is not a rule. It leaves an ordinary foothold with no sleeper flag, so Sweep reveals it exactly like anything else, and the region surfaces it at detection 80.'
@@ -108,9 +108,9 @@ export const CARD_NOTES: Record<string, CardNote> = {
 		caveat: 'Finds sleepers. Sweep cannot.'
 	},
 	rebuild: {
-		play: 'At 3 AP, does the same job as Provenance Attestation but at ANY blue or neutral building: reveals hidden footholds there and pulls out implants (all of them on a clean or better).',
+		play: 'At 3 AP, a static read at the Forge, the Silos, the Mill or the Court — blue ground only: reveals hidden footholds there, sleepers included, and pulls out implants (all of them on a clean or better).',
 		caveat:
-			'The printed text promises it “evicts any non-persistent foothold in the Foundry”. It does not — no card in the game removes a foothold. It removes the implant FIGURES, which is what stops the burrowing.'
+			'The printed text promises it “evicts any non-persistent foothold in the Foundry”. It does evict — but only at the one building it is played on, only a revealed foothold that is not permanent, and a 3 AP foothold takes one play to reveal and a second to remove.'
 	},
 
 	// ── The Threat Hunter ─────────────────────────────────────────────────────
@@ -118,11 +118,11 @@ export const CARD_NOTES: Record<string, CardNote> = {
 		play: 'Reveals every hidden foothold in the WHOLE territory — the widest look in the game, for 1 AP — and pulls one implant out of each building in it.',
 		partial: 'Reveals just one foothold.',
 		caveat:
-			'Sleepers are inert and stay hidden, and a sweep never reads deep enough to pull more than one implant per building. It tells you WHERE to look; Diff or Rebuild is what actually cleans.'
+			'Sleepers are inert and stay hidden, and a sweep never reads deep enough to pull more than one implant per building. It never evicts. It tells you WHERE to look; Diff or Rebuild is what actually removes.'
 	},
 	diff: {
 		play: 'Reveals hidden footholds at one of the Silos, the Forge, the Package Mirror or the Dependency Mill, and pulls implants out — one on a partial, all of them on a clean or critical.',
-		caveat: 'The counter to Obfuscated Test Fixture, and it finds sleepers.'
+		caveat: 'The counter to Obfuscated Test Fixture, and it finds sleepers. It also evicts a revealed foothold that is not permanent — in one play if the foothold cost red 1 AP (2 AP on a clean or better).'
 	},
 	quarantine: {
 		play: 'Seals a building for 2 rounds (1 on a partial, 3 on a critical) and posts 2 defenders on it. While it is sealed nothing red throws at it can land: the attack is blocked before the roll, the AP is burned and the payload path cannot advance through it.',

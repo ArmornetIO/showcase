@@ -1,3 +1,8 @@
+<script module lang="ts">
+	// Per-instance id source for the burial mask — see `occludeId`.
+	let OCCLUDE_SEQ = 0;
+</script>
+
 <script lang="ts">
 	// ── MeshStudio — interactive operational mesh canvas ────────────────────────
 	// A layer inside a shared <Canvas> for EDITABLE meshes: drag nodes, draw links
@@ -12,7 +17,7 @@
 	import { CANVAS_CTX } from '../primitives/canvas/canvas-camera.js';
 	import type { CanvasContextValue } from '../primitives/canvas/canvas-camera.js';
 	import type { MeshNodeType, NodeState, EdgeStyle, Port } from '../primitives/canvas/canvas.types.js';
-	import { MESH_NODE_COLOR, MESH_NODE_FILL, MESH_NODE_LABEL, DATA_TYPE_COLOR, EDGE_STYLE_DASH, EDGE_STATE_DASH } from '../primitives/canvas/canvas.types.js';
+	import { MESH_NODE_COLOR, MESH_NODE_FILL, MESH_NODE_LABEL, DATA_TYPE_COLOR, EDGE_STYLE_DASH, EDGE_STATE_DASH, isUnpowered } from '../primitives/canvas/canvas.types.js';
 	import { getPortsForType, portSegments } from './canvas-ports.js';
 	import { shapeForType, withState, silhouettePath, boundaryPoint, shapeArcPath } from './node-shapes.js';
 	import type { ShapeConcept, ShapeSpec } from './node-shapes.js';
@@ -20,6 +25,7 @@
 	import { sampleOutline, sampleMarkup, boundaryFromBins, binsArcPath, binsSilhouette, type SampledShape } from './glyph-sample.js';
 	import { glyphForMode, labelForMode } from '../icons/mode-tool-icons.js';
 	import NodePiece from './pieces/NodePiece.svelte';
+	import { baseOf } from './pieces/piece-base.js';
 	import EdgeParticles from './EdgeParticles.svelte';
 	import type { ParticleRun } from './gl/particle-instances.js';
 	import { ALL_PIECES } from './pieces/piece-catalogue.js';
@@ -42,11 +48,17 @@
 		ARC_GAP,
 		arcGeom,
 		labelBox,
+		captionFS,
+		captionGap,
+		satelliteGeom,
+		STACK_STEP_MUL,
+		VALUE_FS_MUL,
+		LIVE_FS_MUL,
 		outerR as rimR,
 		silhouetteR,
 		nodeR as metricNodeR,
 	} from './layout/mesh-metrics.js';
-	import type { StudioNode, StudioEdge } from './studio.types.js';
+	import type { StudioNode, StudioEdge, LandOcclusion } from './studio.types.js';
 
 	let {
 		concept,
@@ -67,9 +79,11 @@
 		typeLabels = true,
 		labelScale = 1,
 		depthSortedParticles = false,
+		occlusion,
 		onSelect,
 		onLink,
 		onFacetSelect,
+		onFoldToggle,
 		onNodeHover,
 	}: {
 		concept: ShapeConcept;
@@ -131,11 +145,16 @@
 		 *  base-edge particles paint behind the nodes (raised-edge particles still
 		 *  ride on top), so energy weaves through depth like the static web does. */
 		depthSortedParticles?: boolean;
+		/** Land between the eye and the links, on a globe — lines under it are
+		 *  buried the way the crest is. See `LandOcclusion`. */
+		occlusion?: LandOcclusion;
 		onSelect?: (id: string | null) => void;
 		onLink?: (edge: StudioEdge) => void;
 		/** A fanned-out mode facet was clicked. `index` is the facet's occurrence
 		 *  among same-mode facets (0-based), for instance-precise targeting. */
 		onFacetSelect?: (nodeId: string, mode: string, index: number) => void;
+		/** A `foldable` node's "+" toggle was clicked. */
+		onFoldToggle?: (id: string) => void;
 		/** Hover enter/leave with the cursor position in layer-local screen space,
 		 *  so a parent can float a card next to it. Null on leave. */
 		onNodeHover?: (id: string | null, screenPos: { x: number; y: number } | null) => void;
@@ -237,9 +256,14 @@
 				kind: 'disc',
 				x: n.x,
 				y: n.y,
-				r: silhouetteR(n, { radiusScale: tuning.radiusScale, connCount: conns, showArcs: arcs }),
+				r: silhouetteR(n, {
+					radiusScale: tuning.radiusScale,
+					connCount: conns,
+					showArcs: arcs,
+					labelScale,
+				}),
 			});
-			const { halfW, reach } = labelBox(n);
+			const { halfW, reach } = labelBox(n, { radiusScale: tuning.radiusScale, labelScale });
 			if (!halfW) continue;
 			const rim = rimR(nodeR(n), conns, arcs);
 			out.push({
@@ -371,9 +395,6 @@
 		const key = shapeKey(n);
 		return key ? sampled[key] : undefined;
 	}
-	function facetSample(mode: string): SampledShape | undefined {
-		return sampled[`glyph-${mode}`];
-	}
 	/** Unified boundary point — works for parametric shapes and sampled outlines. */
 	function boundaryFor(n: StudioNode, angleDeg: number, r: number): { dx: number; dy: number } {
 		const s = sampleFor(n);
@@ -433,9 +454,17 @@
 		// — so links re-route live as nodes move around the canvas.
 		const aPort = e.fromPort ? nodeFindPort(A, e.fromPort) : nearestPort(A, B.x, B.y);
 		const bPort = e.toPort ? nodeFindPort(B, e.toPort) : nearestPort(B, A.x, A.y);
-		const a = aPort ? attachPort(A, aPort) : attachTowards(A, B.x, B.y);
-		const b = bPort ? attachPort(B, bPort) : attachTowards(B, A.x, A.y);
+		const a = aPort ? attachEnd(A, aPort, B) : attachTowards(A, B.x, B.y);
+		const b = bPort ? attachEnd(B, bPort, A) : attachTowards(B, A.x, A.y);
 		return { a, b };
+	}
+	// A locked port fan (one port per folded member) has no absolute bearing: its
+	// angles are offsets from the direction of the far end, so the fan always faces
+	// whatever it links to instead of sitting due east wherever the layout put it.
+	function attachEnd(n: StudioNode, port: Port, other: StudioNode): { x: number; y: number } {
+		if (!n.portsLocked) return attachPort(n, port);
+		const off = boundaryFor(n, angleTo(n, other.x, other.y) + port.angle, nodeR(n));
+		return { x: n.x + off.dx, y: n.y + off.dy };
 	}
 	/** Bow height as a fraction of the link's length — a constant would flatten long
 	 *  links and over-arc short ones. Clamped so neither extreme runs away. */
@@ -586,6 +615,20 @@
 	const baseRuns = $derived(depthSortedParticles ? particleRuns(baseEdges) : []);
 	const topRuns = $derived(particleRuns(depthSortedParticles ? raisedEdges : edges));
 
+	// ── Burial under land (globe only) ───────────────────────────────────────────
+	// Per instance: several globes can share a page, and a shared id would let one
+	// globe's land mask another's lines.
+	const occludeId = `ms-occlude-${++OCCLUDE_SEQ}`;
+	/** How much of a line survives, as mask luminance: under full land, and halfway
+	 *  down a shore. Faint rather than gone, for the reason the crest keeps its own
+	 *  floor — a line that vanishes outright reads as a break in the mesh. */
+	const BURIED_INK = 'rgb(31,31,31)';
+	const SHORE_INK = 'rgb(128,128,128)';
+	const polyPath = (polys: [number, number][][]) =>
+		polys
+			.map((p) => `M${p.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L')}Z`)
+			.join('');
+
 	// ── Flow topology (longest-path BFS over the current edges) ──────────────────
 	const flow = $derived.by(() => {
 		if (!flowActive) return null;
@@ -623,7 +666,7 @@
 		return Math.max(portAvg, modeMax, n.flow ?? 0);
 	}
 	function sweepColor(n: StudioNode): string {
-		return meshInk(n.state === 'degraded' ? 'rgba(250,204,21,0.35)' : n.state === 'offline' ? 'rgba(248,113,113,0.25)' : 'rgba(95,234,213,0.4)');
+		return meshInk(n.state === 'degraded' ? 'rgba(250,204,21,0.35)' : n.state === 'offline' ? 'rgba(248,113,113,0.25)' : n.state === 'dormant' ? 'rgba(85,122,158,0.2)' : 'rgba(95,234,213,0.4)');
 	}
 	/** Colour of the energy that flows along the node's own outline. */
 	function activePortColor(n: StudioNode): string {
@@ -648,7 +691,7 @@
 		// A multi-mode agent never traces its own outline — the traffic belongs to
 		// the child modes: their spokes when expanded, their badges when collapsed.
 		if (n.modes && n.modes.length > 1) return false;
-		return n.state !== 'offline' && (aggFlowRate(n) > 0 || n.state === 'degraded');
+		return !isUnpowered(n.state) && (aggFlowRate(n) > 0 || n.state === 'degraded');
 	}
 
 	// ── Background interaction (pan/zoom are handled by the parent Canvas) ────────
@@ -801,7 +844,9 @@
 			? meshInk(tuning.degradedColor)
 			: n.state === 'offline'
 				? meshInk(tuning.offlineColor)
-				: LABEL_INK;
+				: n.state === 'dormant'
+					? meshInk(tuning.dormantColor)
+					: LABEL_INK;
 	}
 
 	const nodeConns = $derived.by(() => {
@@ -875,7 +920,7 @@
      painted over it. That is the one visible cost of the port, it only applies
      in the depth-sorted mode, and the alternative is keeping SMIL. -->
 {#if baseRuns.length}
-	<EdgeParticles runs={baseRuns} />
+	<EdgeParticles runs={baseRuns} {occlusion} />
 {/if}
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -894,6 +939,17 @@
 			<pattern id="ms-grid" width="40" height="40" patternUnits="userSpaceOnUse"
 				patternTransform="translate({transform.tx},{transform.ty}) scale({transform.tk})">
 				<path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border)" stroke-width="0.5" />
+			</pattern>
+			<!-- Body textures. Neutral white at low alpha, so ONE pattern serves
+			     every node hue — a tinted texture needs a pattern per colour, and
+			     seventeen mode colours makes that a repaint rather than a texture.
+			     `userSpaceOnUse` without the canvas transform on purpose: the weave
+			     belongs to the node, so it must not slide under it when you pan. -->
+			<pattern id="ms-tex-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+				<line x1="0" y1="0" x2="0" y2="6" stroke="rgba(255,255,255,0.09)" stroke-width="1.4" />
+			</pattern>
+			<pattern id="ms-tex-grid" width="7" height="7" patternUnits="userSpaceOnUse">
+				<circle cx="1" cy="1" r="0.9" fill="rgba(255,255,255,0.13)" />
 			</pattern>
 			<radialGradient id="ms-highlight" cx="35%" cy="35%" r="50%">
 				<stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
@@ -921,6 +977,32 @@
 					{#if d}<path id={particleId(e)} {d} fill="none" stroke="none" />{/if}
 				{/if}
 			{/each}
+			<!-- Where the lines are buried. White shows a line, dark buries it; the
+			     content is in the user space of the layer that references it, which is
+			     the camera group — the world coordinates the polygons arrive in. Each
+			     front node's clearing is a white glow painted OVER the land, so a line
+			     still reaches the node it ends at. -->
+			{#if occlusion}
+				<radialGradient id="{occludeId}-clear">
+					<stop offset="0.5" stop-color="#fff" />
+					<stop offset="1" stop-color="#fff" stop-opacity="0" />
+				</radialGradient>
+				<mask
+					id={occludeId}
+					maskUnits="userSpaceOnUse"
+					x="-100000"
+					y="-100000"
+					width="200000"
+					height="200000"
+				>
+					<rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff" />
+					<path d={polyPath(occlusion.outer)} fill={SHORE_INK} />
+					<path d={polyPath(occlusion.inner)} fill={BURIED_INK} />
+					{#each occlusion.clear as c, i (i)}
+						<circle cx={c.x} cy={c.y} r={c.r} fill="url(#{occludeId}-clear)" />
+					{/each}
+				</mask>
+			{/if}
 		</defs>
 
 		{#if showGrid}
@@ -930,6 +1012,16 @@
 		<!-- One edge layer, rendered twice: once beneath the nodes for ordinary edges
 		     and once above them for raised ones. Same snippet both times, so a raised
 		     edge differs from a base edge only in paint depth. -->
+		{#snippet statusGlyph(e: StudioEdge)}
+			{#if e.edgeState === 'degraded' || e.style === 'degraded'}
+				<polygon points="0,-8 8,6 -8,6" fill="var(--bg)" stroke="rgb(250,204,21)" stroke-width={1.2} stroke-linejoin="round" />
+				<path d="M0 -2 L0 2 M0 3.5 L0 3.7" stroke="rgb(250,204,21)" stroke-width={1.4} stroke-linecap="round" />
+			{:else}
+				<circle r={8} fill="var(--bg)" stroke="rgb(248,113,113)" stroke-width={1.2} />
+				<path d="M-3 -3 L3 3 M3 -3 L-3 3" stroke="rgb(248,113,113)" stroke-width={1.6} stroke-linecap="round" />
+			{/if}
+		{/snippet}
+
 		{#snippet edgeLayer(list: StudioEdge[])}
 			<!-- Base edges — colour + dash + state glow -->
 			{#each list as e (e.id)}
@@ -997,12 +1089,8 @@
 								<circle r={8} fill="var(--bg)" stroke="rgba(110,231,183,0.9)" stroke-width={1.2} />
 								<rect x={-3.2} y={-1.5} width={6.4} height={5} rx={1.2} fill="none" stroke="rgba(110,231,183,0.9)" stroke-width={1.2} />
 								<path d="M-2 -1.5 V-3 a2 2 0 0 1 4 0 V-1.5" fill="none" stroke="rgba(110,231,183,0.9)" stroke-width={1.2} />
-							{:else if e.edgeState === 'degraded' || e.style === 'degraded'}
-								<polygon points="0,-8 8,6 -8,6" fill="var(--bg)" stroke="rgb(250,204,21)" stroke-width={1.2} stroke-linejoin="round" />
-								<path d="M0 -2 L0 2 M0 3.5 L0 3.7" stroke="rgb(250,204,21)" stroke-width={1.4} stroke-linecap="round" />
 							{:else}
-								<circle r={8} fill="var(--bg)" stroke="rgb(248,113,113)" stroke-width={1.2} />
-								<path d="M-3 -3 L3 3 M3 -3 L-3 3" stroke="rgb(248,113,113)" stroke-width={1.6} stroke-linecap="round" />
+								{@render statusGlyph(e)}
 							{/if}
 						</g>
 					{/if}
@@ -1052,11 +1140,13 @@
 		{/snippet}
 
 		<g transform="translate({transform.tx},{transform.ty}) scale({transform.tk})">
-			{@render edgeLayer(baseEdges)}
-			{#if depthSortedParticles}
-				<!-- Base-edge energy paints here, behind the nodes, matching the static web. -->
-				{@render particleLayer(baseEdges)}
-			{/if}
+			<g mask={occlusion ? `url(#${occludeId})` : undefined}>
+				{@render edgeLayer(baseEdges)}
+				{#if depthSortedParticles}
+					<!-- Base-edge energy paints here, behind the nodes, matching the static web. -->
+					{@render particleLayer(baseEdges)}
+				{/if}
+			</g>
 
 			<!-- Rubber-band link -->
 			{#if link}
@@ -1092,7 +1182,7 @@
 				     makes `worldHue` safe: collapsing the palette only ever takes the
 				     HEALTHY branch, so degraded and offline keep their own colour and
 				     become the only saturated things in the scene. -->
-				{@const oc = n.state === 'degraded' ? tuning.degradedColor : n.state === 'offline' ? tuning.offlineColor : (tuning.worldHue || stroke(n))}
+				{@const oc = n.state === 'degraded' ? tuning.degradedColor : n.state === 'offline' ? tuning.offlineColor : n.state === 'dormant' ? tuning.dormantColor : (tuning.worldHue || stroke(n))}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- `data-node` carries the id, not just the marker: an overlay drawn
 				     OVER the canvas (a combat effect, a callout) has to find a node's
@@ -1170,20 +1260,20 @@
 						{@const ok = (cnt - bad) / cnt}
 						{@const rr = r + ARC_GAP}
 						{@const circ = 2 * Math.PI * rr}
-						<circle r={rr} fill="none" stroke={stroke(n)} stroke-width={1} opacity={0.16} />
-						<circle r={rr} fill="none" stroke={stroke(n)} stroke-width={2.4} stroke-linecap="round"
-							opacity={0.75} transform="rotate(-90)"
-							stroke-dasharray="{(circ * ok).toFixed(1)} {circ.toFixed(1)}" />
-						<!-- count, parked on the rim's lower right so it never covers the glyph -->
-						<g transform="translate({rr * 0.72},{rr * 0.72})" pointer-events="none">
-							<rect x={-13} y={-7.5} width={26} height={15} rx={7.5}
-								fill="var(--bg)" stroke={stroke(n)} stroke-width={1} opacity={0.95} />
-							<text class="ms-t" y={3.4} font-size={9} letter-spacing="0.04em"
-								fill={labelInk(n)}>{cnt > 999 ? '999+' : cnt}</text>
-						</g>
-						<!-- fault pip — upper right, saturated, drawn last, never culled -->
+						{#if tuning.countRing}
+							<circle r={rr} fill="none" stroke={stroke(n)} stroke-width={1} opacity={0.16} />
+							<circle r={rr} fill="none" stroke={stroke(n)} stroke-width={2.4} stroke-linecap="round"
+								opacity={0.75} transform="rotate(-90)"
+								stroke-dasharray="{(circ * ok).toFixed(1)} {circ.toFixed(1)}" />
+						{/if}
+						<!-- The count itself is NOT drawn here — see the end of the node
+						     group. It has to out-rank the caption, the trace and any edge
+						     passing under the node, and the only way to win that is to be
+						     painted after them. -->
+						<!-- fault pip — upper LEFT, saturated, never culled. Left rather than
+						     right because the count badge now owns the upper right. -->
 						{#if bad > 0}
-							<g transform="translate({rr * 0.72},{-rr * 0.72})" pointer-events="none">
+							<g transform="translate({-rr * 0.72},{-rr * 0.72})" pointer-events="none">
 								<circle r={8} fill="var(--bg)" stroke="rgb(248,113,113)" stroke-width={1.6} />
 								<text class="ms-t" y={3.2} font-size={9} font-weight="600"
 									fill="rgb(248,113,113)">{bad > 99 ? '99+' : bad}</text>
@@ -1192,7 +1282,20 @@
 					{/if}
 
 					<!-- selection / receive halo -->
-					{#if isSel || isHov || canReceive(n)}
+					{#if (isSel || isHov || canReceive(n)) && isIcon}
+						<!-- A glyph body glows along its own strokes. Its sampled silhouette
+						     is only good enough for ray-casting edges onto: scaled up as a
+						     halo it drew the traced spokes as a ragged starburst. -->
+						<g transform="scale({cScale}) translate(-12,-12)" fill="none"
+							style:color={canReceive(n) ? 'var(--accent)' : stroke(n)} stroke="currentColor"
+							stroke-width={7 / cScale} stroke-linecap="round" stroke-linejoin="round"
+							opacity={0.22} filter={showFilters ? 'url(#ms-glow)' : 'none'} pointer-events="none">
+							{@html n.iconMarkup}
+						</g>
+					{:else if (isSel || isHov || canReceive(n)) && !(piece && glBodies && baseOf(n.piece!) === 'hover')}
+						<!-- Not over a hovering piece: its dais, drawn on the ground in GL,
+						     is where selection shows. A screen-facing ring there stood up
+						     behind the piece like a halo instead of lying under it. -->
 						<path d={cs ? binsSilhouette(cs, r) : sil} fill="none"
 							stroke={canReceive(n) ? 'var(--accent)' : stroke(n)}
 							stroke-width={2.5} opacity={0.32} transform="scale({cs ? 1.12 : 1.14})"
@@ -1264,7 +1367,18 @@
 						<!-- body fill — an opaque surface base under the accent tint, so the
 						     disc reads as a dark instrument face (edges can't show through)
 						     and the hue stays in the rim + glyph rather than the fill. -->
-						{#if cs && cShape}
+						{#if !tuning.bodyFill}
+							<!-- Unfilled: the outline and the glyph stand on the canvas. Still
+							     a filled path, because the body fill IS this node's hit target
+							     — drawn as nothing, only the 1.8px rim was clickable and the
+							     node stopped opening. `transparent` takes the pointer where
+							     `none` lets it fall through to the canvas behind. -->
+							<path
+								d={cs && cShape ? cShape.outline : isIcon ? binsSilhouette(cs, r) : sil}
+								transform={cs && cShape ? `scale(${cScale})` : null}
+								fill="transparent"
+								stroke="none" />
+						{:else if cs && cShape}
 							<path d={cShape.outline} fill="var(--bg-elev)" stroke="none" opacity={tuning.bodyOpacity} transform="scale({cScale})" />
 							<path d={cShape.outline} fill={fill(n)} stroke="none" transform="scale({cScale})" />
 						{:else if isIcon}
@@ -1274,7 +1388,15 @@
 							<path d={sil} fill="var(--bg-elev)" stroke="none" opacity={tuning.bodyOpacity} />
 							<path d={sil} fill={fill(n)} stroke="none" />
 						{/if}
-						{#if !isIcon}
+						<!-- Texture, inside the same silhouette the body uses. Drawn whether
+						     or not the body is filled: an unfilled disc is exactly the case
+						     with nothing in it, which is what reads as flat. -->
+						{#if tuning.bodyTexture !== 'none' && !isIcon}
+							<path d={cs && cShape ? cShape.outline : sil}
+								transform={cs && cShape ? `scale(${cScale})` : null}
+								fill="url(#ms-tex-{tuning.bodyTexture})" stroke="none" pointer-events="none" />
+						{/if}
+						{#if !isIcon && tuning.bodyGloss}
 							<ellipse cx={-r * 0.26} cy={-r * 0.28} rx={r * 0.46} ry={r * 0.4} fill="url(#ms-highlight)" pointer-events="none" />
 						{/if}
 
@@ -1303,7 +1425,7 @@
 						<!-- control-plane radar sweep — parametric discs only. A sampled body
 						     (the mesh-server crest) owns its own outline; a circle drawn
 						     across it reads as a ring the shield doesn't have. -->
-						{#if !cs && n.type === 'control-plane' && n.state !== 'offline' && showAnimate}
+						{#if !cs && n.type === 'control-plane' && !isUnpowered(n.state) && showAnimate}
 							<circle r={r - 12} fill="none" stroke={sweepColor(n)} stroke-width={1}
 								stroke-dasharray="2 12" opacity={0.5} class="ms-sweep" />
 						{/if}
@@ -1323,7 +1445,7 @@
 							<g transform="scale({cScale}) translate(-12,-12)" style:color={oc}
 								stroke="currentColor" fill="none" stroke-width={tuning.glyphWidth / cScale} stroke-linecap="round" stroke-linejoin="round"
 								stroke-dasharray={n.state === 'offline' ? `${1.6 / cScale} ${2.4 / cScale}` : 'none'}
-								opacity={n.state === 'offline' ? 0.55 : isSel ? 1 : 0.92}
+								opacity={isUnpowered(n.state) ? 0.55 : isSel ? 1 : 0.92}
 								filter={showFilters ? 'url(#ms-glow)' : 'none'}>
 								{@html n.iconMarkup}
 							</g>
@@ -1335,19 +1457,34 @@
 							{/if}
 						{/if}
 
+						<!-- Rim sweep — a short arc going round the node, an instrument
+						     needle rather than an ornament: its period is set by the node's
+						     own flow, so a busy node visibly turns faster than an idle one.
+						     One <circle> with a dash pattern, so the motion costs a single
+						     CSS rotation and no per-frame work. -->
+						{#if tuning.rimSweep && showAnimate && !piece && !isIcon}
+							{@const sr = r * 0.9}
+							{@const sc = 2 * Math.PI * sr}
+							<circle r={sr} fill="none" stroke={oc} stroke-width={Math.max(1.4, r * 0.05)}
+								stroke-linecap="round" opacity={0.55}
+								stroke-dasharray="{(sc * 0.14).toFixed(1)} {sc.toFixed(1)}"
+								class="ms-sweep" style:animation-duration="{(7 - (n.flow ?? 0) * 4).toFixed(1)}s"
+								filter={showFilters ? 'url(#ms-glow)' : 'none'} pointer-events="none" />
+						{/if}
+
 						<!-- Leaf icon — the disc above is the boundary, the glyph is cargo.
 						     Sized to the mockup's proportion: a 64px glyph in a 156px disc. -->
 						{#if isRinged}
 							<!-- Inset shrinks the glyph and lifts it to the top third so the
 							     label + count clear it inside the disc. -->
-							{@const gs = (r * 2 * GLYPH_FRAC * (inset ? 0.56 : 1)) / 24}
+							{@const gs = (r * 2 * GLYPH_FRAC * tuning.glyphScale * (inset ? 0.56 : 1)) / 24}
 							<!-- A mode caption rides under the glyph, so the glyph lifts to keep
 							     the pair optically centred in the disc. -->
 							{@const gy = inset ? -r * 0.44 : n.mode ? -r * 0.14 : 0}
 							<g transform="translate(0,{gy}) scale({gs}) translate(-12,-12)" style:color={oc}
 								stroke="currentColor" fill="none" stroke-width={tuning.glyphWidth / gs}
 								stroke-linecap="round" stroke-linejoin="round"
-								opacity={n.state === 'offline' ? 0.55 : isSel ? 1 : 0.92}
+								opacity={isUnpowered(n.state) ? 0.55 : isSel ? 1 : 0.92}
 								filter={showFilters ? 'url(#ms-glow)' : 'none'} pointer-events="none">
 								{@html n.iconMarkup}
 							</g>
@@ -1409,7 +1546,9 @@
 						     next spin would not overwrite. Cost with no interaction behind
 						     it. (The L-brackets above stay: they are rectilinear, so they
 						     read as instrument chrome rather than as another orbit.) -->
-						{#if tuning.ports && !piece}
+						<!-- Not for a locked fan either: its points turn to face the far end
+						     (attachEnd), so dots at the raw angles would mark nothing. -->
+						{#if tuning.ports && !piece && !n.portsLocked}
 						{#each nodePorts(n) as port}
 							{@const off = boundaryFor(n, port.angle, r)}
 							{@const flw = n.portFlow?.[port.id]}
@@ -1459,21 +1598,28 @@
 							     but it still has to be bounded by something, or a long name
 							     runs across its neighbours. Wrapped to the node's own width,
 							     which is the only local measure available. -->
-							{@const cfs = 9 * labelScale}
+							<!-- Sized off the node like the chip is, and for the same reason:
+							     a fixed 9px caption was set for a 28px disc, and under a node
+							     twice that it reads as a footnote to the thing it names. -->
+							{@const cfs = captionFS(r, labelScale)}
+							{@const cgap = captionGap(r)}
 							{@const clines = wrapText(n.label, cfs, r * 2.6, 3)}
 							{#each clines as line, li (li)}
-								<text class="ms-t" y={outerR + 14 + li * cfs * 1.15} font-size={cfs} font-weight={600} fill={labelInk(n)}>{line}</text>
+								<text class="ms-t" y={outerR + cgap + li * cfs * 1.15} font-size={cfs} font-weight={600} fill={labelInk(n)}>{line}</text>
 							{/each}
 							{@const cdrop = (clines.length - 1) * cfs * 1.15}
 							<!-- Optional live readout under the glyph (e.g. the inferred hub's
 							     AGENTS count) — only rendered when the node carries a value. -->
+							<!-- Stacked under the caption, in the caption's own units, so the
+							     readout follows it however large the node made it. -->
+							{@const cnext = outerR + cgap + cdrop + cfs * STACK_STEP_MUL}
 							{#if n.value}
-								<text class="ms-t" y={outerR + 28 + cdrop} font-size={12} font-weight={800} fill={labelInk(n)}>
-									{n.value}{#if n.valueLabel}<tspan font-size={7} font-weight={500} fill="rgba(255,255,255,0.55)"> {n.valueLabel}</tspan>{/if}
+								<text class="ms-t" y={cnext} font-size={cfs * VALUE_FS_MUL} font-weight={800} fill={labelInk(n)}>
+									{n.value}{#if n.valueLabel}<tspan font-size={cfs * LIVE_FS_MUL} font-weight={500} fill="rgba(255,255,255,0.55)"> {n.valueLabel}</tspan>{/if}
 								</text>
 							{/if}
 							{#if n.liveSlot}
-								<text class="ms-t" y={outerR + (n.value ? 39 : 28) + cdrop} font-size={7} letter-spacing="0.12em" fill={labelInk(n)} opacity={0.6}>{n.liveSlot}</text>
+								<text class="ms-t" y={cnext + (n.value ? cfs * STACK_STEP_MUL : 0)} font-size={cfs * LIVE_FS_MUL} letter-spacing="0.12em" fill={labelInk(n)} opacity={0.6}>{n.liveSlot}</text>
 							{/if}
 						{:else}
 							<!-- A bare parametric shape is the only node with room to stack its
@@ -1517,7 +1663,10 @@
 						     zoom, and it costs three lines. It is also the one thing allowed
 						     to break the ladder and out-glow everything — an alarm that does
 						     not interrupt is not an alarm. -->
-						{#if n.state !== 'healthy'}
+						<!-- Never for `dormant`: a capability nobody has switched on is not a
+						     fault, and a beacon on every unconfigured mode is how the overview
+						     came to shout about things that were simply not set up yet. -->
+						{#if n.state === 'degraded' || n.state === 'offline'}
 							{@const alarm = n.state === 'degraded' ? tuning.degradedColor : tuning.offlineColor}
 							{#if piece && n.frame}
 								<!-- Height in NODE RADII, not pixels. `frame.u` is already the
@@ -1572,6 +1721,34 @@
 								</g>
 							{/if}
 						{/if}
+
+						<!-- ── Roll-up count ─────────────────────────────────────────
+						     Last in the node group, and therefore over everything in it:
+						     the caption, the outline trace, the halo. A number that a
+						     passing edge or a wrapped label can cross is a number you
+						     have to look twice at, which defeats having it.
+
+						     Upper right, clear of the caption below the node. Shown only
+						     when the arcs are off — the arcs are the other way of saying
+						     the same thing, and drawing both states the count twice. -->
+						{#if (n.count ?? 0) > 1 && !piece && !showConnArcs(n)}
+							{@const cnt = n.count ?? 0}
+							{@const bx = (r + ARC_GAP) * 0.72}
+							<!-- Sized off the node, not fixed in px. A 9px numeral was legible
+							     beside a 28px disc and vanished beside a 60px one — a chip that
+							     does not grow with what it belongs to shrinks away exactly as
+							     the node gets important enough to read. Floored so a small node
+							     still gets a chip you can hit. -->
+							{@const bfs = Math.max(9, r * 0.36)}
+							{@const bw = bfs * (cnt > 99 ? 3.4 : 2.6)}
+							{@const bh = bfs * 1.7}
+							<g transform="translate({bx},{-bx})" pointer-events="none">
+								<rect x={-bw / 2} y={-bh / 2} width={bw} height={bh} rx={bh / 2}
+									fill="var(--bg)" stroke={stroke(n)} stroke-width={Math.max(1, bfs / 8)} opacity={0.95} />
+								<text class="ms-t" y={bfs * 0.36} font-size={bfs} letter-spacing="0.04em"
+									fill={labelInk(n)}>{cnt > 999 ? '999+' : cnt}</text>
+							</g>
+						{/if}
 					</g>
 					</g>
 
@@ -1582,17 +1759,22 @@
 						{#if n.expanded}
 							<!-- Expanded: the modes become full, normal-sized nodes on a ring
 							     whose radius grows so they never overlap each other or the hub. -->
-							{@const facetR = Math.min(r, 40)}
-							{@const ringR = Math.max(r + facetR + 22, (facetR + 12) / Math.sin(Math.PI / mn))}
+							<!-- Straight from mesh-metrics, which is also what the layout pass
+							     reserved room with. Restating the formula here is how the two
+							     drift and the satellites land on the neighbours. -->
+							{@const fan = satelliteGeom(r, mn, n.facetR != null ? n.facetR * tuning.radiusScale : undefined)}
+							{@const facetR = fan.facetR}
+							{@const ringR = fan.ringR}
 							{#each n.modes as fmode, fi}
 								{@const fang = -90 + (360 / mn) * fi}
 								{@const frad = (fang * Math.PI) / 180}
 								{@const fx = Math.cos(frad) * ringR}
 								{@const fy = Math.sin(frad) * ringR}
 								{@const bp = boundaryFor(n, fang, r)}
-								{@const fcs = facetSample(fmode)}
 								{@const occ = n.modes.slice(0, fi).filter((m) => m === fmode).length}
 								{@const flow = n.modeFlows?.[fi] ?? 0}
+								{@const fgs = (facetR * 2 * GLYPH_FRAC * tuning.glyphScale) / 24}
+								{@const fcfs = captionFS(facetR, labelScale)}
 								<line x1={bp.dx} y1={bp.dy} x2={fx} y2={fy} stroke={stroke(n)}
 									stroke-width={1.2} opacity={flow > 0 ? 0.4 : 0.22} />
 								{#if flow > 0 && showAnimate}
@@ -1607,16 +1789,22 @@
 								<g transform="translate({fx},{fy})" class="ms-facet ms-facet--node"
 									role="button" tabindex="-1" aria-label="{fmode} mode"
 									onpointerdown={(ev) => { ev.stopPropagation(); onFacetSelect?.(n.id, fmode, occ); }}>
-									{#if fcs}
-										{@const fscale = facetR / fcs.maxR}
-										<path d={binsSilhouette(fcs, facetR)} fill={fill(n)} opacity={0.55} />
-										<g transform="scale({fscale}) translate(-12,-12)" style:color={stroke(n)}
-											stroke="currentColor" fill="none" stroke-width={1.9 / fscale}
-											stroke-linecap="round" stroke-linejoin="round">{@html glyphForMode(fmode)}</g>
-									{:else}
-										<circle r={facetR} fill={fill(n)} opacity={0.55} stroke={stroke(n)} stroke-width={1.6} />
+									<!-- A fanned-out mode is drawn as the NODE that mode would be if it
+									     stood on the mesh on its own: same ringed disc, same body knobs,
+									     the glyph at the same fraction of the disc, the same caption
+									     treatment. It used to be a glyph-shaped blob with the raw wire
+									     key under it, which made the one view that shows an agent's
+									     modes the one view where a mode looks like nothing else. -->
+									{#if tuning.bodyFill}
+										<circle r={facetR} fill="var(--bg-elev)" opacity={tuning.bodyOpacity} />
+										<circle r={facetR} fill={fill(n)} />
 									{/if}
-									<text class="ms-t" y={facetR + 12} font-size={8} font-weight={600} fill={labelInk(n)}>{fmode}</text>
+									<circle r={facetR} fill="none" stroke={stroke(n)} stroke-width={1.8} opacity={0.9} />
+									<g transform="scale({fgs}) translate(-12,-12)" style:color={stroke(n)}
+										stroke="currentColor" fill="none" stroke-width={tuning.glyphWidth / fgs}
+										stroke-linecap="round" stroke-linejoin="round">{@html glyphForMode(fmode)}</g>
+									<text class="ms-t" y={facetR + captionGap(facetR)} font-size={fcfs}
+										font-weight={600} fill={labelInk(n)}>{labelForMode(fmode)}</text>
 								</g>
 							{/each}
 						{:else}
@@ -1646,12 +1834,31 @@
 								</g>
 							{/each}
 						{/if}
+						<!-- A fold's "+" unfolds it; a second toggle beside it would fan modes instead. -->
+						{#if !n.foldable}
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<g class="ms-fan-toggle" transform="translate({r * 0.66},{r * 0.66})"
-							onpointerdown={(ev) => { ev.stopPropagation(); n.expanded = !n.expanded; }}
+							onpointerdown={(ev) => {
+								ev.stopPropagation();
+								// A caller that owns fold state is told instead: a local flip is
+								// lost on its next rebuild, and it never re-spaces the layout.
+								if (onFoldToggle) onFoldToggle(n.id);
+								else n.expanded = !n.expanded;
+							}}
 							role="button" tabindex="-1" aria-label={n.expanded ? 'Collapse modes' : 'Expand modes'}>
 							<circle r={8} fill="var(--bg)" stroke={stroke(n)} stroke-width={1.2} />
 							<text text-anchor="middle" y={3.2} font-size={12} font-weight={800} fill={labelInk(n)}>{n.expanded ? '−' : '+'}</text>
+						</g>
+						{/if}
+					{/if}
+
+					{#if n.foldable}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<g class="ms-fan-toggle" transform="translate({r * 0.66},{r * 0.66})"
+							onpointerdown={(ev) => { ev.stopPropagation(); onFoldToggle?.(n.id); }}
+							role="button" tabindex="-1" aria-label="Unfold">
+							<circle r={8} fill="var(--bg)" stroke={stroke(n)} stroke-width={1.2} />
+							<text text-anchor="middle" y={3.2} font-size={12} font-weight={800} fill={labelInk(n)}>+</text>
 						</g>
 					{/if}
 
@@ -1661,25 +1868,42 @@
 				</g>
 			{/each}
 
-			<!-- Raised edges — same layer as above, re-rendered over the nodes so a link
-			     the operator just made stays visible instead of vanishing under them. -->
-			{@render edgeLayer(raisedEdges)}
-
-			<!-- Edge motion — particles / scanning / pulse / encrypted. By default this
-			     rides above the nodes so energy is never occluded; depthSortedParticles
-			     splits it so base energy already painted behind the nodes stays there. -->
-			{#if depthSortedParticles}
-				{@render particleLayer(raisedEdges)}
-			{:else}
-				{@render particleLayer(edges)}
+			<!-- Port status — over the nodes, on the point each failing link lands on. -->
+			{#if tuning.portStatus}
+				{#each edges as e (e.id)}
+					{#if hasBadge(e)}
+						{@const ep = edgeEndpoints(e)}
+						{#if ep}
+							<g transform="translate({ep.b.x},{ep.b.y}) scale(0.7)" pointer-events="none">
+								{@render statusGlyph(e)}
+							</g>
+						{/if}
+					{/if}
+				{/each}
 			{/if}
+
+			<!-- Raised edges — same layer as above, re-rendered over the nodes so a link
+			     the operator just made stays visible instead of vanishing under them.
+			     Raised above the NODES, not above the ground — so still buried. -->
+			<g mask={occlusion ? `url(#${occludeId})` : undefined}>
+				{@render edgeLayer(raisedEdges)}
+
+				<!-- Edge motion — particles / scanning / pulse / encrypted. By default this
+				     rides above the nodes so energy is never occluded; depthSortedParticles
+				     splits it so base energy already painted behind the nodes stays there. -->
+				{#if depthSortedParticles}
+					{@render particleLayer(raisedEdges)}
+				{:else}
+					{@render particleLayer(edges)}
+				{/if}
+			</g>
 		</g>
 	</svg>
 
 <!-- Energy above the nodes — the default, so a link's traffic is never occluded
      by the things it connects. -->
 {#if topRuns.length}
-	<EdgeParticles runs={topRuns} />
+	<EdgeParticles runs={topRuns} {occlusion} />
 {/if}
 
 <style>
@@ -1738,6 +1962,11 @@
 	/* energy flowing along the node's own outline (60 ÷ 12 & 15 → seamless, gentle) */
 	@keyframes ms-trace-move { to { stroke-dashoffset: -60; } }
 	.ms-trace { animation-name: ms-trace-move; animation-timing-function: linear; animation-iteration-count: infinite; }
+
+	/* Rim sweep. Rotated about the node's own origin — the <circle> is centred on
+	   it, so no transform-box gymnastics are needed and the arc cannot wander. */
+	@keyframes ms-sweep-spin { to { transform: rotate(360deg); } }
+	.ms-sweep { animation-name: ms-sweep-spin; animation-timing-function: linear; animation-iteration-count: infinite; transform-origin: 0 0; }
 
 	/* edge status marching */
 	@keyframes ms-state-march { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -20; } }

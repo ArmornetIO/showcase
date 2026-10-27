@@ -28,10 +28,21 @@
 		 * continuous fan; `0.72` parts it wide enough for a character to stand in.
 		 */
 		split?: number;
+		/**
+		 * How big a card is drawn, as a multiple.
+		 *
+		 * Through `CardFace`'s own `scale` (a `zoom`) rather than a transform on
+		 * the fan, and the difference is the drag: `zoom` shrinks the card's LAYOUT
+		 * box, so `-50%` still centres it and the ghost — which lives outside
+		 * `fanEl` and reads `cssZoom(fanEl)` — keeps tracking the pointer 1:1. A
+		 * transform on the fan would scale the ghost's containing block instead and
+		 * send the card away from the finger holding it.
+		 */
+		scale?: number;
 		class?: string;
 	}
 
-	let { match, spread = 132, split = 0, class: cls = '' }: Props = $props();
+	let { match, spread = 132, split = 0, scale = 1, class: cls = '' }: Props = $props();
 
 	let hoverUid = $state<string | null>(null);
 
@@ -77,9 +88,21 @@
 	let fanEl = $state<HTMLDivElement | null>(null);
 	let ghostAt = $state({ x: 0, y: 0 });
 
+	/**
+	 * How far ABOVE the pointer the card in flight is drawn.
+	 *
+	 * A mouse cursor is a few pixels of arrow and the card can sit under it. A
+	 * fingertip is a centimetre of opaque skin resting on both the card being
+	 * dragged AND the building being aimed at, so on touch the whole gesture is
+	 * played blind. Only the PICTURE moves — `nodeUnder` still probes the real
+	 * pointer, because where the finger is is where the player means.
+	 */
+	const TOUCH_LIFT = 96;
+	let lift = 0;
+
 	function trackGhost(event: PointerEvent) {
 		const z = cssZoom(fanEl);
-		ghostAt = { x: event.clientX / z, y: event.clientY / z };
+		ghostAt = { x: event.clientX / z, y: (event.clientY - lift) / z };
 	}
 
 	function startDrag(event: PointerEvent, key: string) {
@@ -87,6 +110,7 @@
 		const ability = match.inHand(match.seat.key, key);
 		if (!ability || (match.ap[match.seat.key] ?? 0) < ability.ap) return;
 		event.preventDefault();
+		lift = event.pointerType === 'touch' ? TOUCH_LIFT : 0;
 		match.armedKey = key;
 		match.drag = { key, x: event.clientX, y: event.clientY, over: null };
 		trackGhost(event);
@@ -180,6 +204,7 @@
 				owner={match.seat}
 				{playable}
 				raised={lifted}
+				{scale}
 				skillMod={match.seat.skills[ability.skill]}
 			/>
 		</div>
@@ -209,6 +234,7 @@
 				owner={match.seat}
 				raised
 				played
+				{scale}
 				skillMod={match.seat.skills[ability.skill]}
 			/>
 		</div>

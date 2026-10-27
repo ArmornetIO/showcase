@@ -98,7 +98,7 @@
 			type: 'control-plane',
 			state: 'healthy',
 			label: 'PROTECTED CORE',
-			iconKey: 'crestlink',
+			iconKey: 'armornet',
 			glyphAsBody: true,
 			x: 0,
 			y: 0,

@@ -9,9 +9,10 @@ import (
 // encodings is the server's preference order, best first. A client's
 // Accept-Encoding is intersected with this and the first survivor wins.
 //
-// No Compressor interface and no codec import on this side: serving a sidecar
-// is opening a second file and naming it in a header, which is what keeps this
-// module's dependency graph the standard library. The "br" row is deliberately
+// No Compressor interface and no encoder on this side: serving a sidecar is
+// opening a second file and naming it in a header, which is what keeps this
+// module's dependency graph the standard library. The one decoder, gzip, is for
+// a bundle that kept only the sidecar (see openFile). The "br" row is deliberately
 // present and inert — a sidecar that does not exist is skipped, so the day a
 // .br file appears beside a .gz it is served with no code change here.
 var encodings = []struct{ token, ext string }{
@@ -28,7 +29,7 @@ func openEncoded(fsys fs.FS, name, accept string) (fs.File, fs.FileInfo, string,
 		if !acceptable(accept, e.token) {
 			continue
 		}
-		if f, info, ok := openFile(fsys, name+e.ext); ok {
+		if f, info, ok := openPlain(fsys, name+e.ext); ok {
 			return f, info, e.token, true
 		}
 	}

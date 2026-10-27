@@ -302,12 +302,18 @@
 						{:else if bar.held}
 							{@render badge(
 								RED,
-								bar.persistent ? 'dug in' : bar.staged ? 'staged' : 'held',
-								bar.persistent
-									? 'Red is on it and rooted. A partial success is dislodgeable; this one is not.'
+								bar.kind === 'temporary' && bar.roundsLeft != null
+									? `temporary · ${bar.roundsLeft}r`
 									: bar.staged
-										? 'Red spent a turn working this foothold rather than pushing on. Worth +2 on the next step.'
-										: 'Red is standing on it. Blue cannot remove a foothold — only make the next one harder.'
+										? 'staged'
+										: (bar.kind ?? 'held'),
+								bar.kind === 'permanent'
+									? 'Red is on it and rooted. No evicting card can pull this one.'
+									: bar.kind === 'temporary'
+										? 'Red is on it for now. The foothold lapses at upkeep when its rounds run out.'
+										: bar.staged
+											? 'Red spent a turn working this foothold rather than pushing on. Worth +2 on the next step.'
+											: 'Red is standing on it. Once revealed, an evicting card can remove it.'
 							)}
 						{:else if isPayload}
 							<!-- The one gate left. Everything else on this list is open in

@@ -112,12 +112,12 @@
 			></span>
 
 			<div
-				class="font-[var(--mono-display)] text-[1.875rem] font-black leading-none text-[var(--c-value)]"
+				class="font-(family-name:--mono-display) text-[1.875rem] font-black leading-none text-[var(--c-value)]"
 			>
 				{item.value}
 			</div>
 			<div
-				class="font-[var(--mono)] text-[0.625rem] tracking-[0.25em] uppercase text-[var(--c-label)] mt-[10px] whitespace-nowrap"
+				class="font-(family-name:--mono) text-[0.625rem] tracking-[0.25em] uppercase text-[var(--c-label)] mt-[10px] whitespace-nowrap"
 			>
 				{item.label}
 			</div>

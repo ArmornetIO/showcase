@@ -11,9 +11,9 @@
 
 	const objects = $derived((report.diff?.objects ?? []).filter((o) => o.class !== 'identical'));
 	const ledger = $derived(report.ledger ?? []);
-	const pending = $derived(ledger.filter((e) => e.state === 'pending').length);
+	const pending = $derived(ledger.filter((e) => ['pending', 'adoptable'].includes(e.state)).length);
 	const ledgerIssues = $derived(
-		ledger.filter((e) => ['checksum_drift', 'orphan_applied', 'reverted'].includes(e.state))
+		ledger.filter((e) => ['checksum_drift', 'orphan_applied', 'reverted', 'behind'].includes(e.state))
 	);
 
 	function kindLabel(o: ObjectDiff): string {
@@ -31,6 +31,7 @@
 			return ev ? `reverted by ${ev.actor} — “${ev.reason}”` : 'marked reverted';
 		}
 		if (e.state === 'checksum_drift') return 'applied checksum ≠ registry';
+		if (e.state === 'behind') return e.detail ?? 'behind the squash baseline';
 		return 'applied but not in the registry';
 	}
 </script>

@@ -22,7 +22,7 @@
 // a light roll under the mesh, not a landscape competing with the nodes.
 //
 // Pure: no Svelte, no DOM, no dependencies.
-import { alignZ, type Vec3, type Cap } from './sphere.js';
+import { alignZ, capAlpha, capBearing, COAST_MIN, type Vec3, type Cap } from './sphere.js';
 
 export interface TerrainOpts {
 	/** Same seed, same ground. */
@@ -148,6 +148,60 @@ export function terrainLift(terrain: Terrain | undefined, d: Vec3, relief: numbe
 // not somewhere you can be. So the elevation field gets cut to the caps, and
 // what is left over is not sea to be drawn. It is absence.
 
+/** One region's ground, sampled as a polar lattice about its centre: a direction
+ *  and a height at every corner.
+ *
+ *  Exported because the region's SURFACE and its CONTOURS have to be the same
+ *  ground or they come apart on screen — the lines climb the hills and the land
+ *  under them stays on the sphere. Sampling twice is how that happens, so they
+ *  sample once, here.
+ *
+ *  Rings run out to the COASTLINE rather than to `cap.alpha`: a region is not a
+ *  disc (see `capAlpha`), and a lattice that stopped at the mean radius would
+ *  leave every headland off the map. Row 0 is the centre and row `rings` is the
+ *  shore, where the masked height is 0 — so a consumer that skips zero-height
+ *  cells gets the coast for free. */
+export interface CapLattice {
+	/** `[ring][spoke]`, `rings+1` by `spokes+1`. The last spoke repeats the first
+	 *  so a consumer can walk cells without wrapping by hand. */
+	dirs: Vec3[][];
+	hs: number[][];
+	rings: number;
+	spokes: number;
+}
+
+export function capLattice(
+	terrain: Terrain,
+	cap: Cap,
+	rings = 26,
+	spokes = 64
+): CapLattice {
+	const dirs: Vec3[][] = [];
+	const hs: number[][] = [];
+	const edge: number[] = [];
+	for (let j = 0; j <= spokes; j++) edge.push(capAlpha(cap, (j / spokes) * Math.PI * 2));
+	for (let i = 0; i <= rings; i++) {
+		const dRow: Vec3[] = [];
+		const hRow: number[] = [];
+		for (let j = 0; j <= spokes; j++) {
+			const b = (j / spokes) * Math.PI * 2;
+			const a = (edge[j] * i) / rings;
+			const sinA = Math.sin(a);
+			const cosA = Math.cos(a);
+			const p = alignZ(cap.center, {
+				x: Math.cos(b) * sinA,
+				y: Math.sin(b) * sinA,
+				z: cosA
+			});
+			dRow.push(p);
+			hRow.push(terrain.heightAt(p));
+		}
+		dirs.push(dRow);
+		hs.push(hRow);
+	}
+	return { dirs, hs, rings, spokes };
+}
+
 /** Smoothstep — a falloff with no corner at either end. A linear shore leaves a
  *  visible crease where it meets the water, because the eye reads the
  *  discontinuity in the SLOPE, not in the value. */
@@ -161,8 +215,17 @@ function smoothstep(t: number): number {
 function capMaskAt(cap: Cap, d: Vec3, shore: number): number {
 	const dot = d.x * cap.center.x + d.y * cap.center.y + d.z * cap.center.z;
 	const ang = Math.acos(Math.max(-1, Math.min(1, dot)));
+	// Two ring tests before any coastline work. `capAlpha` is bounded by
+	// `COAST_MIN·alpha` below and `alpha` above, so outside the outer ring there
+	// is no land whatever the bearing, and inside the inner one the shore has
+	// already finished rising. That covers the large majority of samples — a
+	// masked terrain asks this per cap per vertex, and the bearing costs an
+	// atan2 and the coast three sines that nothing outside the shore band reads.
+	if (ang >= cap.alpha) return 0;
+	if (ang <= COAST_MIN * cap.alpha * (1 - shore)) return 1;
+	const alpha = capAlpha(cap, capBearing(cap, d));
 	// Distance in from the rim, as a fraction of the shore's width.
-	const inFrom = (cap.alpha - ang) / Math.max(1e-6, cap.alpha * shore);
+	const inFrom = (alpha - ang) / Math.max(1e-6, alpha * shore);
 	return smoothstep(inFrom);
 }
 
@@ -364,27 +427,7 @@ export function contours(terrain: Terrain, cap: Cap, opts: ContourOpts = {}): Co
 	// Sample the whole lattice once. Every corner is shared by four cells, so
 	// looking it up again per cell would quadruple the terrain calls — which are
 	// the expensive part, being a few dozen sines each.
-	const dirs: Vec3[][] = [];
-	const hs: number[][] = [];
-	for (let i = 0; i <= rings; i++) {
-		const a = (cap.alpha * i) / rings;
-		const sinA = Math.sin(a);
-		const cosA = Math.cos(a);
-		const dRow: Vec3[] = [];
-		const hRow: number[] = [];
-		for (let j = 0; j <= spokes; j++) {
-			const b = (j / spokes) * Math.PI * 2;
-			const p = alignZ(cap.center, {
-				x: Math.cos(b) * sinA,
-				y: Math.sin(b) * sinA,
-				z: cosA
-			});
-			dRow.push(p);
-			hRow.push(terrain.heightAt(p));
-		}
-		dirs.push(dRow);
-		hs.push(hRow);
-	}
+	const { dirs, hs } = capLattice(terrain, cap, rings, spokes);
 
 	let lo = Infinity;
 	let hi = -Infinity;

@@ -134,6 +134,13 @@ export interface Part {
 	 * colour is ITS OWN, and the renderer prefers the more specific one.
 	 */
 	owner?: string;
+	/**
+	 * Depth bias toward the viewer, in world units, for a plate laid ON a larger
+	 * face. The sort is per face centroid, so a big face tilted away out-sorts
+	 * the small plates on its far half and paints over them. Keep it no larger
+	 * than the face it sits on, or the plate starts drawing over arms.
+	 */
+	over?: number;
 }
 
 /**
@@ -178,8 +185,9 @@ export interface Anchors {
 	 *  badge or a device is mounted. */
 	plateH: number;
 	plateN: number;
-	/** Height a leg swings about. */
+	/** Height a leg swings about, and how far east of the middle a leg stands. */
 	hip: number;
+	legE: number;
 	/** False for a build that hovers — a boot has nothing to go on. */
 	legs: boolean;
 }
@@ -215,6 +223,7 @@ export function measure(shape: Shape): Anchors {
 		plateH: 0.475 * T,
 		plateN: -b.chestD * 1.14,
 		hip: 0.31 * T,
+		legE: b.chest * 0.58,
 		legs: b.legs
 	};
 }
@@ -236,7 +245,7 @@ export function figure(shape: Shape): Part[] {
 		// Stood apart, not welded together. Two masses with daylight between them
 		// read as legs; two masses touching read as a plinth.
 		const lw = b.chest * 0.34;
-		const le = b.chest * 0.58;
+		const le = a.legE;
 		// The hip: where the leg stops, so a swing pivots at the top of the mass
 		// rather than through its middle and the foot travels the way a foot does.
 		const hip = a.hip;

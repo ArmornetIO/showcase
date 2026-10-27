@@ -2,7 +2,22 @@
 
 export type MeshNodeType = 'control-plane' | 'agentic' | 'proxy' | 'daemon';
 
-export type NodeState = 'healthy' | 'degraded' | 'offline';
+/**
+ * `offline` and `dormant` look alike and mean opposite things, which is why both
+ * exist. `offline` is something that SHOULD be running and is not — an alarm, and
+ * drawn red. `dormant` is something nobody has switched on yet — a capability not
+ * set up, an empty library — and is drawn as the same hologram powered down: dim,
+ * cooler, and never alarmed. Folding the two together is what painted every
+ * unconfigured mode on the overview in the colour reserved for a breach blind
+ * spot.
+ */
+export type NodeState = 'healthy' | 'degraded' | 'offline' | 'dormant';
+
+/** Drawn powered down — dim, still, no traffic — whether that is a failure or
+ *  simply not set up. Colour is the one thing the two states do NOT share. */
+export function isUnpowered(state: NodeState): boolean {
+	return state === 'offline' || state === 'dormant';
+}
 
 export type DataType = 'query' | 'config' | 'feed' | 'verdict' | 'lifecycle' | 'intercept';
 

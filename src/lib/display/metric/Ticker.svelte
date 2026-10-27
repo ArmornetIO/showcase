@@ -46,11 +46,11 @@
 			{#each [0, 1] as _}
 				{#each items as item, i}
 					<span
-						class="px-[1.5rem] font-[var(--mono)] text-[0.6875rem] tracking-[0.4em] uppercase text-[var(--accent)] opacity-70"
+						class="px-[1.5rem] font-(family-name:--mono) text-[0.6875rem] tracking-[0.4em] uppercase text-[var(--accent)] opacity-70"
 						>{item}</span
 					>
 					<span
-						class="px-[1.5rem] font-[var(--mono)] text-[0.6875rem] shrink-0"
+						class="px-[1.5rem] font-(family-name:--mono) text-[0.6875rem] shrink-0"
 						style:color={DOT_COLORS[i % DOT_COLORS.length]}
 						>{separator}</span
 					>

@@ -7,6 +7,15 @@
 	import DocsLayoutDashboard from '$lib/docs/DocsLayoutDashboard.svelte';
 	import DocsShell from '$lib/docs/DocsShell.svelte';
 	import Prose from '$lib/docs/Prose.svelte';
+	import Byline from '$lib/docs/Byline.svelte';
+	import ChangeKindList from '$lib/docs/ChangeKindList.svelte';
+	import type { Change } from '$lib/docs/ChangeKindList.svelte';
+	import MonthGroupHeader from '$lib/docs/MonthGroupHeader.svelte';
+	import PinnedPane from '$lib/docs/PinnedPane.svelte';
+	import ProseFigure from '$lib/docs/ProseFigure.svelte';
+	import PullQuote from '$lib/docs/PullQuote.svelte';
+	import ReleaseEntry from '$lib/docs/ReleaseEntry.svelte';
+	import SubscribeForm from '$lib/docs/SubscribeForm.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import ShowcaseBlock from '$lib/dev/ShowcaseBlock.svelte';
 
@@ -49,6 +58,17 @@
 	};
 
 	let proseTocEl = $state<HTMLElement | null>(null);
+
+	const demoAuthor = { name: 'Tony Ramos', handle: 'itonyr', role: 'Engineering' };
+	const demoChanges: Change[] = [
+		{ kind: 'breaking', text: '`heartbeat_interval` is now required in `agent.yaml`' },
+		{ kind: 'added', text: 'Agents report their state over Line' },
+		{ kind: 'changed', text: 'Verdicts are cached for 30s by default' },
+		{ kind: 'fixed', text: 'TOC no longer loses the active heading on resize' },
+		{ kind: 'removed', text: 'The legacy `dep_analysis` mode' }
+	];
+	let walkStep = $state(0);
+	let subscribed = $state<string | undefined>();
 
 	const demoProseHtml = `
 <h2 id="overview">Overview</h2>
@@ -203,9 +223,88 @@
 			</DocsShell>
 		</div>
 	</ShowcaseBlock>
+
+	<ShowcaseBlock>
+		<h3 class="component-name">Publishing</h3>
+		<p class="component-desc">
+			The pieces a blog post or changelog is built from: byline, pull quote, captioned figure,
+			release entries grouped by month, a pinned walkthrough pane and an email capture form.
+		</p>
+		<div class="docs-publish">
+			<div>
+				<p class="docs-demo-label">Byline</p>
+				<div class="docs-publish-row">
+					<Byline author={demoAuthor} />
+					<Byline author={demoAuthor} compact />
+				</div>
+			</div>
+
+			<div>
+				<p class="docs-demo-label">PullQuote</p>
+				<PullQuote cite="ENG-001">A mesh with a central broker is just a hub with extra steps.</PullQuote>
+			</div>
+
+			<div>
+				<p class="docs-demo-label">ProseFigure</p>
+				<ProseFigure caption="Figure 1 — three node roles and the Lines between them.">
+					<svg viewBox="0 0 240 80" width="100%" height="80" aria-hidden="true">
+						<line x1="40" y1="40" x2="120" y2="40" stroke="currentColor" stroke-opacity="0.4" />
+						<line x1="120" y1="40" x2="200" y2="40" stroke="currentColor" stroke-opacity="0.4" />
+						<circle cx="40" cy="40" r="12" fill="var(--palette-blue, #60a5fa)" />
+						<circle cx="120" cy="40" r="16" fill="var(--palette-emerald, #34d399)" />
+						<circle cx="200" cy="40" r="10" fill="var(--palette-amber, #fcd34d)" />
+					</svg>
+				</ProseFigure>
+			</div>
+
+			<div>
+				<p class="docs-demo-label">MonthGroupHeader · ReleaseEntry · ChangeKindList</p>
+				<MonthGroupHeader label="September 2026" count={2} />
+				<ReleaseEntry version="v2.14.0" date="2026-09-10" title="Faster verdicts" author={demoAuthor} href="#v2-14-0">
+					<ChangeKindList changes={demoChanges} />
+				</ReleaseEntry>
+				<ReleaseEntry version="v2.13.1" date="2026-09-02" title="Patch release">
+					<ChangeKindList changes={[{ kind: 'fixed', text: 'Session cookie refresh on idle tabs' }]} />
+				</ReleaseEntry>
+			</div>
+
+			<div>
+				<p class="docs-demo-label">PinnedPane</p>
+				<div class="docs-publish-row">
+					{#each [0, 1, 2] as i (i)}
+						<button class="bc-btn" class:bc-active={walkStep === i} onclick={() => (walkStep = i)}>
+							Step {i + 1}
+						</button>
+					{/each}
+				</div>
+				<PinnedPane steps={3} current={walkStep}>
+					<pre class="demo-code">{['armornet model init', 'armornet model schema apply', 'armornet serve'][walkStep]}</pre>
+				</PinnedPane>
+			</div>
+
+			<div>
+				<p class="docs-demo-label">SubscribeForm</p>
+				<SubscribeForm onsubmit={(email) => (subscribed = `Subscribed ${email}`)} done={subscribed} />
+			</div>
+		</div>
+	</ShowcaseBlock>
 </div>
 
 <style>
+	.docs-publish {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		padding: 1.5rem 0;
+	}
+
+	.docs-publish-row {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		flex-wrap: wrap;
+	}
+
 	.component-desc {
 		margin: 0;
 		font-size: 0.85rem;

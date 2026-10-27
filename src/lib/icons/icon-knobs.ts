@@ -31,7 +31,7 @@ export const MESH_TOKEN = '--crest-mesh';
  *  snippet has to emit something a reader can paste. */
 export const ACCENT = '#5eead4';
 
-export type MarkId = 'icon' | 'crest' | 'hub' | 'mesh' | 'chrome';
+export type MarkId = 'icon' | 'logo';
 
 export interface Mark {
 	id: MarkId;
@@ -105,83 +105,24 @@ export const MARKS: Mark[] = [
 		]
 	},
 	{
-		id: 'crest',
-		name: 'ArmornetCrest',
-		note: 'The full brand mark — double wall, solid A, punched nodes.',
+		id: 'logo',
+		name: 'ArmornetLogo',
+		note: 'THE mark. `Chrome` swaps the flat logo for the presentation cut — gradients and a cast shadow, which muddies below ~48px.',
 		knobs: () => [
-			colour(COLOR_TOKEN, 'Colour', 'The whole mark. Monochrome by design.'),
-			colour(MESH_TOKEN, 'Mesh', MESH_HINT),
-			size(96, 320, 'The mark is drawn in its native 617 box and scaled, so it holds anywhere.'),
 			{
 				kind: 'toggle',
 				group: 'shape',
-				prop: 'mesh',
-				label: 'Inner mesh',
-				hint: 'Crossbar down to the centre dot, then out to the feet. Drop it below ~32px — it silts up the A’s counter.',
-				value: true
-			},
-			glow()
-		]
-	},
-	{
-		id: 'hub',
-		name: 'ArmornetCrestHub',
-		note: 'Hub-and-spoke: a filled hub, spokes, ringed satellites on the A’s five points.',
-		knobs: () => [
-			colour(COLOR_TOKEN, 'Colour', 'The whole mark.'),
-			size(96, 320, 'Tethers go below ~32px, glow below ~48px.'),
-			{
-				kind: 'choice',
-				group: 'shape',
-				prop: 'look',
-				label: 'Look',
-				hint: 'How the letter separates itself from the mesh. `plated` leans on opacity — prefer the other two for one-colour reproduction.',
-				value: 'hollow',
-				options: ['hollow', 'weight', 'plated']
-			},
-			{
-				kind: 'choice',
-				group: 'shape',
-				prop: 'spokes',
-				label: 'Spokes',
-				hint: 'Which spokes leave the hub, on top of the bar it always sits on. `bar` keeps the A’s counter open.',
-				value: 'full',
-				options: ['full', 'stem', 'bar']
-			},
-			{
-				kind: 'toggle',
-				group: 'shape',
-				prop: 'tethers',
-				label: 'Tethers',
-				hint: 'The struts binding the A to the shield wall — traced like a circuit, one jog each. Drop them below ~32px.',
-				value: true
-			},
-			glow()
-		]
-	},
-	{
-		id: 'mesh',
-		name: 'ArmornetCrestMesh',
-		note: 'The console’s own mesh centre, cut into a shield.',
-		knobs: () => [
-			colour(COLOR_TOKEN, 'Colour', 'The whole mark.'),
-			colour(MESH_TOKEN, 'Mesh', MESH_HINT),
-			size(96, 320, 'Inner wall goes below ~32px.'),
-			{
-				kind: 'choice',
-				group: 'shape',
-				prop: 'shape',
-				label: 'Shield',
-				hint: 'Which outline the crestlink figure is cut into. The figure never moves — a tight shield scales the whole of it.',
-				value: 'crest',
-				options: CREST_MESH_SHAPES
+				prop: 'chrome',
+				label: 'Chrome',
+				hint: 'Render ArmornetCrestChrome instead of the flat logo. Everything below the divider only applies while this is on.',
+				value: false
 			},
 			{
 				kind: 'choice',
 				group: 'shape',
 				prop: 'variant',
 				label: 'Variant',
-				hint: 'Filled inverts the mark — a solid shield with the figure punched through to whatever is behind, so the inverse needs no second asset.',
+				hint: 'Outline is the UI mark; filled is for a dark plate or a favicon.',
 				value: 'outline',
 				options: ['outline', 'filled']
 			},
@@ -190,17 +131,9 @@ export const MARKS: Mark[] = [
 				group: 'shape',
 				prop: 'innerWall',
 				label: 'Inner wall',
-				hint: 'The hairline inside the shield. Without it the outer wall reads as a sticker outline.',
+				hint: 'The second wall inside the shield. Drop it below ~32px — it silts up.',
 				value: true
 			},
-			glow()
-		]
-	},
-	{
-		id: 'chrome',
-		name: 'ArmornetCrestChrome',
-		note: 'Presentation art — gradients and a cast shadow. Not a UI icon; it muddies below ~48px.',
-		knobs: () => [
 			{
 				kind: 'choice',
 				group: 'shape',
@@ -280,7 +213,7 @@ export const MARKS: Mark[] = [
  *
  * One flat record rather than a union per mark: each mark reads only the fields
  * its component takes, and a typed bag keeps the studio's call sites checked —
- * spreading a `Record<string, unknown>` onto `<ArmornetCrestHub>` would have
+ * spreading a `Record<string, unknown>` onto a mark component would have
  * put `look: string` where a three-value union is expected and lost exactly the
  * check that catches a renamed option.
  */
@@ -301,16 +234,17 @@ export interface MarkSettings {
 	breakout: number;
 	look: 'hollow' | 'weight' | 'plated';
 	spokes: 'full' | 'stem' | 'bar';
-	/**
-	 * Both shield-bearing marks write `shape`. Knobs are rebuilt per mark and
-	 * `readKnobs` only overlays the active one's, so they never collide at
-	 * runtime — the field just has to be typed as the wider of the two.
-	 */
+	/** Swaps the logo's flat cut for the chrome one. The light knobs below only
+	 *  bite while this is on — the flat mark has no gradients to tune. */
+	chrome: boolean;
+	/** Only the chrome cut picks a silhouette: the flat logo is pinned to one
+	 *  shield, and ArmornetLogo owns that choice so it is made once. */
 	shape: ChromeShape;
 	variant: 'outline' | 'filled';
 }
 
 const BASE: MarkSettings = {
+	chrome: false,
 	size: 96,
 	strokeWidth: 1.5,
 	ink: ACCENT,

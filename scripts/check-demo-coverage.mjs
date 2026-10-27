@@ -28,7 +28,7 @@ import { fileURLToPath } from 'url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const strict = process.argv.includes('--check');
 
-// Mirrors gen-api.mjs — these hold no exhibitable components.
+// Mirrors skipDirs in generate/propsapi — these hold no exhibitable components.
 const SKIP_DIRS = new Set(['generated', '__test__', 'seo', 'registry', 'node_modules']);
 
 /**
@@ -47,7 +47,12 @@ const NO_DEMO_REASON = {
 	// rather than a formality — see docs/development/perf-dev-tooling.md. Delete
 	// this line when that page lands; it is a promise, not an exemption.
 	PerfHud: 'demo pending — needs a live scene to report on, see docs/development/perf-dev-tooling.md',
-		// TEMPORARY, and the only kind of entry that should be. A HUD that reports
+	// The GAME debug menu acts on a registered walker scene and is inert without
+	// one. Its live demo is BREACH's Insider Threat (examples/breach), which is
+	// outside this app's routes.
+	GameDevTools: 'demo is examples/breach Insider Threat — inert without a registered game scene',
+	GameDevControls: 'rendered inside GameDevTools; same demo',
+	// TEMPORARY, and the only kind of entry that should be. A HUD that reports
 	// frame time, allocation and per-layer draw rates needs a page that is
 	// actually drawing something to report on, so the demo is the whole job
 	// rather than a formality — see docs/development/perf-dev-tooling.md. Delete

@@ -2,7 +2,9 @@
 	import type { Snippet } from 'svelte';
 
 	export type ModalVariant = 'default' | 'danger' | 'warn' | 'success' | 'agentic';
-	export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+	/** `full` is for a modal that is a WORKING surface — a two-pane editor, not a
+	 *  question. Anything narrower makes the panes fight. */
+	export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
 	interface ModalProps {
 		open: boolean;
@@ -165,9 +167,11 @@
 		backdrop-filter: blur(3px);
 	}
 
-	/* Entry animation on open */
+	/* Entry animation on open. `backwards`, not `both`: a transform left on the
+	   dialog at rest makes it the containing block for portalled fixed panels
+	   (Select, Tooltip), and their viewport coordinates land offset. */
 	.modal[open] {
-		animation: modal-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+		animation: modal-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 	}
 	@keyframes modal-in {
 		from {
@@ -185,11 +189,20 @@
 	.size-md .modal-inner { max-width: 480px; }
 	.size-lg .modal-inner { max-width: 640px; }
 	.size-xl .modal-inner { max-width: 920px; }
+	.size-full .modal-inner { max-width: 1180px; height: min(660px, 86vh); }
+	/* A working surface manages its own scrolling — the body is a frame it fills,
+	   not a column it grows. Letting the modal scroll here puts a scrollbar
+	   around a panel that already has one inside it. */
+	.size-full .modal-body { flex: 1; min-height: 0; max-height: none; overflow: hidden; }
 
 	/* ── Inner card ──────────────────────────────────────────────────────── */
 	.modal-inner {
 		position: relative;
 		width: 90vw;
+		/* The <dialog> is only as wide as its own fit-content, and content with a
+		   wide min-content pushes it past this card's max-width — at which point a
+		   plain block child sits against the left edge of it. */
+		margin-inline: auto;
 		background: #080b10;
 		border: 1px solid var(--m-border);
 		clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);

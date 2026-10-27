@@ -9,14 +9,14 @@ const repo = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 // A plain Vite + Svelte app, like `examples/breach`. No SvelteKit, no router,
 // no adapter — the Go binary serves whatever this emits from a single embed.
 //
-// The build lands directly in `dbmgr/ui/dist` because that is the directory the
-// Go `//go:embed` reads. Writing anywhere else would need a copy step that
-// could silently go stale.
+// The build lands directly in the dbmgr checkout's `ui/dist`, the directory the
+// Go `//go:embed` reads, so no copy step can go stale. DBMGR_UI_DIST names it
+// because showcase and dbmgr are separate repos; unset, the build stays local.
 export default defineConfig({
 	plugins: [svelte(), tailwindcss()],
 	base: './',
 	build: {
-		outDir: repo('../../../dbmgr/ui/dist'),
+		outDir: process.env.DBMGR_UI_DIST ?? repo('dist'),
 		// Not emptied: that directory holds a committed .gitkeep, and without it
 		// `//go:embed all:dist` fails to compile on a checkout that has never run
 		// this build. Output filenames are fixed below, so nothing goes stale.

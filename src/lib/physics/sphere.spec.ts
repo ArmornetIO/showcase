@@ -14,6 +14,7 @@ import {
 	tangentFrame,
 	faceYawPitch,
 	shortestAngle,
+	subViewerDir,
 	type Vec3
 } from './sphere.js';
 
@@ -121,6 +122,22 @@ describe('spin', () => {
 		expect(s.x).toBeCloseTo(d.x, 9);
 		expect(s.y).toBeCloseTo(d.y, 9);
 		expect(s.z).toBeCloseTo(d.z, 9);
+	});
+
+	// The whole point of `subViewerDir`: a sign error inverts it to the FAR side,
+	// which on a turning globe looks like a lag rather than like a mirror.
+	it('subViewerDir is the direction spin sends at the viewer', () => {
+		for (const [yaw, pitch] of [
+			[0, 0],
+			[1.1, 0.4],
+			[-2.3, -0.7],
+			[5.9, 0.23]
+		]) {
+			const s = spin(subViewerDir(yaw, pitch), yaw, pitch);
+			expect(s.x).toBeCloseTo(0, 9);
+			expect(s.y).toBeCloseTo(0, 9);
+			expect(s.z).toBeCloseTo(1, 9);
+		}
 	});
 
 	it('yaw turns about the vertical — height is untouched', () => {

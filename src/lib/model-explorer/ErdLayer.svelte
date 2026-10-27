@@ -198,6 +198,7 @@
 	// reactive) Maps, so a sibling Minimap mounted after us must find the getters
 	// already present — an effect would run after its deriveds settle.
 	const boundsId = Symbol();
+	// svelte-ignore state_referenced_locally
 	for (const t of tables)
 		ctx.nodePositions.set(t.name, () => {
 			const p = placed.get(t.name);
@@ -299,7 +300,8 @@
 	const selectedFk = $derived(selectedEdge ? fks.find((f) => f.id === selectedEdge) : null);
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <svg
 	class="erd-svg"
 	bind:this={svgEl}

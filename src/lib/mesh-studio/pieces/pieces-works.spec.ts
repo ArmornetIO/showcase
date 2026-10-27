@@ -75,12 +75,10 @@ describe('the works pieces', () => {
 
 describe('the mode map', () => {
 	const MODES = [
-		'dns_proxy',
-		'github_runner',
-		'hardened_agent',
+		'package_scan',
 		'posture',
 		'codebase_analysis',
-		'vscode_enforcement'
+		'editor'
 	];
 
 	for (const mode of MODES) {

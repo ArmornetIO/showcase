@@ -26,6 +26,9 @@
 		socket?: TableSocket | null;
 		refusal?: string | null;
 		onrules?: () => void;
+		/** Straight through to `SeatPlate` — the card is a frame and a border, and
+		 *  which of the two arrangements it wraps is not its decision. */
+		compact?: boolean;
 		class?: string;
 	}
 
@@ -36,6 +39,7 @@
 		socket = null,
 		refusal = null,
 		onrules = () => {},
+		compact = false,
 		class: cls = ''
 	}: Props = $props();
 </script>
@@ -51,5 +55,5 @@
 	style:background={plateFill(state.color)}
 	style:box-shadow="inset 3px 0 0 0 {state.color}, 0 0 0 1px color-mix(in srgb, {state.color} 35%, transparent), {PLATE_SHADOW_UP}"
 >
-	<SeatPlate {match} {state} {takeover} {socket} {refusal} {onrules} />
+	<SeatPlate {match} {state} {takeover} {socket} {refusal} {onrules} {compact} />
 </div>

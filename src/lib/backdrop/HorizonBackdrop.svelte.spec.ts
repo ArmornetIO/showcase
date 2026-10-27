@@ -22,7 +22,7 @@ describe('HorizonBackdrop', () => {
 	});
 
 	it('scopes a preset palette to its own wrapper, not :root', async () => {
-		const { container } = render(HorizonBackdrop, { preset: 'spider-verse' });
+		const { container } = render(HorizonBackdrop, { preset: 'misregistered' });
 		const root = container.querySelector('.backdrop') as HTMLElement;
 		// The vibe's own strip colour, on the element — and nowhere else.
 		expect(root.style.getPropertyValue('--backdrop-strip')).not.toBe('');
@@ -30,7 +30,7 @@ describe('HorizonBackdrop', () => {
 	});
 
 	it('draws a ghost pass only for presets that ask for one', async () => {
-		const withGhost = render(HorizonBackdrop, { preset: 'spider-verse' });
+		const withGhost = render(HorizonBackdrop, { preset: 'misregistered' });
 		expect(withGhost.container.querySelectorAll('.strip-host.ghost').length).toBeGreaterThan(0);
 
 		const without = render(HorizonBackdrop, { preset: 'mr robot' });
@@ -39,8 +39,8 @@ describe('HorizonBackdrop', () => {
 
 	it('lets an explicit strips array win over a preset', async () => {
 		const one = resolvePreset('mr robot').strips.slice(0, 1);
-		const { container } = render(HorizonBackdrop, { preset: 'spider-verse', strips: one });
-		// spider-verse has five strips and a ghost pass; the array has one and none.
+		const { container } = render(HorizonBackdrop, { preset: 'misregistered', strips: one });
+		// misregistered has five strips and a ghost pass; the array has one and none.
 		expect(container.querySelectorAll('.strip-host')).toHaveLength(1);
 	});
 

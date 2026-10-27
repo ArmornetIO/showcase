@@ -107,13 +107,13 @@ const FAMILY_META: BackdropMeta[] = [
 
 /** How expensive each Möbius composition is, so the list can say so. */
 function mobiusCost(id: PresetId): BackdropMeta['cost'] {
-	if (id === 'spider-verse') return 'heavy';
+	if (id === 'misregistered') return 'heavy';
 	if (id === 'mr robot' || id === 'ribbon') return 'cheap';
 	return 'moderate';
 }
 
 function mobiusNote(id: PresetId): string {
-	if (id === 'spider-verse') return 'Every strip drawn twice — the most expensive.';
+	if (id === 'misregistered') return 'Every strip drawn twice — the most expensive.';
 	if (id === 'mr robot') return 'Three strips, minimal motion — the cheapest Möbius.';
 	return 'An animated Möbius composition.';
 }

@@ -31,7 +31,7 @@
 		/** The ground the near band paints with. MUST match the page behind it,
 		 *  or the occluding fill reads as a grey smear instead of a hole. */
 		ground?: string;
-		/** `r, g, b`. Defaults are the spider-verse palette's own values. */
+		/** `r, g, b`. Defaults are the misregistered palette's own values. */
 		stripColor?: string;
 		/**
 		 * Second stop. The band is painted with a gradient across its own extent
@@ -318,7 +318,7 @@
 
 				// Ghost first, base on top — printing plates, where the key plate
 				// lands over the misaligned colour plate. This misregistration IS
-				// the spider-verse signature; one pass only ever reads as colourful.
+				// the misregistered preset's signature; one pass only ever reads as colourful.
 				if (s.ghost) {
 					bctx.save();
 					bctx.translate(s.ghost.dx / k, s.ghost.dy / k);

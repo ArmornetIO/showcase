@@ -44,10 +44,9 @@ type Compressor interface {
 
 // Default is the set of codings emitted unless a caller says otherwise.
 //
-// gzip alone, measured rather than assumed: of the ~5.1 MB a cold armornet
-// console load has available to save, gzip captures 92 % of it with zero
-// dependencies, and brotli's entire marginal contribution was 412 KB for a
-// 261k-line vendored tree.
+// gzip alone, measured rather than assumed: it captures the large majority of
+// available savings on a cold console load with zero dependencies, and
+// brotli's marginal contribution was not worth vendoring a codec for.
 var Default = []Compressor{GzipCompressor{}}
 
 // GzipCompressor encodes with the standard library at BestCompression.
@@ -65,7 +64,7 @@ func (GzipCompressor) Compress(dst io.Writer, src io.Reader) error {
 		return err
 	}
 	if _, err := io.Copy(zw, src); err != nil {
-		zw.Close()
+		_ = zw.Close()
 		return err
 	}
 	return zw.Close()
@@ -104,6 +103,12 @@ type Options struct {
 	Workers int
 	// Compressors is the codec set. Nil means Default.
 	Compressors []Compressor
+	// DropOriginals removes a file once a gzip sidecar has been kept beside it,
+	// so an embedded bundle carries each asset once instead of twice. compose
+	// decodes the sidecar for the rare client that will not take gzip.
+	//
+	// HTML is always kept: compose reads pages raw to inject into them.
+	DropOriginals bool
 }
 
 func (o Options) minSize() int64 {
@@ -193,7 +198,7 @@ func Dir(dir string, opts Options) (Stats, error) {
 			// that stops reading leaves the walker blocked on an unbuffered
 			// send forever, so the build hangs instead of reporting the error.
 			for p := range jobs {
-				n, r, e, err := compressFile(p, codecs)
+				n, r, e, err := compressFile(p, codecs, opts.DropOriginals)
 				files.Add(n)
 				raw.Add(r)
 				encoded.Add(e)
@@ -237,11 +242,17 @@ func Dir(dir string, opts Options) (Stats, error) {
 // A sidecar bigger than its original is worse than none: the server would
 // prefer it, spend the client a decode, and send more bytes than doing nothing
 // would have. Deleting it here makes that impossible rather than unlikely.
-func compressFile(p string, codecs []Compressor) (files, raw, encoded int64, err error) {
+func compressFile(p string, codecs []Compressor, dropOriginal bool) (files, raw, encoded int64, err error) {
+	keptGzip := false
+	defer func() {
+		if err == nil && keptGzip && dropOriginal && !strings.EqualFold(path.Ext(p), ".html") {
+			err = os.Remove(p)
+		}
+	}()
 	for _, c := range codecs {
 		out := p + c.Ext()
 		if err := encodeTo(out, p, c); err != nil {
-			os.Remove(out)
+			_ = os.Remove(out)
 			return files, raw, encoded, err
 		}
 		rawSize, err := sizeOf(p)
@@ -253,23 +264,24 @@ func compressFile(p string, codecs []Compressor) (files, raw, encoded int64, err
 			return files, raw, encoded, err
 		}
 		if encSize >= rawSize {
-			os.Remove(out)
+			_ = os.Remove(out)
 			continue
 		}
 		files++
 		raw += rawSize
 		encoded += encSize
+		keptGzip = keptGzip || c.Encoding() == "gzip"
 	}
 	return files, raw, encoded, nil
 }
 
 func encodeTo(out, in string, c Compressor) error {
-	src, err := os.Open(in)
+	src, err := os.Open(in) // #nosec G304 -- build-time asset path from the compose manifest
 	if err != nil {
 		return err
 	}
 	defer src.Close()
-	dst, err := os.Create(out)
+	dst, err := os.Create(out) // #nosec G304 -- build-time output path derived from the input
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,5 @@
 // ── /examples/breach · the rules ──────────────────────────────────────────
-// BREACH is a 2v2 tabletop skirmish played on the armornet globe. One side runs
+// BREACH is a 2v2 tabletop CTF played on the armornet globe. One side runs
 // a supply-chain intrusion; the other runs the estate it is aimed at. The board
 // is the same four-territory sphere the console's overview draws, so a player
 // who learns this map has learned where a real compromise happens.
@@ -51,6 +51,8 @@ export {
 	GARRISON_CAP,
 	HORIZON,
 	INITIATIVE,
+	ONE_PLAY_MAX_AP,
+	TEMPORARY_ROUNDS,
 	SKILL_BLURB,
 	SKILL_LABEL,
 	STRUCTURES,
@@ -75,6 +77,7 @@ export type {
 	AbilityKind,
 	CardDef,
 	Faction,
+	FootholdKind,
 	Outcome,
 	Owner,
 	Passive,
@@ -99,6 +102,13 @@ export type Klass = Omit<GenKlass, 'shape'> & CharacterSkin;
 export const ROSTER: Klass[] = GEN_ROSTER as Klass[];
 
 export const klassByKey = (k: string): Klass => ROSTER.find((r) => r.key === k) ?? ROSTER[0];
+
+/** A character as it plays for a side: blue gets its loyal kit, red its
+ *  insider kit. A character has no side of its own — the chair decides. */
+export function asSide(k: Klass, side: Faction): Klass {
+	const kit = side === 'blue' ? k.loyal : k.insider;
+	return kit ? { ...k, faction: side, passive: kit.passive, power: kit.power } : { ...k, faction: side };
+}
 
 // The re-export block above is `export ... from`, which puts nothing in local
 // scope — so the generated pieces this file BUILDS ON have to be imported as
@@ -230,9 +240,28 @@ export function canTarget(a: Ability, s: Structure, actor: Faction): boolean {
  * passive and no abilities, so they cannot be dealt to a seat. Offering `3v3`
  * would be offering a setting that cannot reach a rule.
  */
-export type MatchSize = '1v1' | '2v2';
+export type MatchSize = '1v1' | '2v2' | OfficeSize;
 
-export const MATCH_SIZES: Array<{ id: MatchSize; label: string; blurb: string }> = [
+/** Insider Threat's tables: four to eight coworkers in neutral chairs, where
+ *  characters may repeat and a chair says nothing about a side. */
+export type OfficeSize = '4p' | '5p' | '6p' | '7p' | '8p';
+
+export const OFFICE_SIZES: Array<{ id: OfficeSize; label: string; blurb: string }> = (
+	['4p', '5p', '6p', '7p', '8p'] as const
+).map((id) => ({ id, label: `${id[0]} players`, blurb: `${id[0]} coworkers. One of them is the insider.` }));
+
+export const isOffice = (size: MatchSize): size is OfficeSize => size.endsWith('p');
+
+/** The sizes a game is played at — the size lever's options. */
+export const sizesFor = (variant: 'ctf' | 'insider_threat') =>
+	variant === 'insider_threat' ? OFFICE_SIZES : MATCH_SIZES;
+
+/** The table a game opens at, and moves to when the game changes under a size
+ *  it cannot seat. Mirrors `Variant.DefaultSize` in internal/breach. */
+export const defaultSizeFor = (variant: 'ctf' | 'insider_threat'): MatchSize =>
+	variant === 'insider_threat' ? '4p' : '2v2';
+
+export const MATCH_SIZES: Array<{ id: '1v1' | '2v2'; label: string; blurb: string }> = [
 	{
 		id: '2v2',
 		label: '2v2',

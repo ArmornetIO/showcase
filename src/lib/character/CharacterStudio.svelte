@@ -2,10 +2,9 @@
 	// ─────────────────────────────────────────────────────────────────────────
 	// CHARACTER STUDIO — a turntable for the four figures.
 	//
-	// Third of the builder's studios, and deliberately the same shape as the
-	// other two: a bare <dialog> rather than `Modal` (Modal is title/body/footer
-	// at a fixed size; this is a full-bleed stage), header of wordmark · pills ·
-	// close, and one live subject in the middle.
+	// One of the Builder's 3D-mode studios, the same shape as the other two: it
+	// fills its parent, and one live subject in the middle, picked in 3D mode's
+	// palette or walked with the arrows.
 	//
 	// THE PANEL IS NOT HAND-WRITTEN. `character-knobs.ts` declares what can be
 	// tuned and `BackdropControls` draws it — the same generated panel the
@@ -19,7 +18,7 @@
 	// the canvas. Camera and colour are safe to expose because they are view
 	// state — nothing about the character changes when you turn it round.
 
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import BackdropControls from '../backdrop/BackdropControls.svelte';
 	import type { Knob } from '../backdrop/backdrop-tokens.js';
 	import Figure from './Figure.svelte';
@@ -28,10 +27,10 @@
 	import { characterKnobs, readKnobs, setAngle } from './character-knobs.js';
 	import { CLIPS, FRAMES, poseAt, REST, type ClipId } from './poses.js';
 	import { lampLevel, statusById, STATUSES, type StatusId } from './status.js';
+	import { figureParts } from './render.js';
+	import { downloadMesh } from './export.js';
 
 	interface Props {
-		open: boolean;
-		onclose: () => void;
 		/**
 		 * A second way of looking at the character, rendered instead of the
 		 * turntable when the stage is switched to it.
@@ -49,27 +48,22 @@
 		pov?: Snippet<[CharacterSkin, string]>;
 		/** What to call it on the toggle. */
 		povLabel?: string;
+		/** Which character is on the stage. Bindable so 3D mode's palette and the
+		 *  studio's own arrows move one selection. */
+		index?: number;
 	}
 
-	let { open, onclose, pov, povLabel = 'First person' }: Props = $props();
+	let { pov, povLabel = 'First person', index: i = $bindable(0) }: Props = $props();
 
-	/**
-	 * Turntable or the slot. Reset when the studio closes rather than left
-	 * standing: the POV view runs a globe and an animation loop, and a modal
-	 * reopened into a mode the operator picked four sessions ago is a modal that
-	 * appears to have opened into the wrong thing.
-	 */
+	/** Turntable or the slot. Starts on the turntable each time the studio is
+	 *  mounted: the POV view runs a globe and an animation loop. */
 	let stage = $state<'turntable' | 'pov'>('turntable');
-	$effect(() => {
-		if (!open) stage = 'turntable';
-	});
 	const inPov = $derived(stage === 'pov' && !!pov);
 
-	let dialogEl = $state<HTMLDialogElement | null>(null);
-	let i = $state(0);
-
 	const base = $derived(characterKnobs(CHARACTERS[i].color));
-	let knobs = $state<Knob[]>(characterKnobs(CHARACTERS[i].color));
+	// Reseated when the character changes rather than derived, which is what
+	// keeps a user's slider edits from being clobbered.
+	let knobs = $state<Knob[]>(characterKnobs(CHARACTERS[0].color));
 
 	const tuned = $derived(readKnobs(knobs));
 	/** The character as painted: its own build and name, wearing whatever plate
@@ -80,27 +74,24 @@
 	/** Selecting a character reseats the colour knobs on ITS plate, but keeps the
 	 *  camera — turning the model and then cycling to compare the same angle is
 	 *  the whole reason to have both controls on one screen. */
-	function pick(n: number) {
-		const keep = knobs.filter((k) => k.kind === 'param');
-		i = n;
+	let seated = -1;
+	$effect.pre(() => {
+		const n = i;
+		if (n === seated) return;
+		seated = n;
+		const keep = untrack(() => knobs).filter((k) => k.kind === 'param');
 		knobs = characterKnobs(CHARACTERS[n].color).map(
 			(k) => keep.find((x) => x.kind === 'param' && k.kind === 'param' && x.prop === k.prop) ?? k
 		);
-	}
-
-	$effect(() => {
-		if (!dialogEl) return;
-		if (open && !dialogEl.open) dialogEl.showModal();
-		else if (!open && dialogEl.open) dialogEl.close();
 	});
 
-	const step = (d: number) => pick((i + d + CHARACTERS.length) % CHARACTERS.length);
+	const step = (d: number) => (i = (i + d + CHARACTERS.length) % CHARACTERS.length);
 
 	// ── Drag to turn ────────────────────────────────────────────────────────
 	// Grabbing the model is how anybody expects to rotate one, and it writes
 	// through the SAME knobs the sliders do — two paths to one value is how a
 	// panel starts disagreeing with the thing it is meant to describe.
-	let drag: { x: number; y: number; yaw: number; pitch: number } | null = null;
+	let drag = $state<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
 
 	function grab(e: PointerEvent) {
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -145,7 +136,7 @@
 	const ticking = $derived(playing && (clip !== 'still' || alarm.pulse > 0));
 
 	$effect(() => {
-		if (!open || !ticking) return;
+		if (!ticking) return;
 		// Driven off the clock rather than rAF: the pose only changes FRAMES times
 		// a cycle, so waking on every repaint would be up to four wasted wake-ups
 		// for every one that draws something new.
@@ -160,6 +151,11 @@
 		frame = ((n % FRAMES) + FRAMES) % FRAMES;
 	}
 
+	/** The figure as it stands on the turntable — this pose, these colours — out
+	 *  to a file. The camera is not in it: a mesh has no viewpoint. */
+	const exportMesh = (kind: 'stl' | 'obj') =>
+		downloadMesh(figureParts(who, { suit: tuned.suit, pose, lamp: alarm.lamp }), kind, who.key);
+
 	/** The build, as the four numbers that actually differ between roles. A
 	 *  read-out rather than controls — see the note at the top. */
 	const specs = $derived([
@@ -170,17 +166,15 @@
 	]);
 </script>
 
-<dialog
-	class="cs-modal"
-	bind:this={dialogEl}
+<!-- The arrows step the subject while anything inside has focus. -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<section
+	class="cs-root"
 	aria-labelledby="cs-wordmark"
-	{onclose}
+	tabindex="-1"
 	onkeydown={(e) => {
 		if (e.key === 'ArrowRight') step(1);
 		if (e.key === 'ArrowLeft') step(-1);
-	}}
-	onclick={(e) => {
-		if (e.target === dialogEl) onclose();
 	}}
 >
 	<!-- Two colours, because they answer different questions: `--kc` is WHO this
@@ -188,16 +182,6 @@
 	<div class="cs-shell" style:--kc={who.color} style:--lamp={alarm.lamp ?? who.color}>
 		<div class="cs-header">
 			<span class="cs-wordmark" id="cs-wordmark">CHARACTER STUDIO</span>
-			<div class="cs-pills">
-				{#each CHARACTERS as c, n (c.key)}
-					<button
-						class="cs-pill"
-						class:on={n === i}
-						style:--pc={c.color}
-						onclick={() => pick(n)}>{c.name.replace(/^The /, '')}</button
-					>
-				{/each}
-			</div>
 			<span class="cs-spacer"></span>
 			{#if pov}
 				<div class="cs-modes">
@@ -213,7 +197,6 @@
 					{/each}
 				</div>
 			{/if}
-			<button class="cs-close" onclick={onclose} aria-label="Close">✕</button>
 		</div>
 
 		<div class="cs-body">
@@ -361,6 +344,14 @@
 				<button class="cs-reset" onclick={() => (knobs = characterKnobs(CHARACTERS[i].color))}
 					>Reset</button
 				>
+
+				<div class="cs-group">
+					<div class="cs-group-h">Export</div>
+					<div class="cs-clips">
+						<button class="cs-clip" title="Mesh for CAD and slicers, millimetres, Z up" onclick={() => exportMesh('stl')}>STL</button>
+						<button class="cs-clip" title="Named parts with vertex colour, for Blender" onclick={() => exportMesh('obj')}>OBJ</button>
+					</div>
+				</div>
 			</aside>
 		</div>
 
@@ -376,24 +367,15 @@
 			</div>
 		</div>
 	</div>
-</dialog>
+</section>
 
 <style>
-	.cs-modal {
-		width: 96vw;
-		height: 92vh;
-		max-width: none;
-		max-height: none;
-		padding: 0;
-		border: 1px solid var(--border);
-		border-radius: 12px;
+	.cs-root {
+		height: 100%;
 		background: var(--bg);
 		color: var(--fg);
 		overflow: hidden;
-	}
-	.cs-modal::backdrop {
-		background: rgba(3, 6, 10, 0.6);
-		backdrop-filter: blur(4px);
+		outline: none;
 	}
 	.cs-shell {
 		display: flex;
@@ -420,44 +402,6 @@
 	.cs-spacer {
 		flex: 1;
 	}
-	.cs-pills {
-		display: flex;
-		gap: 4px;
-	}
-	.cs-pill {
-		padding: 5px 12px;
-		border-radius: 999px;
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--fg-dim);
-		font-family: var(--mono);
-		font-size: 0.62rem;
-		letter-spacing: 0.1em;
-		cursor: pointer;
-		transition: all 0.15s;
-	}
-	.cs-pill:hover {
-		color: var(--fg);
-		border-color: color-mix(in srgb, var(--pc) 50%, transparent);
-	}
-	.cs-pill.on {
-		color: var(--pc);
-		border-color: var(--pc);
-		background: color-mix(in srgb, var(--pc) 14%, transparent);
-	}
-	.cs-close {
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--fg-dim);
-		border-radius: 6px;
-		width: 28px;
-		height: 28px;
-		cursor: pointer;
-	}
-	.cs-close:hover {
-		color: var(--fg);
-	}
-
 	.cs-body {
 		flex: 1;
 		min-height: 0;

@@ -16,7 +16,12 @@
 	// Keyboard: the value is the single tab stop. ←/→ (and ↑/↓) step, Enter and
 	// Space open the menu, so the chevrons are `tabindex="-1"` — they duplicate
 	// the arrow keys and would otherwise cost two extra stops per control.
-	import Icon from '../../icons/Icon.svelte';
+	//
+	// `variant="tile"` stacks it as a toolbar button: an icon on top, the
+	// stepper, and a caption under it. The caption carries the unit ("players")
+	// so the value can be the bare number — a word repeated in every option is
+	// the unit, and the unit belongs on the control, not on each value.
+	import Icon, { type IconName } from '../../icons/Icon.svelte';
 	import ActionsMenu from '../actions/ActionsMenu.svelte';
 	import type { ActionMenuItem } from '../actions/ActionsMenu.svelte';
 	import type { ChoiceOption } from './choice.types.js';
@@ -42,6 +47,12 @@
 		width?: string;
 		/** Colour for the value text — a per-value hue, if the set carries one. */
 		color?: string;
+		/** `inline` is `‹ value ›`; `tile` stacks icon, stepper and caption. */
+		variant?: 'inline' | 'tile';
+		/** Tile only: drawn above the stepper. */
+		icon?: IconName;
+		/** Tile only: the line under the stepper — the unit or the name. */
+		caption?: string;
 		/** Extra classes on the host, so a page can place it. */
 		class?: string;
 	}
@@ -55,6 +66,9 @@
 		disabled = false,
 		width = '156px',
 		color,
+		variant = 'inline',
+		icon,
+		caption,
 		class: cls = ''
 	}: StepSwitcherProps = $props();
 
@@ -92,11 +106,15 @@
 
 <div
 	class="ss {cls}"
+	class:is-tile={variant === 'tile'}
 	class:is-disabled={disabled}
 	role="group"
 	aria-label={label}
 	style={`--ss-w:${width}${color ? `; --ss-c:${color}` : ''}`}
 >
+	{#if variant === 'tile' && icon}
+		<span class="ss-icon" aria-hidden="true"><Icon name={icon} size={15} /></span>
+	{/if}
 	<button
 		type="button"
 		class="ss-b"
@@ -137,6 +155,10 @@
 	>
 		<Icon name="chevron-right" size={12} />
 	</button>
+
+	{#if variant === 'tile' && caption}
+		<span class="ss-cap">{caption}</span>
+	{/if}
 </div>
 
 <style>
@@ -157,6 +179,55 @@
 	}
 	.ss.is-disabled {
 		opacity: 0.5;
+	}
+
+	/* Tile: the stepper keeps its own row; the icon and caption span it. No
+	   frame of its own at rest, so it sits flush in a row of icon buttons. */
+	.ss.is-tile {
+		grid-template-areas: 'icon icon icon' 'prev val next' 'cap cap cap';
+		row-gap: 2px;
+		padding: 0.35rem 0.2rem 0.3rem;
+		border-color: transparent;
+		border-radius: 7px;
+		background: transparent;
+	}
+	.ss.is-tile:hover:not(.is-disabled),
+	.ss.is-tile:focus-within {
+		border-color: var(--border);
+		background: var(--surface);
+	}
+	.ss-icon {
+		grid-area: icon;
+		justify-self: center;
+		color: var(--fg-dim);
+	}
+	.ss-cap {
+		grid-area: cap;
+		justify-self: center;
+		font-size: 0.55rem;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--fg-dim);
+		white-space: nowrap;
+	}
+	.is-tile .ss-v {
+		height: 20px;
+		font-weight: 700;
+	}
+	.is-tile .ss-b {
+		height: 20px;
+	}
+	/* Pinned, not auto-placed: with no icon, auto-placement would put the
+	   stepper in the icon's row. */
+	.is-tile > .ss-b:first-of-type {
+		grid-area: prev;
+	}
+	.is-tile > .ss-b:last-of-type {
+		grid-area: next;
+	}
+	.is-tile :global(.trigger-wrap) {
+		grid-area: val;
 	}
 
 	/* ActionsMenu wraps the trigger snippet in its own span — it needs to behave

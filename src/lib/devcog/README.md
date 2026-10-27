@@ -46,8 +46,9 @@ console). Anything with markup of its own lives in the folder it belongs to.
 `nitConfig` is the storage slot plus the AI-prompt branding for the nit batch —
 it is read once at construction, because a host swapping keys mid-session would
 strand whatever is already captured. `consoleConfig` is the same arrangement for
-the selected-group key. `flagsHref` is one link in the footer; the flags UI
-itself is the host's, on its admin page.
+the cookie holding the open state and the selected group. `flagsHref` is one
+link in the footer, shown only when the host passes it; the flags UI itself is
+the host's, on its admin page.
 
 ## Extending it — `ToolGroup`
 
@@ -70,8 +71,8 @@ same two actions as the built-ins.
 ]} />
 ```
 
-Built-ins occupy orders 10/20/30/40/50/60, with `CAPTURE` at 50 and `PERF` at
-60, so a host group can sit between them.
+The built-ins are `CAPTURE` at 50, `PERF` at 60 and `BROWSE` at 70. Hosts use
+10–40, or any slot between the built-ins.
 
 **A gated group stays in the rail, dimmed, and states its condition.** Set
 `available: false` and a `gate` sentence rather than wrapping the tool in an
@@ -139,6 +140,44 @@ for. An explicit arm from the cluster's own button always wins back the nit flow
 `showcase/src/lib/primitives/chrome/PanelShapeControls.svelte` is the reference
 for this half — it picks a card and re-shapes it in place.
 
+## Every app gets one — the framework's console
+
+In development a compose engine injects this console into **every page it
+renders**, so an app that never mounts `<DevCog>` still has one. The engine is
+given the bundle (`compose.HandlerOptions.DevTools`), adds a
+`<script src="/_compose/devcog.js">` to each app's shell, and answers the app
+index at `/_compose/apps.json`. In the hot loop Vite renders the HTML instead,
+so the dev front door (`build/dev/devfront`) injects the same tag. Both check for
+the tag first, which keeps it to one per page.
+
+The bundle is `standalone.ts`, built on its own by
+`showcase/compose/devcog/vite.config.ts` (the `devtools:devcog` build step) and
+embedded by the `compose/devcog` Go package. It mounts in a **shadow root**: the
+page belongs to some other app, so neither side may style the other. The tokens
+come in rescoped to `:host`, which means the injected console always uses the
+default theme.
+
+**One console per page.** An app that mounts `<DevCog>` itself carries host
+groups the injected one cannot render (a snippet from the app's Svelte runtime
+cannot render in the bundle's), so the app's console wins. It sets
+`data-devcog-app` on `<html>` while mounted, and the injected console stands
+down (`presence.ts`). Hosts never pass `injected`.
+
+**An app with its own console declares it in its HTML:**
+`<meta name="devcog" content="app">`. Its console usually mounts after
+hydration, well after the injected script runs. Without the declaration the
+page shows the framework console first and then swaps it for the app's.
+`app-ui` and `showcase` both declare it in `app.html`.
+
+**Aligned across apps.** Whether the console is open and which group it shows
+live in a cookie (`consoleConfig.stateKey`, `Path=/`), not in localStorage. Dev
+servers differ by port, and storage is keyed by port while cookies are keyed by
+host. So you arrive in the next app with the console as you left it.
+
+**BROWSE** (order 70) lists the apps in the index: the ones this server will
+serve *this caller on this hostname*. A server that publishes no index shows
+the group gated rather than hidden.
+
 ## What belongs in the console, and what does not
 
 The line that keeps getting crossed: **the cog is for things whose correct value
@@ -179,11 +218,16 @@ From `showcase/devcog`:
 DevCog.svelte      shell — console state, Escape ladder, nothing else
 DevCogCluster      the floating buttons: arm inspector, open console
 DevIcon            the cluster's glyphs
+standalone.ts      the framework's injected mount — shadow root, never imported
+presence.ts        one console per page: the app's wins over the injected one
 console/
   types.ts         ToolGroup, AppliesWhen, ConsoleConfig — the vocabulary
-  console-state    which group is showing, remembered across reloads
+  console-state    open + selected group, remembered across reloads and apps
+  align.ts         pure: the cookie that carries that state (tested)
   Console.svelte   the panel; GroupRail is the rail beside it
   CaptureGroup     the built-in nit batch group
+  browse.ts        pure: the framework's app index, current app (tested)
+  BrowseGroup      the built-in BROWSE group
 controls/
   ControlRow       the alignment contract for a non-fader control
   Seg              dense segmented pick

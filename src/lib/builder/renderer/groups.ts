@@ -80,6 +80,7 @@ export const RENDER_GROUPS: readonly RenderGroup[] = [
 		ids: [
 			'Input',
 			'Textarea',
+			'DateSelect',
 			'SearchInput',
 			'PasswordInput',
 			'ChipInput',
@@ -166,9 +167,6 @@ export const RENDER_GROUPS: readonly RenderGroup[] = [
 		ids: [
 			'HexShield',
 			'ArmornetLogo',
-			'ArmornetCrest',
-			'ArmornetCrestHub',
-			'ArmornetCrestMesh',
 			'ArmornetCrestChrome'
 		]
 	},
@@ -191,13 +189,7 @@ export const RENDER_GROUPS: readonly RenderGroup[] = [
 		label: 'Storyboard',
 		file: 'StoryboardRenderer.svelte',
 		component: StoryboardRenderer,
-		ids: [
-			'StoryboardCanvas',
-			'SwimLane',
-			'StoryboardFrame',
-			'StoryboardArrow',
-			'StoryboardBranch'
-		]
+		ids: ['ScenePlayer']
 	}
 ];
 

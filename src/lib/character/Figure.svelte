@@ -33,12 +33,27 @@
 		 * inset, or a table of per-character fudges.
 		 */
 		zoom?: number;
+		/**
+		 * The platform the figure stands on, in the caller's colour.
+		 *
+		 * Here rather than as an ellipse the caller draws under the element,
+		 * because the FLOOR is a number only the renderer has: the hero frame
+		 * carries swing margin below the boots, and a CSS platform aligned to the
+		 * bottom of the box lands under that air instead of under the feet. A
+		 * figure a finger's width above its own ground is the levitation this
+		 * prop exists to stop.
+		 */
+		ground?: string;
 		/** Camera and suit. Omitted everywhere but the studio — a roster wants
 		 *  one angle for all four, or the tiles stop being comparable. */
 		art?: ArtOpts;
 	}
 
-	let { klass, crop = 'hero', focus, shadow = false, zoom = 1, art: opts }: Props = $props();
+	let { klass, crop = 'hero', focus, shadow = false, ground, zoom = 1, art: opts }: Props = $props();
+
+	/** The platform's radius as a share of the figure's box width. Shared by the
+	 *  frame and the ellipse — the frame exists to hold the ellipse. */
+	const DAIS = 0.46;
 
 	const a = $derived(art(klass, opts));
 	const view = $derived.by(() => {
@@ -52,7 +67,17 @@
 				return { x: r.x + r.w / 2 - side / 2, y: r.y + r.h / 2 - side / 2, w: side, h: side };
 			}
 		}
-		if (crop === 'hero') return a.box;
+		if (crop === 'hero') {
+			if (!ground) return a.box;
+			// The platform is part of the picture, so the frame has to hold it: the
+			// rest box stops a hair below the boots, and an ellipse drawn on the
+			// floor line runs out of the bottom of it and is sliced flat by the
+			// element's own overflow.
+			const bottom = a.floor + DAIS * a.box.w * 0.27;
+			const x = Math.min(a.box.x, -DAIS * a.box.w);
+			const w = Math.max(a.box.x + a.box.w, DAIS * a.box.w) - x;
+			return { x, y: a.box.y, w, h: Math.max(bottom - a.box.y, a.box.h) };
+		}
 		// `chip` is the same shot, closer. It gets there by taking the air off
 		// the SIDES, not by squashing the box: a frame shorter than it is wide
 		// is sliced on the left and right by a square well, and what a head
@@ -82,6 +107,30 @@
 	aria-label={klass.name}
 	role="img"
 >
+	{#if ground}
+		{@const gr = a.box.w * DAIS}
+		<defs>
+			<!-- Lit at the RIM, not through the middle. A flat wash of the seat
+			     colour is a disc the figure stands in front of; light that escapes
+			     past the boots and falls off at the edge is a floor it stands on. -->
+			<radialGradient id="{gid}-dais">
+				<stop offset="0%" stop-color={ground} stop-opacity="0.09" />
+				<stop offset="72%" stop-color={ground} stop-opacity="0.2" />
+				<stop offset="93%" stop-color={ground} stop-opacity="0.38" />
+				<stop offset="100%" stop-color={ground} stop-opacity="0" />
+			</radialGradient>
+		</defs>
+		<ellipse
+			cx="0"
+			cy={a.floor}
+			rx={gr}
+			ry={gr * 0.27}
+			fill="url(#{gid}-dais)"
+			stroke={ground}
+			stroke-opacity="0.5"
+			stroke-width="0.6"
+		/>
+	{/if}
 	{#if shadow}
 		<defs>
 			<filter id="{gid}-glow" x="-60%" y="-60%" width="220%" height="220%">
@@ -102,6 +151,20 @@
 			rx={a.box.w * 0.42}
 			ry={a.box.w * 0.09}
 			fill="url(#{gid}-sh)"
+		/>
+	{/if}
+	{#if ground}
+		<!-- The contact shadow, last thing before the figure and therefore on top
+		     of its own light pool. This is the mark that says STANDING: without a
+		     dark core exactly where the boots meet the floor, a lit plate and a
+		     glow underneath read as a figure hovering over a lamp. -->
+		<ellipse
+			cx="0"
+			cy={a.floor}
+			rx={a.box.w * DAIS * 0.5}
+			ry={a.box.w * DAIS * 0.135}
+			fill="#000"
+			opacity="0.5"
 		/>
 	{/if}
 	{#each a.tris as t, i (i)}

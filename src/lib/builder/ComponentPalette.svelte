@@ -1,3 +1,12 @@
+<script module lang="ts">
+	/** One card: what it is called and which group it sits under. */
+	export interface PaletteItem {
+		id: string;
+		label: string;
+		category: string;
+	}
+</script>
+
 <script lang="ts">
 	// ── ComponentPalette — the drag source, drawn as the components themselves ──
 	// A palette of labels makes you remember what "Stat Tile" looks like; a palette
@@ -9,9 +18,11 @@
 	// an IntersectionObserver mounts only what has scrolled into view (and never
 	// unmounts — scrolling back up should not re-instantiate).
 	//
-	// Shared by the builder toolbox and the scene palette: one drag contract
-	// (`component-id`), one preview, one place to fix it.
-	import { onMount } from 'svelte';
+	// Shared by the builder toolbox, the scene palette and 3D mode's subjects: one
+	// drag contract, one grid, one place to fix it. A host with its own subjects
+	// passes `items` and draws each card with `thumb`; without them it is the
+	// component registry.
+	import { onMount, type Snippet } from 'svelte';
 	import ComponentRenderer from './ComponentRenderer.svelte';
 	import { REGISTRY, type ComponentMeta } from './registry.js';
 	import { TEMPLATES, templateSource, type BuilderTemplate } from './templates.js';
@@ -31,6 +42,16 @@
 		showTemplates?: boolean;
 		/** Apply a template at the canvas centre. */
 		onTemplate?: (template: BuilderTemplate) => void;
+		/** List these instead of the registry. */
+		items?: PaletteItem[];
+		/** Draws an `items` card; required with `items`. */
+		thumb?: Snippet<[string]>;
+		/** What the counter calls the items. */
+		noun?: string;
+		/** The `dataTransfer` key the drop target reads. */
+		dragKey?: string;
+		/** What double-click / Enter does, for the card's tooltip. */
+		addHint?: string;
 	}
 
 	let {
@@ -38,8 +59,16 @@
 		showSearch = true,
 		placeholder = 'Search components…',
 		showTemplates = false,
-		onTemplate
+		onTemplate,
+		items,
+		thumb,
+		noun = 'COMPONENTS',
+		dragKey = 'component-id',
+		addHint = 'drop it in the middle'
 	}: Props = $props();
+
+	const META = new Map(REGISTRY.map((m) => [m.id, m]));
+	const source = $derived<PaletteItem[]>(items ?? REGISTRY.filter((m) => m.placeable));
 
 	let tab = $state<'components' | 'templates'>('components');
 
@@ -54,16 +83,12 @@
 	 *  kept and ordered by their best hit, rather than flattened, because
 	 *  "which family is this in" is half of what the palette teaches. */
 	const groups = $derived.by(() => {
-		const ranked = fuzzyRank(
-			query,
-			REGISTRY.filter((m) => m.placeable),
-			(m) => [
-				[m.label, 0],
-				[m.id, 40],
-				[m.category, 260]
-			]
-		);
-		const map = new Map<string, ComponentMeta[]>();
+		const ranked = fuzzyRank(query, source, (m) => [
+			[m.label, 0],
+			[m.id, 40],
+			[m.category, 260]
+		]);
+		const map = new Map<string, PaletteItem[]>();
 		for (const meta of ranked) {
 			if (!map.has(meta.category)) map.set(meta.category, []);
 			map.get(meta.category)!.push(meta);
@@ -71,7 +96,7 @@
 		return [...map.entries()].map(([category, items]) => ({ category, items }));
 	});
 
-	const total = $derived(REGISTRY.filter((r) => r.placeable).length);
+	const total = $derived(source.length);
 	const shown = $derived(groups.reduce((n, g) => n + g.items.length, 0));
 
 	/** Registry defaults — the same values the builder drops a fresh one with, so
@@ -145,7 +170,7 @@
 
 	/** The drag payload the canvas drop handler reads. */
 	function dragStart(e: DragEvent, id: string) {
-		e.dataTransfer?.setData('component-id', id);
+		e.dataTransfer?.setData(dragKey, id);
 		e.dataTransfer!.effectAllowed = 'copy';
 	}
 
@@ -214,7 +239,7 @@
 {:else}
 	{#if showSearch}
 		<div class="cp-head">
-			<span class="cp-count">COMPONENTS · {shown}/{total}</span>
+			<span class="cp-count">{noun} · {shown}/{total}</span>
 			<input class="cp-search" type="search" {placeholder} bind:value={query} />
 		</div>
 	{/if}
@@ -223,21 +248,31 @@
 	{#each groups as g (g.category)}
 		<div class="cp-group">{g.category}</div>
 		<div class="cp-grid">
-			{#each g.items as meta (meta.id)}
+			{#each g.items as item (item.id)}
+				{@const meta = META.get(item.id)}
 				<div
 					class="cp-card"
-					data-cid={meta.id}
+					data-cid={item.id}
 					draggable="true"
-					ondragstart={(e) => dragStart(e, meta.id)}
-					ondblclick={() => onAdd?.(meta.id)}
-					title="{meta.id} — drag onto the canvas{onAdd
-						? ', or double-click to drop it in the middle'
-						: ''}"
-					role="presentation"
-					use:register={meta.id}
+					ondragstart={(e) => dragStart(e, item.id)}
+					ondblclick={() => onAdd?.(item.id)}
+					onkeydown={(e) => {
+						// Keyboard placement: the card's own focus, not a child's (an ⓘ).
+						if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+						e.preventDefault();
+						onAdd?.(item.id);
+					}}
+					title="{item.label} — drag onto the canvas{onAdd ? `, or double-click (Enter) to ${addHint}` : ''}"
+					role="button"
+					tabindex={onAdd ? 0 : -1}
+					use:register={item.id}
 				>
 					<div class="cp-thumb">
-						{#if visible.has(meta.id)}
+						{#if !visible.has(item.id)}
+							<div class="cp-skel"></div>
+						{:else if thumb}
+							{@render thumb(item.id)}
+						{:else if meta}
 							<div
 								class="cp-thumb-in"
 								class:cp-intrinsic={!meta.defaultW}
@@ -252,18 +287,16 @@
 									h={0}
 								/>
 							</div>
-						{:else}
-							<div class="cp-skel"></div>
 						{/if}
 					</div>
-					<div class="cp-label">{meta.label}</div>
+					<div class="cp-label">{item.label}</div>
 				</div>
 			{/each}
 		</div>
 	{/each}
 
 		{#if !groups.length}
-			<div class="cp-empty">No components match “{query}”</div>
+			<div class="cp-empty">Nothing matches “{query}”</div>
 		{/if}
 	</div>
 {/if}
@@ -419,9 +452,11 @@
 		overflow: hidden;
 		cursor: grab;
 	}
-	.cp-card:hover {
+	.cp-card:hover,
+	.cp-card:focus-visible {
 		border-color: var(--accent);
 		background: rgba(94, 234, 212, 0.08);
+		outline: none;
 	}
 	.cp-card:active {
 		cursor: grabbing;

@@ -768,6 +768,12 @@ telemetry:
 				<Timeline events={demoFeed} variant="feed" />
 			</div>
 		</div>
+		<div class="demo-row">
+			<span class="demo-label">hud</span>
+			<div class="demo-items" style="padding: 8px 0; max-width: 300px;">
+				<Timeline events={demoFeed} variant="hud" />
+			</div>
+		</div>
 	</ShowcaseBlock>
 
 	<!-- SheetDrawer -->

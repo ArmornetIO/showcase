@@ -11,8 +11,8 @@
 	import { NODE_TYPES, NODE_STATES, EDGE_STYLES, channelById, burstById } from './vocabulary.js';
 	import { beatEnd, cueAt } from './state.js';
 	import { MESH_LAYOUTS } from '../mesh-studio/layout/mesh-layout.js';
+	import Select from '../primitives/forms/Select.svelte';
 	import { validateScene } from './validate.js';
-	import SceneConversation from './SceneConversation.svelte';
 	import { serializeScene, sceneBrief } from './serialize.js';
 	import { CHANNELS, BURSTS } from './vocabulary.js';
 	import { channelsForComponent } from './component-channels.js';
@@ -203,26 +203,15 @@
 	</div>
 
 	{#if tab === 'handoff'}
-		<!-- The conversation is the primary seam; the clipboard is the fallback for
-		     when no bridge session is running.
-		     DEV-GATED: the spool middleware is `apply: 'serve'`, so the endpoint
-		     does not exist in a built SPA — and showcase is embedded in the product
-		     binary. `import.meta.env.DEV` is replaced with `false` at build time, so
-		     this branch is eliminated rather than shipping a dead fetch. -->
-		{#if import.meta.env.DEV}
-			<SceneConversation bind:scene />
-		{:else}
-			<div class="sec">CONVERSATION</div>
-			<div class="cap">
-				Available on the dev server only — it talks to a local Claude Code session through the
-				repo's filesystem spool.
-			</div>
-		{/if}
-
+		<!-- Clipboard only. There used to be an in-app conversation here, wired to
+		     a model through a dev-server spool of its own; it was removed rather
+		     than ported when that spool was replaced (spec 044). An authoring tool
+		     that needs a built Go binary and a second process running to open a
+		     text box is a worse trade than copying a brief. -->
 		<div class="sec">CLIPBOARD</div>
 		<div class="cap">
-			For when no bridge session is up: hand the brief to any assistant, or take the scene source to
-			paste into <code>sample-scene.ts</code>.
+			Hand the brief to any assistant, or take the scene source to paste into
+			<code>sample-scene.ts</code>.
 		</div>
 		<textarea rows="3" bind:value={ask} placeholder="optional: what you want changed…"></textarea>
 		<div class="rowb">
@@ -280,10 +269,9 @@
 		{:else if cueChannel}
 			<label class="f"><span>to</span>
 				{#if cueChannel.options}
-					<select value={String(selectedCue.to ?? '')}
-						onchange={(e) => patchCue(selectedCue!.id, (c) => (c.to = e.currentTarget.value))}>
-						{#each cueChannel.options as o (o)}<option value={o}>{o}</option>{/each}
-					</select>
+					<Select size="sm" width="100%" value={String(selectedCue.to ?? '')}
+						options={cueChannel.options.map((o) => ({ value: o, label: o }))}
+						onchange={(v) => patchCue(selectedCue!.id, (c) => (c.to = v))} />
 				{:else}
 					<input type="text" value={String(selectedCue.to ?? '')}
 						oninput={(e) => patchCue(selectedCue!.id, (c) => (c.to = e.currentTarget.value))} />
@@ -389,16 +377,14 @@
 			</label>
 			<div class="rowb">
 				<label class="f f--n"><span>type</span>
-					<select value={selectedObject.node.type}
-						onchange={(e) => patchObject(selectedObject!.id, (o) => (o.node!.type = e.currentTarget.value as never))}>
-						{#each NODE_TYPES as t (t)}<option value={t}>{t}</option>{/each}
-					</select>
+					<Select size="sm" width="100%" value={selectedObject.node.type}
+						options={NODE_TYPES.map((t) => ({ value: t, label: t }))}
+						onchange={(v) => patchObject(selectedObject!.id, (o) => (o.node!.type = v as never))} />
 				</label>
 				<label class="f f--n"><span>state</span>
-					<select value={selectedObject.node.state}
-						onchange={(e) => patchObject(selectedObject!.id, (o) => (o.node!.state = e.currentTarget.value as never))}>
-						{#each NODE_STATES as s (s)}<option value={s}>{s}</option>{/each}
-					</select>
+					<Select size="sm" width="100%" value={selectedObject.node.state}
+						options={NODE_STATES.map((s) => ({ value: s, label: s }))}
+						onchange={(v) => patchObject(selectedObject!.id, (o) => (o.node!.state = v as never))} />
 				</label>
 			</div>
 			<div class="rowb">
@@ -418,10 +404,9 @@
 			<div class="kv"><span>from</span><b>{selectedObject.edge.from}</b></div>
 			<div class="kv"><span>to</span><b>{selectedObject.edge.to}</b></div>
 			<label class="f"><span>style</span>
-				<select value={selectedObject.edge.style}
-					onchange={(e) => patchObject(selectedObject!.id, (o) => (o.edge!.style = e.currentTarget.value as never))}>
-					{#each EDGE_STYLES as s (s)}<option value={s}>{s}</option>{/each}
-				</select>
+				<Select size="sm" width="100%" value={selectedObject.edge.style}
+					options={EDGE_STYLES.map((s) => ({ value: s, label: s }))}
+					onchange={(v) => patchObject(selectedObject!.id, (o) => (o.edge!.style = v as never))} />
 			</label>
 			<label class="f"><span>signal</span>
 				<input type="number" step="0.05" min="0" max="1" value={selectedObject.edge.sig}
@@ -554,12 +539,9 @@
 		</div>
 		{#if selectedBeat.camera.kind === 'flyTo'}
 			<label class="f"><span>target</span>
-				<select value={selectedBeat.camera.target}
-					onchange={(e) => patchBeat(selectedBeat!.id, (b) => { if (b.camera.kind === 'flyTo') b.camera = { ...b.camera, target: e.currentTarget.value }; })}>
-					{#each scene.objects.filter((o) => o.kind !== 'mesh.edge') as o (o.id)}
-						<option value={o.id}>{o.name}</option>
-					{/each}
-				</select>
+				<Select size="sm" width="100%" value={selectedBeat.camera.target}
+					options={scene.objects.filter((o) => o.kind !== 'mesh.edge').map((o) => ({ value: o.id, label: o.name }))}
+					onchange={(v) => patchBeat(selectedBeat!.id, (b) => { if (b.camera.kind === 'flyTo') b.camera = { ...b.camera, target: v }; })} />
 			</label>
 		{/if}
 
@@ -577,10 +559,9 @@
 					oninput={(e) => (scene = { ...scene, runMs: Math.max(2000, +e.currentTarget.value * 1000) })} />
 			</label>
 			<label class="f f--n"><span>arrangement</span>
-				<select value={scene.layout}
-					onchange={(e) => (scene = { ...scene, layout: e.currentTarget.value as Scene['layout'] })}>
-					{#each MESH_LAYOUTS as l (l.id)}<option value={l.id}>{l.label}</option>{/each}
-				</select>
+				<Select size="sm" width="100%" value={scene.layout}
+					options={MESH_LAYOUTS.map((l) => ({ value: l.id, label: l.label }))}
+					onchange={(v) => (scene = { ...scene, layout: v as Scene['layout'] })} />
 			</label>
 		</div>
 
@@ -704,7 +685,6 @@
 		margin-bottom: 0.3rem;
 	}
 	input,
-	select,
 	textarea {
 		width: 100%;
 		padding: 0.26rem 0.3rem;

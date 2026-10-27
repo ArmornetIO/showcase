@@ -87,7 +87,13 @@
 	</span>
 {/snippet}
 
-<div class="pointer-events-auto flex items-stretch gap-1.5">
+<!-- Two chips side by side is the wide arrangement and it stays one at `xl`,
+     where the strip flanks the scoreboard. Off the top row it lives in a 320px
+     drawer beside the other side's strip — about 150px each — and two 168px
+     chips squeezed into that are two 73px chips, which is a portrait and an
+     ellipsis. Stacked, each one keeps a width it can be read at, and the drawer
+     already scrolls. -->
+<div class="pointer-events-auto flex min-w-0 flex-wrap items-stretch gap-1.5 xl:flex-nowrap">
 	{#each seats as seat (seat.key)}
 		{@const k = klassByKey(seat.key)}
 		{@const you = seat.relation === 'self'}
@@ -96,9 +102,10 @@
 		{@const up = seat.active}
 		{@const power = powerOf(seat.key)}
 		{@const kit = kitFor(k.key)}
+		{@const f = match.figureOf?.(k.key)}
 		<div
 			role="group"
-			class="relative w-[168px]"
+			class="relative w-[168px] max-w-full"
 			onmouseenter={() => (open = seat.key)}
 			onmouseleave={() => (open = null)}
 		>
@@ -234,10 +241,10 @@
 						     back. The only thing this surface says about it is that it
 						     wants one. -->
 						<Figure
-							klass={k}
+							klass={f?.skin ?? k}
 							crop="bust"
 							zoom={1.9}
-							art={{ worn: kit, trim: seat.color, crest: {} }}
+							art={{ ...(f?.art ?? { worn: kit, trim: seat.color }), crest: {} }}
 						/>
 					</span>
 				</span>
@@ -319,7 +326,7 @@
 			     screen — the one place a 250px panel costs nothing. -->
 			{#if open === seat.key}
 				<div
-					class="absolute top-full left-1/2 z-[40] mt-2 w-[248px] -translate-x-1/2 overflow-hidden rounded-[10px] border p-2.5"
+					class="absolute top-full left-1/2 z-[40] mt-2 w-[248px] max-w-[86vw] -translate-x-1/2 overflow-hidden rounded-[10px] border p-2.5"
 					style:border-color="color-mix(in srgb, {seat.color} 60%, transparent)"
 					style:background={plateFill(seat.color, 20)}
 					style:box-shadow={PLATE_SHADOW_UP}
@@ -349,9 +356,9 @@
 								>
 									<span class="absolute inset-x-0 top-0 aspect-square">
 										<Figure
-											klass={k}
+											klass={f?.skin ?? k}
 											crop="bust"
-											art={{ worn: kitFor(k.key), trim: seat.color }}
+											art={f?.art ?? { worn: kit, trim: seat.color }}
 										/>
 									</span>
 								</span>

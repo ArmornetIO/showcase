@@ -41,8 +41,14 @@
 	// Drawn AFTER GlobeShell and BEFORE MeshStudio, so nodes always paint on top.
 	import { getContext } from 'svelte';
 	import { CANVAS_CTX, type CanvasContextValue } from '../../primitives/canvas/canvas-camera.js';
-	import { alignZ, spin, project, type Cap, type Vec3 } from '../../physics/sphere.js';
-	import { contours, type Terrain, type Relief } from '../../physics/terrain.js';
+	import { alignZ, capAlpha, spin, project, type Cap, type Vec3 } from '../../physics/sphere.js';
+	import {
+		capLattice,
+		contours,
+		type CapLattice,
+		type Terrain,
+		type Relief
+	} from '../../physics/terrain.js';
 	import { meshInk } from '../../theme/palette.svelte.js';
 	import TerritoryWalls from './TerritoryWalls.svelte';
 	import type { Pt, Seg, WallCapInput } from '../gl/wall-geometry.js';
@@ -158,6 +164,18 @@
 	 *  Nothing in this engine counter-scales, so the layer that needs it does it. */
 	const inv = $derived(1 / Math.max(0.0001, transform.tk));
 
+	/** Where the ground stops being VISIBLE, for this camera.
+	 *
+	 *  The eye's sightline grazes the sphere at z = 1/k, not at z = 0 — so a point
+	 *  with 0 < z < 1/k faces the viewer's side of the equator and is still round
+	 *  the back. Drawing it anyway is what ran a wall and its contours along the
+	 *  far side of the horizon, where they cross the globe rather than sit on it.
+	 *
+	 *  Used by the things that are DROPPED when hidden — the wall and the floor.
+	 *  Not by `rim()`, which must close a polygon and has a different rule; see
+	 *  there for why the two disagree on purpose. */
+	const horizon = $derived(1 / Math.max(1.2, viewDistance));
+
 	const SAMPLES = 72;
 	/** A post every N samples. Dense enough to read as structure holding the pane
 	 *  up, sparse enough that the wall stays something you can see the globe
@@ -180,31 +198,6 @@
 	 *  are that way: they are what the eye takes for a rampart seen from above. */
 	const raised = $derived(wallHeight > 0.001);
 
-	/** The cap's rim, projected. Points that have gone round the back are pinned
-	 *  to the limb instead of being dropped — a dropped point opens the polygon
-	 *  and the fill spills across the globe. At z=0 the projection lands exactly
-	 *  on the limb circle, so the pinned points join the visible arc seamlessly. */
-	function rim(cap: Cap): string {
-		const sinA = Math.sin(cap.alpha);
-		const cosA = Math.cos(cap.alpha);
-		const pts: string[] = [];
-		for (let i = 0; i <= SAMPLES; i++) {
-			const t = (i / SAMPLES) * Math.PI * 2;
-			const local: Vec3 = { x: Math.cos(t) * sinA, y: Math.sin(t) * sinA, z: cosA };
-			const s = spin(alignZ(cap.center, local), yaw, pitch);
-			if (s.z >= 0) {
-				const p = project(s, globeR, viewDistance);
-				pts.push(`${(cx + p.x).toFixed(1)},${(cy + p.y).toFixed(1)}`);
-			} else {
-				const d = Math.hypot(s.x, s.y) || 1;
-				pts.push(
-					`${(cx + (s.x / d) * globeR).toFixed(1)},${(cy + (s.y / d) * globeR).toFixed(1)}`
-				);
-			}
-		}
-		return pts.join(' ');
-	}
-
 	/** The rim's VISIBLE runs, as base/crest pairs.
 	 *
 	 *  Where `rim()` pins hidden points to the limb to keep a fill closed, the WALL
@@ -213,17 +206,27 @@
 	 *  the run instead. A cap straddling the limb yields two runs (the sampling
 	 *  starts mid-arc), which is why this returns a list. */
 	function rimRuns(cap: Cap): Seg[][] {
-		const sinA = Math.sin(cap.alpha);
-		const cosA = Math.cos(cap.alpha);
 		const runs: Seg[][] = [];
 		let run: Seg[] = [];
 		for (let i = 0; i <= SAMPLES; i++) {
 			const t = (i / SAMPLES) * Math.PI * 2;
+			const a = capAlpha(cap, t);
+			const sinA = Math.sin(a);
+			const cosA = Math.cos(a);
 			const local: Vec3 = { x: Math.cos(t) * sinA, y: Math.sin(t) * sinA, z: cosA };
 			const s = spin(alignZ(cap.center, local), yaw, pitch);
-			if (s.z >= 0.02) {
+			if (s.z >= horizon) {
 				const b = project(s, globeR, viewDistance);
-				const c = project(s, globeR, viewDistance, wallHeight);
+				// The crest clears the region's OWN GROUND, not sea level. The footing
+				// is right at 0 — a wall stands on the coast, and the masked field is
+				// 0 exactly there — but the land behind it climbs to `relief`, which
+				// at the defaults (0.055) is 92% of the wall's own height (0.06). A
+				// rampart its own hills can see over is one they visibly pass through,
+				// since the pane is transparent and there is no depth buffer to settle
+				// it. So `wallHeight` is clearance ABOVE the highest ground it
+				// encloses, which is the only reading under which the number means
+				// anything from outside the territory.
+				const c = project(s, globeR, viewDistance, relief + wallHeight);
 				run.push({
 					base: { x: cx + b.x, y: cy + b.y },
 					top: { x: cx + c.x, y: cy + c.y },
@@ -344,22 +347,72 @@
 	// draws. They were not the same thing. Now they are, and a building wearing
 	// contours reads as the ground continuing up over it.
 
-	type Iso = { level: number; index: boolean; segs: { a: Vec3; b: Vec3 }[] };
+	type Iso = { level: number; index: boolean; band: number; segs: { a: Vec3; b: Vec3 }[] };
+
+	/** Weight per elevation band — lowland, slope, high ground — as a multiple of
+	 *  the stroke each pass would otherwise use.
+	 *
+	 *  This is `piece-shaders`' `band()` ladder brought down to the floor, and for
+	 *  the same reason it has three hard values and no gradient: at the size a
+	 *  region is drawn, a smooth ramp lands neighbouring lines a few percent apart
+	 *  and the whole map reads as one wash. What changes is what it is keyed on. A
+	 *  building has normals, so it shades by LIGHT; the floor is a set of curves
+	 *  with no facing at all, so height is the only thing it has to be distinct
+	 *  by — which is also what a hypsometric map has always done.
+	 *
+	 *  Spends its contrast DOWNWARD. The old flat weight is roughly the top of
+	 *  this ladder, so high ground looks about as it did and lowland recedes,
+	 *  rather than the peaks blowing out and taking the territory's tint with
+	 *  them. */
+	const RELIEF_BANDS = [0.55, 0.85, 1.35];
 
 	/** Every cap's isolines, in the GLOBE's own frame.
 	 *
 	 *  Split from the projection below because it depends on the ground and the
 	 *  regions but not on the camera: the terrain turns with the globe, so a line's
 	 *  elevation never changes and only where it lands does. */
+	/** Each region's ground as a lattice, for the FILL.
+	 *
+	 *  Coarser than the contour lattice on purpose. This is a tint — it carries no
+	 *  detail of its own, it just has to be the right SHAPE — and it is the one
+	 *  thing here paying per-cell fill every frame, where the contours pay per
+	 *  segment only on the levels that exist. At 14×40 a region is 560 quads
+	 *  against the contour lattice's 1,664, and nothing about the silhouette is
+	 *  visibly coarser because the cells are far under a pixel of curvature apart.
+	 *
+	 *  The same `capLattice` the contours are cut from, so the surface and the
+	 *  lines on it cannot disagree about where the ground is. */
+	const lands = $derived.by((): Map<string, CapLattice> => {
+		const out = new Map<string, CapLattice>();
+		if (!terrain || !relief) return out;
+		for (const t of territories) out.set(t.key, capLattice(terrain, t.cap, 14, 40));
+		return out;
+	});
+
 	const floors = $derived.by((): Map<string, Iso[]> => {
 		const out = new Map<string, Iso[]>();
 		if (!terrain || !relief) return out;
 		for (const t of territories) {
+			const lines = contours(terrain, t.cap, { interval: contourInterval, indexEvery: 5 });
+			// Banded against the REGION's own range, not the field's nominal 0..1.
+			// A masked terrain only reaches about 0.25–0.75 — summed waves rarely
+			// peak together — so fixed thresholds would put every line of every
+			// territory in the same band and draw exactly what this replaces.
+			let lo = Infinity;
+			let hi = -Infinity;
+			for (const l of lines) {
+				if (l.level < lo) lo = l.level;
+				if (l.level > hi) hi = l.level;
+			}
+			const span = hi - lo;
 			out.set(
 				t.key,
-				contours(terrain, t.cap, { interval: contourInterval, indexEvery: 5 }).map((l) => ({
+				lines.map((l) => ({
 					level: l.level,
 					index: l.index,
+					// A region flat enough to have one level has no relief to show, and
+					// dividing by its zero span would put it nowhere. Give it the middle.
+					band: span > 1e-9 ? Math.min(2, Math.floor(((l.level - lo) / span) * 3)) : 1,
 					segs: l.segments
 				}))
 			);
@@ -401,18 +454,82 @@
 	 *  Same rule the wall uses: a line behind the globe is not a fainter line, it is
 	 *  a line that is not there. At this segment length the difference at the
 	 *  horizon is under a pixel. */
-	function traceIso(ctx: CanvasRenderingContext2D, key: string, wantIndex: boolean): void {
+	/** Trace one region's LAND into the current path — every lattice cell, each
+	 *  corner projected at its own elevation.
+	 *
+	 *  This is the region's tint, and it used to be a single flat SVG polygon cut
+	 *  from `rim()` at sea level. That polygon could not be the ground: the ground
+	 *  is a height field, the polygon was one silhouette on the bare sphere, and
+	 *  every hill the contours climbed left the tint behind underneath them. Seen
+	 *  near the horizon the two came apart completely and the land read as a sheet
+	 *  floating under a wireframe.
+	 *
+	 *  One path for the whole region, filled once by the caller. The cells tile
+	 *  without overlapping, so a single fill gives an even tint — filling them
+	 *  one at a time would darken every shared edge twice over.
+	 *
+	 *  A cell with a corner at zero height is dropped, which is what gives the
+	 *  fill its coastline: the masked field falls to 0 exactly at the shore, so
+	 *  the tint stops where the land does without this knowing anything about
+	 *  where that is. */
+	/** One cell's eight screen coordinates. Reused across every cell of every
+	 *  region — this runs per frame, and a fresh array per cell is the shape of
+	 *  allocation that fills a nursery mid-animation. */
+	const quad = new Float64Array(8);
+
+	function traceLand(ctx: CanvasRenderingContext2D, key: string): void {
+		const L = lands.get(key);
+		if (!L) return;
+		ctx.beginPath();
+		for (let i = 0; i < L.rings; i++) {
+			for (let j = 0; j < L.spokes; j++) {
+				const hh = [L.hs[i][j], L.hs[i][j + 1], L.hs[i + 1][j + 1], L.hs[i + 1][j]];
+				if (hh[0] <= 0 || hh[1] <= 0 || hh[2] <= 0 || hh[3] <= 0) continue;
+				const dd = [L.dirs[i][j], L.dirs[i][j + 1], L.dirs[i + 1][j + 1], L.dirs[i + 1][j]];
+				// Solved in full BEFORE anything is emitted. `fill()` closes an open
+				// subpath implicitly, so a cell abandoned halfway through would be
+				// filled as a triangle rather than skipped — the points have to be
+				// known good before the first `moveTo`.
+				let hidden = false;
+				for (let c = 0; c < 4; c++) {
+					const s = spin(dd[c], yaw, pitch);
+					// Same horizon rule the contours use — a cell round the back is not
+					// a dimmer cell, it is one that is not there.
+					if (s.z < horizon) {
+						hidden = true;
+						break;
+					}
+					const p = project(s, globeR, viewDistance, hh[c] * relief);
+					quad[c * 2] = cx + p.x;
+					quad[c * 2 + 1] = cy + p.y;
+				}
+				if (hidden) continue;
+				ctx.moveTo(quad[0], quad[1]);
+				ctx.lineTo(quad[2], quad[3]);
+				ctx.lineTo(quad[4], quad[5]);
+				ctx.lineTo(quad[6], quad[7]);
+				ctx.closePath();
+			}
+		}
+	}
+
+	function traceIso(
+		ctx: CanvasRenderingContext2D,
+		key: string,
+		wantIndex: boolean,
+		band: number
+	): void {
 		const lines = floors.get(key);
 		if (!lines) return;
 		ctx.beginPath();
 		for (const l of lines) {
-			if (l.index !== wantIndex) continue;
+			if (l.index !== wantIndex || l.band !== band) continue;
 			const lift = l.level * relief;
 			for (const s of l.segs) {
 				const a = spin(s.a, yaw, pitch);
-				if (a.z < 0.02) continue;
+				if (a.z < horizon + 0.02) continue;
 				const b = spin(s.b, yaw, pitch);
-				if (b.z < 0.02) continue;
+				if (b.z < horizon + 0.02) continue;
 				const pa = project(a, globeR, viewDistance, lift);
 				const pb = project(b, globeR, viewDistance, lift);
 				ctx.moveTo(cx + pa.x, cy + pa.y);
@@ -481,25 +598,47 @@
 			// The fine contours are skipped while the camera flies. They are ~4/5 of
 			// the segments and nobody can read a 0.07-interval map on ground that is
 			// sweeping past — see `moving`.
-			if (!moving) {
-				traceIso(ctx, s.t.key, false);
+			// LAND first, under its own contours. Every region is tinted, not just
+			// the subject — a region is a piece of ground whether or not you are
+			// looking at it, and what is not tinted is not unlit land but no land.
+			traceLand(ctx, s.t.key);
+			ctx.fillStyle = lifted;
+			ctx.globalAlpha = (0.09 + 0.09 * lit) * (0.3 + 0.7 * s.face);
+			ctx.fill();
+
+			// Each pass is drawn once per elevation band rather than once. Three
+			// strokes where there was one, because a canvas stroke carries ONE alpha
+			// for everything in the path — banding is the cheapest way to get more
+			// than one weight out of a path-based renderer, and three is few enough
+			// that the extra calls stay lost against the per-segment cost.
+			for (let b = 0; b < 3; b++) {
+				const w = RELIEF_BANDS[b];
+				// The fine contours are skipped while the camera flies. They are ~4/5
+				// of the segments and nobody can read a 0.07-interval map on ground
+				// that is sweeping past — see `moving`.
+				if (!moving) {
+					traceIso(ctx, s.t.key, false, b);
+					ctx.strokeStyle = base;
+					ctx.globalAlpha = (0.16 + 0.16 * lit) * s.face * w;
+					ctx.lineWidth = px(0.6);
+					ctx.stroke();
+				}
+				// Index contours: a wide faint pass under a sharp one. The bloom is
+				// what makes a line read as EMITTED rather than drawn on, and confining
+				// it to every 5th line keeps that read at a fifth of the cost.
+				traceIso(ctx, s.t.key, true, b);
 				ctx.strokeStyle = base;
-				ctx.globalAlpha = (0.16 + 0.16 * lit) * s.face;
-				ctx.lineWidth = px(0.6);
+				ctx.globalAlpha = (0.05 + 0.07 * lit) * s.face * w;
+				ctx.lineWidth = px(3);
+				ctx.stroke();
+				ctx.strokeStyle = lifted;
+				ctx.globalAlpha = (0.3 + 0.3 * lit) * s.face * w;
+				// High ground gets the heavier line as well as the brighter one. Weight
+				// is what survives a territory being small on screen, where an alpha
+				// difference on a hairline is below what the rasterizer can show.
+				ctx.lineWidth = px(b === 2 ? 1.3 : 1);
 				ctx.stroke();
 			}
-			// Index contours: a wide faint pass under a sharp one. The bloom is what
-			// makes a line read as EMITTED rather than drawn on, and confining it to
-			// every 5th line keeps that read at a fifth of the cost.
-			traceIso(ctx, s.t.key, true);
-			ctx.strokeStyle = base;
-			ctx.globalAlpha = (0.05 + 0.07 * lit) * s.face;
-			ctx.lineWidth = px(3);
-			ctx.stroke();
-			ctx.strokeStyle = lifted;
-			ctx.globalAlpha = (0.3 + 0.3 * lit) * s.face;
-			ctx.lineWidth = px(1);
-			ctx.stroke();
 		}
 		ctx.globalAlpha = 1;
 	});
@@ -622,25 +761,19 @@
 		</filter>
 	</defs>
 	<g transform="translate({transform.tx},{transform.ty}) scale({transform.tk})">
-		<!-- LAND. Every territory is tinted, not just the subject — a region is a
-		     piece of ground whether or not you are looking at it, and what is not
-		     tinted is not unlit land but no land at all. The subject then goes
-		     brighter still, which is a difference in degree rather than in kind and
-		     so does not have to carry the whole job of saying "region". -->
-		{#each shown as s (s.t.key)}
-			<polygon
-				points={rim(s.t.cap)}
-				fill={hue(s.t.color)}
-				opacity={(0.09 + (s.focused ? 0.09 * Math.min(1, progress * 2.2) : 0)) * (0.3 + 0.7 * s.face)}
-				stroke="none"
-			/>
-		{/each}
+		<!-- The floor and the LAND used to be drawn here. Both are on the <canvas>
+		     below this <svg> in the DOM now — see `traceIso` and `traceLand`.
+		     Everything left in this layer is a handful of elements that change
+		     rarely; the floor was thousands that changed every frame, which is the
+		     line between what belongs in a document and what belongs in a raster.
 
-		<!-- The floor used to be drawn here. It is now strokes on the <canvas>
-		     below this <svg> in the DOM — see `traceIso`. Everything left in this
-		     layer is a handful of elements that change rarely; the floor was
-		     thousands that changed every frame, which is the line between what
-		     belongs in a document and what belongs in a raster. -->
+		     The land had a second reason to go. As SVG it was one flat <polygon>
+		     cut from `rim()`, and a polygon is a silhouette — it can be the shape
+		     of a region but never the SURFACE of one. The ground is a height field,
+		     so the tint sat on the bare sphere while its own contours climbed the
+		     hills above it, and near the horizon the two visibly came apart. On the
+		     canvas it is the lattice itself, each corner lifted by the elevation
+		     under it. -->
 
 		<!-- The FLAT wall — a parapet, drawn only when the wall has no height to
 		     read and so has to say "wall" some other way. The raised wall left this

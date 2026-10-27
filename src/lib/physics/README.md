@@ -18,6 +18,10 @@ Keeping the boundary structural rather than conventional is the point: a solver 
 | `sphere.ts` | closed form | Fibonacci sphere — evenly sown or carved into territories — plus spin, perspective projection, and the local frame a solid stands in. |
 | `terrain.ts` | closed form | Elevation over the sphere. Summed plane waves, cut to the territories, shaped per biome, and cut into contours. |
 | `solver.ts` | iterative | Separation, lane clearance, pinning, inward packing. |
+| `hull.ts` | closed form | 3D. Convex solids as planes + bevels; `trace` sweeps a box through them and cannot tunnel. Hulls are filed in a 4m x/z grid, so a trace clips only those under its sweep. |
+| `walker.ts` | fixed step | 3D. A first-person body over `hull`: slide, step up, stand, fall (Quake's `PM_` moves, in metres). Call at a constant dt. |
+
+The 3D pair keeps the same rule: a hull has no idea it is a building. `mesh-studio/pieces/piece-hulls.ts` is the adapter that turns placed pieces into hulls; the debug views and live tunables for a walker scene are the DevCog's GAME group (`lib/game/`).
 
 The seeds are all deterministic and **feasible by construction** — same input, same output, no iteration count to tune, no way to fail to converge. The solver is the only iterative thing here, and it exists to *improve* a valid layout, never to untangle a pile.
 

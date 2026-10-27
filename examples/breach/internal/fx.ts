@@ -472,7 +472,10 @@ export interface StatusBar {
 	 *  at 13 and a Sandbox at 6 are both intact, and both should look it. */
 	base: number;
 	held: boolean;
-	persistent: boolean;
+	/** Null when not held (or not visible to this seat). */
+	kind: 'temporary' | 'removable' | 'permanent' | null;
+	/** Rounds until a temporary foothold lapses; null for the other kinds. */
+	roundsLeft: number | null;
 	/** A turn was spent working this foothold — the next step is easier for it. */
 	staged: boolean;
 	sealed: boolean;

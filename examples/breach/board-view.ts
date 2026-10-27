@@ -15,7 +15,15 @@ import {
 } from './internal/rules.js';
 import type { BreachMatch } from './internal/match.svelte.js';
 
-/** Clearance so a settlement's label never collides with its neighbour's roof. */
+/** Clearance so a settlement's label never collides with its neighbour's roof.
+ *
+ *  Not a lever for tap targets, though it looks like one. The footprint sizes the
+ *  SPHERE the packer solves, and the camera then fits that sphere to the viewport
+ *  — so the buildings' angular separation is set by how many there are, and a
+ *  bigger clearance only buys a bigger world drawn at a smaller scale. Measured:
+ *  raising this to 34 left the closest pair 16px apart on a 390px viewport and
+ *  shrank every body by a third. Finger-sized hit areas come from MeshCanvas's
+ *  touch layer instead. */
 export const NODE_CLEARANCE = 10;
 export const nodeFootprint = (n: StudioNode) => (n.r ?? 22) + NODE_CLEARANCE;
 
@@ -37,7 +45,7 @@ export function boardNodes(match: BreachMatch): StudioNode[] {
 			label: 'PROTECTED CORE',
 			value: `${held}/${CHAIN.length}`,
 			valueLabel: 'chain',
-			iconKey: 'crestlink',
+			iconKey: 'armornet',
 			glyphAsBody: true,
 			x: 0,
 			y: 0,

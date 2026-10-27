@@ -255,13 +255,13 @@
 		<!-- Top content: tag + title -->
 		<div>
 			<div
-				class="mb-[14px] font-[var(--mono)] text-[0.625rem] uppercase tracking-[0.25em]"
+				class="mb-[14px] font-(family-name:--mono) text-[0.625rem] uppercase tracking-[0.25em]"
 				style:color={c.tag}
 			>
 				{tag}
 			</div>
 			<div
-				class="font-[var(--sans-brand)] text-[1.125rem] font-semibold leading-[1.25] text-[var(--fg)]"
+				class="font-(family-name:--sans-brand) text-[1.125rem] font-semibold leading-[1.25] text-[var(--fg)]"
 			>
 				{title}
 			</div>
@@ -269,7 +269,7 @@
 
 		<!-- Bottom meta row -->
 		<div
-			class="mt-[14px] flex items-center gap-2 font-[var(--mono)] text-[0.625rem] uppercase tracking-[0.1em] text-[var(--fg-dim)]"
+			class="mt-[14px] flex items-center gap-2 font-(family-name:--mono) text-[0.625rem] uppercase tracking-[0.1em] text-[var(--fg-dim)]"
 		>
 			{#if metaSlot}
 				{@render metaSlot()}

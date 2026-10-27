@@ -22,6 +22,7 @@
 	import HorizonRenderer from './renderers/HorizonRenderer.svelte';
 	import StackedAreaRenderer from './renderers/StackedAreaRenderer.svelte';
 	import GaugeRenderer from './renderers/GaugeRenderer.svelte';
+	import SwimlaneRenderer from './renderers/SwimlaneRenderer.svelte';
 
 	interface ChartProps {
 		config: ChartConfig;
@@ -80,12 +81,14 @@
 	const size = $state({ w: 0, h: 0 });
 
 	// Uncontrolled fallback — mutable so legend clicks work when no bind:visibleSeries is provided
+	// svelte-ignore state_referenced_locally
 	let _ownVisible = $state(new Set(config.series.map((s) => s.id)));
 	const effectiveVisible = $derived(visibleSeries ?? _ownVisible);
 
 	// Reconcile visibility with a series set that grows after mount (live/polling
 	// charts). Any series id we've never seen becomes visible; ids the user
 	// explicitly toggled off (already seen) are left hidden. No-op when controlled.
+	// svelte-ignore state_referenced_locally
 	let _seenIds = new Set(config.series.map((s) => s.id));
 	$effect(() => {
 		if (visibleSeries !== undefined) return; // controlled: caller owns visibility
@@ -97,11 +100,13 @@
 		}
 	});
 
+	// A swimlane draws its ticks above the lanes and its lane labels in the left
+	// gutter, so its defaults move the space from the bottom to the top and left.
 	const pad = $derived({
-		top: config.padding?.top ?? 16,
-		right: config.padding?.right ?? 24,
-		bottom: config.padding?.bottom ?? 44,
-		left: config.padding?.left ?? 60,
+		top: config.padding?.top ?? (config.type === 'swimlane' ? 30 : 16),
+		right: config.padding?.right ?? (config.type === 'swimlane' ? 28 : 24),
+		bottom: config.padding?.bottom ?? (config.type === 'swimlane' ? 8 : 44),
+		left: config.padding?.left ?? (config.type === 'swimlane' ? 150 : 60),
 	});
 
 	const innerW = $derived(Math.max(size.w - pad.left - pad.right, 0));
@@ -137,6 +142,9 @@
 
 	const hover: HoverState = $state({ svgX: null, svgY: null, series: null, point: null });
 
+	// The seed below is overwritten by the sync effect on the first flush; it
+	// exists only so the context object is type-complete before that runs.
+	// svelte-ignore state_referenced_locally
 	const ctx: ChartCtxValue = $state({
 		config: config,
 		inner: { w: 0, h: 0 },
@@ -194,7 +202,10 @@
 	const isCandlestick = $derived(chartType === 'candlestick');
 	// A gauge has no axes, no grid and no x-domain — it shares only the box.
 	const isGauge = $derived(chartType === 'gauge');
-	const isCartesian = $derived(!isPolar && !isHeatmap && !isCandlestick && !isGauge);
+	// Lanes are a band down the y-axis and spans carry their own x-domain, so a
+	// swimlane draws its own axes too.
+	const isSwimlane = $derived(chartType === 'swimlane');
+	const isCartesian = $derived(!isPolar && !isHeatmap && !isCandlestick && !isGauge && !isSwimlane);
 
 	const showLegend = $derived(
 		config.legend?.position !== 'none' && config.series.length > 0
@@ -254,7 +265,7 @@
 
 		// Polar/heatmap charts own their own hover via per-mark mouseenter — the
 		// x-proximity search below is meaningless there and would clobber it.
-		if (isPolar || isHeatmap || isGauge) return;
+		if (isPolar || isHeatmap || isGauge || isSwimlane) return;
 
 		// Find nearest series+point by x proximity
 		const xDomain = scaleX.invert?.(mx);
@@ -332,6 +343,8 @@
 				{#if innerW > 0 && innerH > 0}
 					{#if isGauge}
 						<GaugeRenderer />
+					{:else if isSwimlane}
+						<SwimlaneRenderer />
 					{:else if isPolar}
 						{#if chartType === 'radar'}
 							<RadarRenderer />
@@ -397,7 +410,9 @@
 			>
 				{@render tooltip({ series: hover.series, point: hover.point })}
 			</div>
-		{:else}
+		{:else if !isSwimlane}
+			<!-- The default tooltip lists every series' value at x; a lane has no
+			     value, so a swimlane span titles itself instead. -->
 			<ChartTooltip />
 		{/if}
 	{/if}

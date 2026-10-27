@@ -223,7 +223,7 @@
 				title: coreLabel,
 				role: 'Protected core',
 				accent: '#5FEAD5',
-				icon: 'crestlink',
+				icon: 'armornet',
 				stats: coreValue
 					? [{ label: 'Protected', value: coreValue }]
 					: [{ label: 'State', value: 'Protected' }],
@@ -563,8 +563,8 @@
 			label: coreLabel,
 			value: coreValue,
 			// The protected core — the armornet crest.
-			iconMarkup: ICONS.crestlink,
-			iconKey: 'crestlink',
+			iconMarkup: ICONS.armornet,
+			iconKey: 'armornet',
 			// Container glyph — the crest keeps its sampled shield silhouette.
 			glyphAsBody: true,
 			type: 'control-plane' as MeshNodeType,

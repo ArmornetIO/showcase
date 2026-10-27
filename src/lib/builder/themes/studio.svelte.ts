@@ -1,5 +1,5 @@
 import { REGISTRY_MAP, type ComponentMeta } from '../registry.js';
-import type { ThemeKey } from '$lib/theme/themes.js';
+import type { ThemeKey } from '../../theme/themes.js';
 import type { ColorControl, StyleControl, TokenMap } from './types.js';
 import { specFor, RADIUS_DEFAULT } from './specs.js';
 import { defaultFor, THEME_DEFAULTS } from './defaults.js';

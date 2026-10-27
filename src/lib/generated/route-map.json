@@ -26,20 +26,12 @@
     "ShockRings",
     "SparkField"
   ],
+  "/build-watch": [
+    "Button",
+    "AlertBladeHost"
+  ],
   "/builder": [
-    "LayerControls",
-    "ComponentPalette",
-    "CanvasContextMenu",
-    "AlertBladeHost",
-    "ChatThread",
-    "Canvas",
-    "CompositorLayer",
-    "CameraControls",
-    "IconToolbar",
-    "ThemeStudio",
-    "BackdropStudio",
-    "CharacterStudio",
-    "PropEditor"
+    "Builder"
   ],
   "/canvas": [
     "Canvas",
@@ -58,6 +50,14 @@
   "/charts": [
     "Chart",
     "DonutChart"
+  ],
+  "/date-select": [
+    "Panel",
+    "SectionBar",
+    "SegmentGroup",
+    "FormField",
+    "Select",
+    "Chip"
   ],
   "/design-patterns": [
     "LayoutHeader"
@@ -105,6 +105,14 @@
     "DocsBreadcrumbs",
     "DocsShell",
     "Prose",
+    "Byline",
+    "ChangeKindList",
+    "MonthGroupHeader",
+    "PinnedPane",
+    "ProseFigure",
+    "PullQuote",
+    "ReleaseEntry",
+    "SubscribeForm",
     "Icon"
   ],
   "/entity": [
@@ -132,8 +140,6 @@
   ],
   "/icons": [
     "ArmornetLogo",
-    "ArmornetCrest",
-    "ArmornetCrestHub",
     "ArmornetCrestChrome",
     "IconStudio"
   ],
@@ -184,7 +190,6 @@
     "Textarea",
     "FormField",
     "Select",
-    "Combobox",
     "Tile",
     "Tooltip",
     "ViewToggle",

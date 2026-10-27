@@ -30,19 +30,78 @@
 	} from './gl/particle-shaders.js';
 	import { packParticles, type ParticleRun } from './gl/particle-instances.js';
 	import { watchOnScreen } from '../perf/on-screen.js';
+	import type { LandOcclusion } from './studio.types.js';
 
 	let {
 		runs = [],
 		/** Ink for a run whose colour the theme returned in a form with no value
 		 *  outside a live element. Defaults to the studio's own energy cyan. */
-		fallback = [0.13, 0.83, 0.93] as [number, number, number]
+		fallback = [0.13, 0.83, 0.93] as [number, number, number],
+		/** Land on a globe that energy must not be drawn through. */
+		occlusion
 	}: {
 		runs?: ParticleRun[];
 		fallback?: [number, number, number];
+		occlusion?: LandOcclusion;
 	} = $props();
 
 	const ctx = getContext<CanvasContextValue>(CANVAS_CTX);
 	const transform = ctx.transform;
+
+	/**
+	 * Energy is not drawn through solid ground.
+	 *
+	 * The lines are buried by an SVG mask, and this layer is WebGL, which no SVG
+	 * mask reaches — so without this, energy would crawl through the land along a
+	 * line that had disappeared. A stencil pass in the shader would do it too, at
+	 * the cost of a second draw; a `clip-path` is geometry the compositor already
+	 * knows how to apply, and it costs nothing when there is no globe.
+	 *
+	 * Binary where the lines fade, and deliberately: a faint line reads as a line
+	 * seen through something, a faint particle reads as a rendering fault.
+	 *
+	 * ONE path, nonzero winding: the whole view one way round, each land region the
+	 * other way (so it cancels to hidden), and each node's clearing the first way
+	 * again (so it wins back, over land or water alike). That holds because the
+	 * regions never overlap one another — the border between them is what makes a
+	 * region read as a region.
+	 */
+	const clip = $derived.by(() => {
+		if (!occlusion) return undefined;
+		const { tx, ty, tk } = transform;
+		const screen = ([x, y]: [number, number]): [number, number] => [x * tk + tx, y * tk + ty];
+		const winding = (p: [number, number][]) => {
+			let s = 0;
+			for (let i = 0; i < p.length; i++) {
+				const [x0, y0] = p[i];
+				const [x1, y1] = p[(i + 1) % p.length];
+				s += x0 * y1 - x1 * y0;
+			}
+			return s;
+		};
+		const turn = (p: [number, number][], positive: boolean) =>
+			winding(p) > 0 === positive ? p : [...p].reverse();
+		const sub = (p: [number, number][]) =>
+			`M${p.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}Z`;
+		const far = 1e5;
+		const parts = [
+			sub([
+				[-far, -far],
+				[far, -far],
+				[far, far],
+				[-far, far]
+			])
+		];
+		for (const land of occlusion.inner) parts.push(sub(turn(land.map(screen), false)));
+		for (const c of occlusion.clear) {
+			const ring = Array.from({ length: 12 }, (_, i): [number, number] => {
+				const a = (2 * Math.PI * i) / 12;
+				return screen([c.x + c.r * Math.cos(a), c.y + c.r * Math.sin(a)]);
+			});
+			parts.push(sub(turn(ring, true)));
+		}
+		return `path("${parts.join('')}")`;
+	});
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	/** Starts true: a layer that guesses "hidden" and is wrong never draws. */
@@ -223,7 +282,8 @@
 	}
 </script>
 
-<canvas class="ms-particles" bind:this={canvas} aria-hidden="true"></canvas>
+<canvas class="ms-particles" bind:this={canvas} aria-hidden="true" style:clip-path={clip}
+></canvas>
 
 <style>
 	.ms-particles {

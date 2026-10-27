@@ -41,10 +41,12 @@ export interface StudioNode {
 	fillColor?: string;
 	/** Overrides the type's default port template (e.g. a per-spoke hub ring). */
 	ports?: Port[];
-	/** Ports render and terminate edges but cannot be dragged from. For a node that
-	 *  STANDS FOR several others (a collapsed stack): each thing it represents keeps
-	 *  its own port and its own line, but there is no single peer behind any one of
-	 *  them to link to, so drawing from one would be ambiguous. Unfold it first. */
+	/** Ports terminate edges but are not drawn and cannot be dragged from. For a node
+	 *  that STANDS FOR several others (a collapsed stack): each thing it represents
+	 *  keeps its own port and its own line, but there is no single peer behind any
+	 *  one of them to link to, so drawing from one would be ambiguous. Unfold it
+	 *  first. Their angles are offsets from the far end's bearing, so the fan faces
+	 *  whatever each line links to. */
 	portsLocked?: boolean;
 	/** Modes this agent runs. >1 → renders as the agent container (glyph should
 	 *  be AGENT_GLYPH) with the individual modes shown as facets around it. */
@@ -56,6 +58,12 @@ export interface StudioNode {
 	/** Multi-mode fan-out state: false = mode icons collapsed onto the node,
 	 *  true = spread out as satellites with spokes. */
 	expanded?: boolean;
+	/** Radius of ONE fanned-out mode satellite, in the same pre-scale units as
+	 *  `r`. A fan-out is the agent's modes shown as the nodes they would be if
+	 *  they stood on the mesh alone, so a caller with single-mode nodes on the
+	 *  same canvas passes their radius and the two match. Defaults to a fraction
+	 *  of the plate, which is only right when nothing else is there to compare. */
+	facetR?: number;
 	/** Per-mode traffic level (0..1), parallel to `modes`. Drives the spoke flow
 	 *  when expanded and the outline energy-trace when collapsed. */
 	modeFlows?: number[];
@@ -71,6 +79,13 @@ export interface StudioNode {
 	 *  node states the number instead — one numeral regardless of size, so the
 	 *  cost of saying "78" is the same as saying "3". */
 	count?: number;
+	/** The node is a fold of several others and draws a "+" toggle; clicking it
+	 *  calls MeshStudio's `onFoldToggle` so the caller can unfold it. Replaces the
+	 *  multi-mode fan toggle — with `onFoldToggle` set, that one reports too. */
+	foldable?: boolean;
+	/** The node this one came out of (the fold it was unfolded from). A new node
+	 *  naming one starts on that node's last position instead of a fresh seed. */
+	bornFrom?: string;
 	/** How many of those `count` things are in a bad state. Drawn as a dedicated
 	 *  always-on-top pip, NOT as a share of the ratio ring: 3-of-78 is a 14° arc
 	 *  nobody sees, and "something here is broken" is the highest-priority fact
@@ -124,6 +139,29 @@ export interface StudioNode {
 	 *  as a styling choice. Dropped on low perf tiers — a blur per node is the
 	 *  most expensive thing here, and it is the first thing worth losing. */
 	blur?: number;
+}
+
+/**
+ * The land on the NEAR side of a globe, as it stands between the eye and the
+ * lines running through the sphere's interior — in world coordinates, the same
+ * space nodes are placed in.
+ *
+ * Every link on a globe is a chord through the interior, which is where the
+ * crest sits; this is what lets the lines be buried by terrain the way the crest
+ * is, instead of drawing through solid ground.
+ */
+export interface LandOcclusion {
+	/** Each near-side region at the outer edge of its shore. */
+	outer: [number, number][][];
+	/** Each near-side region where it is fully land. */
+	inner: [number, number][][];
+	/**
+	 * Where a front-facing node stands. A line is clear this close to its node
+	 * whatever it passes under: every node stands on land, so without these the
+	 * last stretch of every link would be buried and the mesh would read as
+	 * disconnected.
+	 */
+	clear: { x: number; y: number; r: number }[];
 }
 
 export interface StudioEdge {

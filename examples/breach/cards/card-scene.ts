@@ -20,6 +20,9 @@
 import {
 	ALL_PIECES,
 	box,
+	panel,
+	windowWall,
+	windowFrame,
 	poseAt,
 	statusById,
 	// The same call that stamps an emblem on a figure's chest, used as scenery —
@@ -162,57 +165,8 @@ function beam(
 	};
 }
 
-/**
- * A flat shape standing up, extruded a little way into the page.
- *
- * `prism` extrudes a footprint UPWARD, which is the right primitive for a
- * building and the wrong one for a wall: a wall is a shape in elevation. This
- * takes the outline in the plane the viewer is looking at — `e` right, `h` up,
- * wound counter-clockwise as you would draw it — and gives it thickness in `n`.
- *
- * It is what lets a wall have a slanted top. Nothing built out of `box` can have
- * an edge that is not level, so with `box` alone the seam between two buildings
- * can only ever be a step.
- */
-function panel(outline: [number, number][], t = 0.07): Solid {
-	// Reversed, so the ring reads counter-clockwise seen from BEHIND — which is
-	// the orientation `box`'s face winding assumes of its second ring.
-	const r = [...outline].reverse();
-	const k = r.length;
-	const verts: PieceVert[] = [
-		...r.map(([e, h]) => ({ e, n: -t, h })),
-		...r.map(([e, h]) => ({ e, n: t, h }))
-	];
-	const near = [0, ...Array.from({ length: k - 1 }, (_, i) => k - 1 - i)];
-	const far = Array.from({ length: k }, (_, i) => k + i);
-	const sides = Array.from({ length: k }, (_, i) => {
-		const j = (i + 1) % k;
-		return [i, j, k + j, k + i];
-	});
-	return { verts, faces: [near, far, ...sides] };
-}
-
-/**
- * A wall with a hole in it.
- *
- * Four boxes around an opening, and not one box with a lit slab stuck to the
- * front. The renderer has no apertures — a wall is a solid — so the only way to
- * look INTO a room is to leave the room-shaped gap out of the geometry and put
- * the room behind it. The lit pane and whoever is in there are separate props
- * at a greater `n`, and `paint` sorts them through the hole for free.
- *
- * Thin on purpose: at 0.07 the reveal round the opening is a couple of pixels,
- * which is a window. Any thicker and it is an embrasure.
- */
-function windowWall(w: number, h: number, ow: number, sill: number, head: number): Piece {
-	const t = 0.07;
-	return [
-		box(-w, w, -t, t, 0, sill),
-		box(-w, w, -t, t, head, h),
-		box(-w, -ow, -t, t, sill, head),
-		box(ow, w, -t, t, sill, head)
-	];
-}
+// `panel`, `windowWall` and `windowFrame` were born here and now live with the
+// pieces, so a map's office can glaze its walls with the same window.
 
 /**
  * The same wall twice.
@@ -223,40 +177,6 @@ function windowWall(w: number, h: number, ow: number, sill: number, head: number
  * two similar walls would lose the rhyme to a rounding error.
  */
 const WINDOW_WALL: Piece = windowWall(3, 3.2, 1.2, 1.775, 2.521);
-
-/**
- * The frame in the hole.
- *
- * A gap in a wall with light behind it is a rectangle of light, which is what
- * both windows on this card were until now. What makes a window a window is the
- * BARS: a sill proud of the wall under it, a reveal round it, and mullions
- * across it. The mullions do nearly all the work at card size — a rectangle is
- * a rectangle at any scale, but a rectangle with a cross in it is a window.
- *
- * Sits a little in front of the wall rather than flush with it, so the sill
- * catches the light and throws an edge. A frame in the same plane as the wall is
- * a drawing of a frame.
- */
-function windowFrame(w: number, h: number, cy: number, cols: number, rows: number): Piece {
-	const t = 0.035;
-	const parts: Solid[] = [
-		box(-w - 2 * t, w + 2 * t, -t, t, cy + h, cy + h + 2 * t),
-		// The sill alone is deeper than the rest — it is the one member of a
-		// window frame that sticks out far enough to stand something on.
-		box(-w - 2 * t, w + 2 * t, -2.5 * t, 2.5 * t, cy - h - 2.5 * t, cy - h),
-		box(-w - 2 * t, -w, -t, t, cy - h, cy + h),
-		box(w, w + 2 * t, -t, t, cy - h, cy + h)
-	];
-	for (let i = 1; i < cols; i++) {
-		const e = -w + (2 * w * i) / cols;
-		parts.push(box(e - t, e + t, -t, t, cy - h, cy + h));
-	}
-	for (let i = 1; i < rows; i++) {
-		const y = cy - h + (2 * h * i) / rows;
-		parts.push(box(-w, w, -t, t, y - t, y + t));
-	}
-	return parts;
-}
 
 /**
  * ── THE SEAM · a card cut into two worlds ────────────────────────────────────

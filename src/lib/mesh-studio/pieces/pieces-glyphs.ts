@@ -69,7 +69,10 @@
 //     each depth as a fraction of S makes the piece scale as one object.
 
 import type { Piece, PieceVert, Solid } from './pieces.js';
-import type { ModeKey } from '../modes.gen.js';
+import { MODES, type ModeKey } from '../modes.gen.js';
+import { glyphForMode } from '../../icons/mode-tool-icons.js';
+import { ICONS } from '../../icons/Icon.svelte';
+import { glyphStrokes, type GlyphStrokes } from './glyph-strokes.js';
 
 /** A profile in the east–height plane: the glyph, as seen face-on. */
 export type Face = [number, number][];
@@ -234,10 +237,18 @@ export function blade(
  *  bar is 18 icon units wide and lands 1.70 radii wide, and every other number
  *  below is whatever the glyph says divided by the same S. Tuning one element to
  *  "look right" independently is how an extruded icon stops being the icon. */
+/** Namebar's cut, shared with every generated icon piece so the set stays one
+ *  material. Icon units per radius; the body's two faces (−n toward the
+ *  viewer); how far front relief stands proud; how far a through-stroke
+ *  overshoots both faces. */
+const NAMEBAR_S = 10.6;
+const NAMEBAR_FRONT = -0.14;
+const NAMEBAR_BACK = 0.14;
+const NAMEBAR_RELIEF = 0.06;
+const NAMEBAR_THROUGH = 0.08;
+
 const NAMEBAR: Piece = (() => {
-	/** Icon units per node radius. The bar's 18-unit width sets it; everything
-	 *  else follows. */
-	const S = 10.6;
+	const S = NAMEBAR_S;
 	/** Where the bar's top edge (icon y = 8.5) sits, in radii. Chosen so the
 	 *  strike's upper corner lands at ~1.78 — the quarter below which two
 	 *  silhouettes converge into "a lump". */
@@ -252,8 +263,8 @@ const NAMEBAR: Piece = (() => {
 	// only, the way relief on a sign does. The strike stands proud of both faces
 	// — it is the element that has to survive the piece turning away.
 	// −n is toward the viewer; see rule 3. `front` is the smaller number.
-	const barFront = -0.14;
-	const barBack = 0.14;
+	const barFront = NAMEBAR_FRONT;
+	const barBack = NAMEBAR_BACK;
 
 	return [
 		// The bar itself — icon `<rect x=3 y=8.5 width=18 height=7 rx=2>`.
@@ -263,11 +274,15 @@ const NAMEBAR: Piece = (() => {
 		// stops casting a shading band and goes back to being a mark on a face.
 		plate(disc(e(6.5), h(12), 1.3 / S), barFront - 0.07, barFront),
 		// The name — `<path d="M9.5 12h9">`.
-		plate(stroke(e(9.5), h(12), e(18.5), h(12), W), barFront - 0.06, barFront),
+		plate(stroke(e(9.5), h(12), e(18.5), h(12), W), barFront - NAMEBAR_RELIEF, barFront),
 
 		// The strike — `<path d="M5 7 19 17">`. Through both faces, and out of the
 		// outline at both ends. This is the piece.
-		plate(stroke(e(5), h(7), e(19), h(17), W), barFront - 0.08, barBack + 0.08),
+		plate(
+			stroke(e(5), h(7), e(19), h(17), W),
+			barFront - NAMEBAR_THROUGH,
+			barBack + NAMEBAR_THROUGH,
+		),
 	];
 })();
 
@@ -467,8 +482,8 @@ const GAUGE: Piece = (() => {
 			plate(
 				project(arcBand(0, 0, R_IN, R_OUT, cuts[2 * i], cuts[2 * i + 1], rad(15))),
 				bandFront,
-				bandBack
-			)
+				bandBack,
+			),
 		),
 
 		// The needle. Out to 9.6 against a rim at 8.9 — clear of the bezel, so it
@@ -791,6 +806,372 @@ const DIAL: Piece = (() => {
 	];
 })();
 
+// ── Every other mode, extruded straight from its icon ───────────────────────
+// The objects above are CUT: each one read its glyph and decided what depth,
+// relief and break the icon should become. That produces the best object and
+// it does not scale — two pieces in, fifteen modes still stood as buildings
+// from a settlement that teaches nothing the rest of the product uses.
+//
+// So every remaining mode with a glyph gets the mechanical version of the same
+// grammar: its own strokes, read from the markup the icon set already stores,
+// cut the way namebar is — see `iconPiece`. Rules 1, 2, 3 and 5 are all
+// mechanical and are kept exactly — one scale, suspended, strokes as relief,
+// depth in icon units. Rule 4 (the one element through the silhouette) is kept
+// for free: whatever part of the icon leaves the box, leaves the box.
+//
+// What is given up is judgement. Namebar's depths are assigned by WHERE a mark
+// sits, not by what it means, so a glyph whose meaning is not where the rule
+// looks for it can still come out flat. Any mode can graduate to a cut
+// piece by being added to HAND_CUT — the generated one then drops out of the
+// map, the same way a displaced building does.
+//
+// Modes whose glyph is EMPTY are deliberately not here. They fall back to
+// Terminal, the shared fallback — extruding them would stand four modes in
+// one shape, which is the exact ambiguity this quarter exists to remove. They
+// keep their buildings until they have an icon of their own.
+
+const HAND_CUT = {
+	posture: 'dial',
+} satisfies Partial<Record<ModeKey, string>>;
+
+const ICON_MODES = MODES.filter((m) => m.glyph && !(m.key in HAND_CUT)).map((m) => m.key);
+const ICON_STROKES: [ModeKey, GlyphStrokes][] = ICON_MODES.map((k) => [
+	k,
+	glyphStrokes(glyphForMode(k)),
+]);
+
+/** Named icons stood up the same way, for globe nodes that are NOT a mode — a
+ *  collection standing for a whole set (the vendor estate, the evidence library)
+ *  has no glyph of its own, and was drawn as a bare disc beside a field of
+ *  objects.
+ *
+ *  Declared here because the globe builds its meshes from this catalogue at load
+ *  and cannot extrude an icon it was never told about; WHICH icon stands for
+ *  which collection is the caller's decision, not this file's. Add a name to
+ *  offer it. */
+export const EXTRUDED_ICONS = ['users', 'clipboard-list', 'fingerprint', 'table'] as const;
+export type ExtrudedIcon = (typeof EXTRUDED_ICONS)[number];
+/** The catalogue id of a named icon's piece. */
+export const iconPieceId = (name: ExtrudedIcon) => `glyph-${name}`;
+const NAMED_STROKES: [ExtrudedIcon, GlyphStrokes][] = EXTRUDED_ICONS.map((n) => [
+	n,
+	glyphStrokes(ICONS[n]),
+]);
+
+/** The icon set's 1.5 stroke, in icon units. Half of it, since `stroke` takes a
+ *  half-width. */
+const ICON_HALF_W = 0.75;
+/** How far past any stroke centre-line the solid can reach: the half-width, plus
+ *  the square cap carried along the run, on a diagonal. */
+const ICON_PAD = 1.1;
+const ICON_FLOOR = 0.25;
+
+/** ONE scale for every generated piece: namebar's, unless a glyph in the set
+ *  reaches far enough that it would break the bounds.
+ *
+ *  One scale across the SET, not a fit per icon: the icons were drawn on a
+ *  shared 24-unit grid so that a small mark reads as small, and fitting each to
+ *  its own bounds would inflate a compact glyph to the size of a sprawling one.
+ *
+ *  This used to be fitted to a 1.6-radius span and the plate tipped 40° toward
+ *  the camera. Face-on, the hologram's Fresnel term dims the plate to its
+ *  floor, and the smaller scale thinned every bar — together that was the
+ *  grainy, underlit look beside namebar, which is upright at this S. */
+const ICON_FIT = (() => {
+	let x0 = 12;
+	let x1 = 12;
+	let y0 = Infinity;
+	let y1 = -Infinity;
+	// Modes and named icons together: they stand side by side on one globe, so
+	// they are one set drawn at one scale.
+	for (const [, { lines, dots }] of [...ICON_STROKES, ...NAMED_STROKES]) {
+		for (const [x, y] of lines.flat()) {
+			x0 = Math.min(x0, x);
+			x1 = Math.max(x1, x);
+			y0 = Math.min(y0, y);
+			y1 = Math.max(y1, y);
+		}
+		for (const d of dots) {
+			x0 = Math.min(x0, d.x);
+			x1 = Math.max(x1, d.x);
+			y0 = Math.min(y0, d.y);
+			y1 = Math.max(y1, d.y);
+		}
+	}
+	const halfReach = Math.max(12 - x0, x1 - 12) + ICON_PAD;
+	const tall = y1 - y0 + 2 * ICON_PAD;
+	const S = Math.max(NAMEBAR_S, halfReach / 0.98, tall / (2 - ICON_FLOOR - 0.1));
+	// Hung from the set's lowest stroke, so every icon keeps the position it has
+	// on the 24-unit grid relative to the others.
+	return { S, h: (y: number) => ICON_FLOOR + 0.05 + (y1 + ICON_PAD - y) / S };
+})();
+
+/** Convex hull of a ring, counter-clockwise in (e, h) — monotone chain. */
+function hull(pts: Face): Face {
+	const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+	const cross = (o: [number, number], a: [number, number], b: [number, number]) =>
+		(a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+	const half = (src: Face): Face => {
+		const out: Face = [];
+		for (const q of src) {
+			while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], q) <= 1e-9)
+				out.pop();
+			out.push(q);
+		}
+		out.pop();
+		return out;
+	};
+	return [...half(p), ...half(p.reverse())];
+}
+
+const area = (f: Face) =>
+	Math.abs(
+		f.reduce((s, [e, h], i) => {
+			const [e1, h1] = f[(i + 1) % f.length];
+			return s + e * h1 - e1 * h;
+		}, 0),
+	) / 2;
+
+/** Inside a convex face, or within `tol` of it — a line drawn edge to edge of
+ *  a ROUNDED rect ends just outside its cut corners, and without the slack it
+ *  read as crossing the body and stood out through it as a shelf. */
+const inside = (f: Face, [e, h]: [number, number], tol = 0) =>
+	f.every(([e0, h0], i) => {
+		const [e1, h1] = f[(i + 1) % f.length];
+		const len = Math.hypot(e1 - e0, h1 - h0) || 1;
+		return ((e1 - e0) * (h - h0) - (h1 - h0) * (e - e0)) / len >= -tol - 1e-6;
+	});
+
+/** Smallest closed shape that may become the body, in icon units². Below it a
+ *  "body" is just a thick mark and the icon loses the sign it sits on. */
+const BODY_MIN_AREA = 20;
+/** A ring must fill this much of its own hull to be the body: a solid can only
+ *  be convex, and a hull of a deeply concave outline would fill in what the
+ *  glyph leaves open. */
+const BODY_MIN_FILL = 0.9;
+
+/** How much of its hull a glyph's strokes must trace for the hull to be read
+ *  as the object's outline. Measured, not chosen: a real outline — a board, a
+ *  frame, a window — traces all of it, while a composition (a scale and its
+ *  pans, a doc beside its sync arrows) traces 84–91% and, filled, became a blob.
+ *  Buildings traces 96% round its stepped roof and must stay two buildings. */
+const OUTLINE_TRACED = 0.98;
+
+const segDist = (
+	[x, y]: [number, number],
+	[x0, y0]: [number, number],
+	[x1, y1]: [number, number],
+) => {
+	const dx = x1 - x0;
+	const dy = y1 - y0;
+	const t = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy || 1)));
+	return Math.hypot(x - x0 - t * dx, y - y0 - t * dy);
+};
+
+/** The left offset at vertex `i` of a polyline where two segments meet, scaled
+ *  so both bands keep half-width `w` — or null at a run's end, or at a bend so
+ *  sharp the miter would spike, where the segment keeps its own square end. */
+function miter(
+	P: [number, number][],
+	i: number,
+	ring: boolean,
+	w: number,
+): [[number, number], number] | null {
+	const n = P.length;
+	const prev = i > 0 ? i - 1 : ring ? n - 2 : -1;
+	const next = i < n - 1 ? i + 1 : ring ? 1 : -1;
+	if (prev < 0 || next < 0) return null;
+	const left = (a: [number, number], b: [number, number]): [number, number] => {
+		const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+		return [-(b[1] - a[1]) / l, (b[0] - a[0]) / l];
+	};
+	const n0 = left(P[prev], P[i]);
+	const n1 = left(P[i], P[next]);
+	const m: [number, number] = [n0[0] + n1[0], n0[1] + n1[1]];
+	const ml = Math.hypot(...m);
+	const cos = ml / 2;
+	if (cos < 0.5) return null;
+	return [[(m[0] / ml) * (w / cos), (m[1] / ml) * (w / cos)], 0];
+}
+
+/** A mode's icon, cut exactly as `namebar` is: the glyph's largest closed shape
+ *  becomes a solid BODY, what lies on it stands proud of its front as relief,
+ *  and what leaves it passes through both faces the way the strike does.
+ *
+ *  The body is what the earlier cage of bars lacked. Without it every stroke
+ *  was a free-standing blade, and in additive light a pile of thin blades
+ *  overlaps into bright knots and gaps — the "low resolution" beside namebar,
+ *  whose relief has a surface to sit on. */
+function iconPiece(strokes: GlyphStrokes): Piece {
+	const { S, h } = ICON_FIT;
+	const at = ([x, y]: [number, number]): [number, number] => [(x - 12) / S, h(y)];
+
+	// The icon set draws a dot as a zero-length stroke (`h.01`); as a bar it is a
+	// capped stub, so it becomes the dot it stands for.
+	const runLen = (run: [number, number][]) =>
+		run.reduce(
+			(s, p, i) => (i ? s + Math.hypot(p[0] - run[i - 1][0], p[1] - run[i - 1][1]) : 0),
+			0,
+		);
+	const lines = strokes.lines.filter((run) => runLen(run) >= 0.5);
+	const dots = [
+		...strokes.dots,
+		...strokes.lines
+			.filter((run) => runLen(run) < 0.5)
+			.map((run) => ({ x: run[0][0], y: run[0][1], r: 0 })),
+	];
+
+	const closed = (run: [number, number][]) => {
+		const a = run[0];
+		const b = run[run.length - 1];
+		return run.length > 3 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-3;
+	};
+	const W = ICON_HALF_W / S;
+	const TOL = 2 * W;
+	// Every mark's points, so a candidate body can ask whether it carries any.
+	const marks: { run: [number, number][]; pts: [number, number][] }[] = [
+		...lines.map((run) => ({ run, pts: run.map(at) })),
+		...dots.map((d) => ({
+			run: [] as [number, number][],
+			pts: [at([d.x, d.y])],
+		})),
+	];
+	// A body is a SIGN: a sizeable closed shape with something drawn on it, as
+	// namebar's bar carries the name. Empty outlines stay outlines — filled, a
+	// lens became a coin and a bell a lump. Largest first, so a shape drawn on
+	// another stays relief on it, as the package does on the supply-chain shield.
+	const candidates = lines
+		.filter(closed)
+		.map((run) => {
+			const ring = run.slice(0, -1).map(at);
+			return { run, ring, hl: hull(ring) };
+		})
+		.filter(
+			({ ring, hl }) => area(hl) * S * S >= BODY_MIN_AREA && area(ring) >= BODY_MIN_FILL * area(hl),
+		)
+		.sort((a, b) => area(b.hl) - area(a.hl));
+	const signs = candidates.filter(({ run, hl }) =>
+		marks.some((m) => m.run !== run && m.pts.every((p) => inside(hl, p, TOL))),
+	);
+	// With no sign at all, the largest outline is the object itself — a speech
+	// bubble, a bell — and reads better solid than as a ring of short bars.
+	if (!signs.length && candidates.length) signs.push(candidates[0]);
+	// The glyph's OUTER outline is a body even when no single path closes it — a
+	// clipboard's board breaks where the clip sits, a table's frame is drawn in
+	// four runs. As bars those came out as a cage of short capped segments round
+	// every corner. If the strokes trace most of the glyph's hull, the hull is
+	// the object.
+	const segs = lines.flatMap((run) =>
+		run.slice(1).map((p, i): [[number, number], [number, number]] => [at(run[i]), at(p)]),
+	);
+	const outer = hull(segs.flat());
+	const onEdge = (f: Face, p: [number, number]) =>
+		f.some((a, i) => segDist(p, a, f[(i + 1) % f.length]) <= TOL);
+	const traced = (() => {
+		if (outer.length < 3 || area(outer) * S * S < BODY_MIN_AREA) return 0;
+		let hit = 0;
+		let n = 0;
+		for (let i = 0; i < outer.length; i++) {
+			const a = outer[i];
+			const b = outer[(i + 1) % outer.length];
+			const k = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (0.5 / S)));
+			for (let j = 0; j < k; j++) {
+				const p: [number, number] = [
+					a[0] + ((b[0] - a[0]) * j) / k,
+					a[1] + ((b[1] - a[1]) * j) / k,
+				];
+				n++;
+				if (segs.some(([s0, s1]) => segDist(p, s0, s1) <= TOL)) hit++;
+			}
+		}
+		return hit / n;
+	})();
+	const outerBody = traced >= OUTLINE_TRACED ? outer : null;
+
+	const bodies: { run: [number, number][] | null; hl: Face }[] = outerBody
+		? [{ run: null, hl: outerBody }]
+		: [];
+	for (const c of signs) {
+		if (!bodies.some((b) => c.ring.every((p) => inside(b.hl, p)))) bodies.push(c);
+	}
+
+	// Namebar's three depths, by where a mark sits: ON a body it is relief on the
+	// front; ACROSS a body's edge it passes through both faces, as the strike
+	// does; OFF every body it is a free blade. The strike's depth on a mark
+	// that crosses nothing is a slab — a keyboard base, a corner bracket.
+	const FREE = NAMEBAR_RELIEF;
+	const relief = (pts: [number, number][], proud: number): [number, number] => {
+		const on = bodies.filter((b) => pts.some((p) => inside(b.hl, p)));
+		if (bodies.some((b) => pts.every((p) => inside(b.hl, p, TOL))))
+			return [NAMEBAR_FRONT - proud, NAMEBAR_FRONT];
+		if (on.length) return [NAMEBAR_FRONT - NAMEBAR_THROUGH, NAMEBAR_BACK + NAMEBAR_THROUGH];
+		return [-FREE, FREE];
+	};
+
+	const solids: Solid[] = bodies.map((b) => plate(b.hl, NAMEBAR_FRONT, NAMEBAR_BACK));
+	const bodyRuns = new Set(bodies.map((b) => b.run));
+	for (const run of lines) {
+		// A body's own outline IS the body, as namebar's bar has no separate rim.
+		if (bodyRuns.has(run)) continue;
+		const P = run.map(at);
+		const ring = closed(run);
+		for (let i = 1; i < run.length; i++) {
+			const [e0, h0] = P[i - 1];
+			const [e1, h1] = P[i];
+			const len = Math.hypot(e1 - e0, h1 - h0);
+			if (len < 1e-6) continue;
+			// Classified by the centre-line, not the capped quad: a stroke that ends
+			// ON a body's edge would otherwise poke its cap out and go through.
+			const mid: [number, number] = [(e0 + e1) / 2, (h0 + h1) / 2];
+			// Drawn along the outer body's edge, it IS that edge.
+			if (
+				outerBody &&
+				[[e0, h0], mid, [e1, h1]].every((p) => onEdge(outerBody, p as [number, number]))
+			)
+				continue;
+			const depth = relief([[e0, h0], mid, [e1, h1]], NAMEBAR_RELIEF);
+			// Mitered where the run bends, so a curve is one band rather than a chain
+			// of capped bars overlapping into a knot at every joint. A run's own ends
+			// get a square cap — except as relief, where a cap carries a line drawn
+			// to the body's edge out past it.
+			const cap = depth[1] === NAMEBAR_FRONT ? 0 : W;
+			const a = miter(P, i - 1, ring, W);
+			const b = miter(P, i, ring, W);
+			const ue = (e1 - e0) / len;
+			const uh = (h1 - h0) / len;
+			const nL: [number, number] = [-uh * W, ue * W];
+			const [la, ca] = a ?? [nL, cap];
+			const [lb, cb] = b ?? [nL, cap];
+			const A: [number, number] = [e0 - ue * ca, h0 - uh * ca];
+			const B: [number, number] = [e1 + ue * cb, h1 + uh * cb];
+			solids.push(
+				plate(
+					[
+						[A[0] - la[0], A[1] - la[1]],
+						[B[0] - lb[0], B[1] - lb[1]],
+						[B[0] + lb[0], B[1] + lb[1]],
+						[A[0] + la[0], A[1] + la[1]],
+					],
+					...depth,
+				),
+			);
+		}
+	}
+	for (const d of dots) {
+		// Namebar's dot is drawn a touch fuller than the icon, for the same reason.
+		const r = Math.max(d.r, 1.3) / S;
+		const c = at([d.x, d.y]);
+		solids.push(plate(disc(...c, r), ...relief([c], NAMEBAR_RELIEF + 0.01)));
+	}
+	return solids;
+}
+
+const iconId = (k: ModeKey) => `icon-${k}`;
+const ICON_PIECES: Record<string, Piece> = Object.fromEntries([
+	...ICON_STROKES.map(([k, strokes]) => [iconId(k), iconPiece(strokes)]),
+	...NAMED_STROKES.map(([n, strokes]) => [iconPieceId(n), iconPiece(strokes)]),
+]);
+
 /** The pieces that HANG — see rule 2.
  *
  *  A set rather than a flag on the piece, because a `Piece` is a list of solids
@@ -813,6 +1194,7 @@ export const SUSPENDED_PIECES: ReadonlySet<string> = new Set([
 	// stays a leaf and cannot be dragged into a cycle by a candidate reaching
 	// back here for `plate` or `pill`.
 	'standard',
+	...Object.keys(ICON_PIECES),
 ]);
 
 export const GLYPH_PIECES: Record<string, Piece> = {
@@ -821,12 +1203,13 @@ export const GLYPH_PIECES: Record<string, Piece> = {
 	sweep: SWEEP,
 	panel: PANEL,
 	dial: DIAL,
+	...ICON_PIECES,
 };
 
-/** `satisfies` rather than an annotation, for the reason the other two quarters
- *  give: it checks the keys are real modes while leaving the literal type
- *  intact, so `MODE_PIECES` cannot claim to be total while missing one. */
-export const GLYPH_MODE_PIECES = {
-	dns_proxy: 'namebar',
-	posture: 'dial',
-} satisfies Partial<Record<ModeKey, string>>;
+/** The hand-cut pieces keep their literal keys; the generated ones are computed,
+ *  so this cannot prove totality on its own — it does not have to, because
+ *  `MODE_PIECES` spreads the building quarters first and those are total. */
+export const GLYPH_MODE_PIECES: Partial<Record<ModeKey, string>> = {
+	...HAND_CUT,
+	...Object.fromEntries(ICON_MODES.map((k) => [k, iconId(k)])),
+};

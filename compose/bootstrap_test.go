@@ -1,6 +1,8 @@
 package compose_test
 
 import (
+	"errors"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -92,10 +94,14 @@ func defaultVisibility(t *testing.T) compose.RuleSet {
 
 // openRepoFile reaches the armornet tree from this nested module. The engine
 // itself never reads either file — this is a test asserting that what armornet
-// SHIPS is loadable by the engine it ships with.
+// SHIPS is loadable by the engine it ships with, so a standalone checkout of
+// this module has nothing to assert and skips.
 func openRepoFile(t *testing.T, rel string) *os.File {
 	t.Helper()
 	f, err := os.Open(filepath.Join("..", "..", rel))
+	if errors.Is(err, fs.ErrNotExist) {
+		t.Skipf("%s: not inside the armornet tree", rel)
+	}
 	if err != nil {
 		t.Fatalf("opening %s: %v", rel, err)
 	}

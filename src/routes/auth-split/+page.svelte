@@ -7,14 +7,35 @@
 	//
 	// Both steps are here because the seam is what the shell exists to hold: a
 	// one-field step and a stacked-provider step have very different form
-	// heights, and the brand pane must not move between them.
+	// heights, and the brand pane must not move between them. The third step is
+	// the workspace picker, which lists rather than asks, so it runs `wide`.
 	import { base } from '$app/paths';
 	import AuthSplit from '$lib/layout/AuthSplit.svelte';
+	import WorkspacePicker, { type WorkspaceChoice } from '$lib/layout/WorkspacePicker.svelte';
 	import Button from '$lib/primitives/actions/Button.svelte';
 	import Input from '$lib/primitives/forms/Input.svelte';
 	import FormField from '$lib/primitives/forms/FormField.svelte';
 
-	let step = $state<'slug' | 'provider'>('slug');
+	const workspaces: WorkspaceChoice[] = [
+		{
+			id: 'acme',
+			name: 'Acme Security',
+			role: 'admin',
+			website: 'acme.com',
+			description: 'Managed detection and response for mid-market fintech.'
+		},
+		{
+			id: 'northwind',
+			name: 'Northwind Health',
+			role: 'member',
+			website: 'northwindhealth.org',
+			description: 'Regional hospital network. Vendor reviews for clinical systems.',
+			status: { label: 'No alpha access', tone: 'warn' }
+		},
+		{ id: 'lab', name: 'toner-lab', role: 'admin' }
+	];
+
+	let step = $state<'slug' | 'provider' | 'workspace'>('slug');
 	let slug = $state('');
 	let error = $state('');
 
@@ -35,10 +56,22 @@
 	mark="ARMORNET"
 	statement={{ human: 'Every agent', machine: 'accounted for.' }}
 	sub="Identity, posture and interception for the machines that act on your behalf."
-	step={step === 'slug' ? '01 / WORKSPACE' : '02 / PROVIDER'}
+	step={step === 'slug'
+		? '01 / WORKSPACE'
+		: step === 'provider'
+			? '02 / PROVIDER'
+			: '03 / WORKSPACE'}
+	wide={step === 'workspace'}
 >
 	{#snippet form()}
-		{#if step === 'slug'}
+		{#if step === 'workspace'}
+			<h1 class="auth-title">Choose a <span class="accent">workspace</span>.</h1>
+			<p class="auth-lede">Signed in with Google.</p>
+			<WorkspacePicker {workspaces} lastId="acme" />
+			<button class="auth-back" onclick={() => (step = 'provider')}>
+				← Back to providers
+			</button>
+		{:else if step === 'slug'}
 			<form onsubmit={submit}>
 				<FormField
 					label="Workspace"
@@ -59,7 +92,9 @@
 		{:else}
 			<p class="auth-lede">Choose how you'd like to sign in to <strong>{slug}</strong>.</p>
 			<div class="auth-stack">
-				<Button variant="ghost" size="lg" full>Continue with Google</Button>
+				<Button variant="ghost" size="lg" full onclick={() => (step = 'workspace')}>
+					Continue with Google
+				</Button>
 				<Button variant="ghost" size="lg" full>Continue with GitHub</Button>
 				<Button variant="ghost" size="lg" full>Continue with Okta</Button>
 			</div>

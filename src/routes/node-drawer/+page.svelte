@@ -116,7 +116,7 @@
 		<!-- Demo frame -->
 		<div class="drawer-demo-frame">
 			<div class="drawer-demo-bg">
-				<div class="drawer-demo-hint font-[var(--mono)] text-[0.625rem] text-[var(--fg-dim)]">
+				<div class="drawer-demo-hint font-(family-name:--mono) text-[0.625rem] text-[var(--fg-dim)]">
 					↑ Canvas / topology view area ↑
 				</div>
 			</div>

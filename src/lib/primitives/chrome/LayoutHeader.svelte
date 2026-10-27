@@ -103,6 +103,7 @@
 	// long-form reading page, say) can ask for it, rather than every page paying
 	// for the one that does.
 
+	// svelte-ignore state_referenced_locally
 	let expanded = $state(startExpanded);
 
 	// Runs client-side only, so the collapsed/expanded default still renders

@@ -78,6 +78,27 @@
 		href?: string;
 		target?: string;
 		rel?: string;
+		/**
+		 * An arbitrary hue, for vocabularies the closed `color` set cannot name —
+		 * a blog's topic tags, a changelog's change kinds. Any CSS colour; the
+		 * chip derives its ink, edge and tint from it by `color-mix`, so one value
+		 * produces the same relationships the named colours have.
+		 *
+		 * Prefer `color` when a named one fits. This exists because a tag palette
+		 * is content, not design vocabulary, and adding a member per topic would
+		 * put the blog's editorial choices in the design system.
+		 */
+		tint?: string;
+		/** Pressed state, for a chip acting as a filter. */
+		selected?: boolean;
+		/**
+		 * Makes the chip a real `<button>`. Without it a chip is inert text — a
+		 * filter bar needs the element to be focusable and announce itself, which
+		 * a `<span>` with a handler does not.
+		 */
+		onclick?: () => void;
+		/** Accessible label when the chip's own text is not enough. */
+		ariaLabel?: string;
 		children: Snippet;
 	}
 
@@ -94,8 +115,26 @@
 		href,
 		target,
 		rel,
+		tint,
+		selected = false,
+		onclick,
+		ariaLabel,
 		children
 	}: ChipProps = $props();
+
+	// One hue in, the four relationships out. The percentages match what the named
+	// colours above do by hand, so a tinted chip sits at the same weight as an
+	// `accent` one rather than shouting next to it.
+	const tintVars = $derived(
+		tint
+			? `--chip-ink:${tint};` +
+					`--chip-edge:color-mix(in srgb, ${tint} 35%, transparent);` +
+					`--chip-dot:${tint};` +
+					`--chip-tint:color-mix(in srgb, ${tint} 10%, transparent);`
+			: ''
+	);
+
+	const styleAttr = $derived(`--chip-cut:${cutSize}px;${tintVars}`);
 
 	// `pulse` predates `lead` and every existing call site uses it alone, so it
 	// still has to be able to summon the dot by itself.
@@ -126,10 +165,30 @@
 			data-lead={leadMark}
 			data-size={sizeCls}
 			data-outline={outline}
-			style="--chip-cut:{cutSize}px"
+			data-selected={selected || undefined}
+			style={styleAttr}
 		>
 			{@render body()}
 		</a>
+	{:else if onclick}
+		<button
+			type="button"
+			{onclick}
+			aria-pressed={selected}
+			aria-label={ariaLabel}
+			class="chip chip-body chip-button"
+			data-look={look}
+			data-color={color}
+			data-cut={cut}
+			data-edge={edge}
+			data-lead={leadMark}
+			data-size={sizeCls}
+			data-outline={outline}
+			data-selected={selected || undefined}
+			style={styleAttr}
+		>
+			{@render body()}
+		</button>
 	{:else}
 		<span
 			class="chip chip-body"
@@ -140,7 +199,8 @@
 			data-lead={leadMark}
 			data-size={sizeCls}
 			data-outline={outline}
-			style="--chip-cut:{cutSize}px"
+			data-selected={selected || undefined}
+			style={styleAttr}
 		>
 			{@render body()}
 		</span>
@@ -194,6 +254,33 @@
 	/* One declaration per hue rather than per hue × look: the look only decides
 	   whether `--chip-fill` is painted, so a new colour is four lines, not eight. */
 	.chip { --chip-fill: transparent; }
+
+	/* A chip acting as a filter: a real button, but it must not inherit any of the
+	   browser's button chrome or it stops reading as a chip. */
+	.chip-button {
+		appearance: none;
+		cursor: pointer;
+		font: inherit;
+		letter-spacing: inherit;
+		text-transform: inherit;
+		transition:
+			background-color 0.12s,
+			border-color 0.12s;
+	}
+	.chip-button:hover {
+		background-color: var(--chip-tint);
+	}
+	.chip-button:focus-visible {
+		outline: 2px solid var(--chip-ink);
+		outline-offset: 2px;
+	}
+
+	/* Selected reads through the TINT rather than a heavier border, so a row of
+	   chips keeps one silhouette and the eye tracks fill, not weight. */
+	.chip[data-selected] {
+		--chip-fill: var(--chip-tint);
+		border-color: var(--chip-ink);
+	}
 
 	.chip[data-color='default'] {
 		--chip-ink: var(--fg-dim);

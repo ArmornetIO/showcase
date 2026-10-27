@@ -1,0 +1,13 @@
+@import '../../src/lib/tokens.css';
+
+/* Tailwind skips .gitignore'd trees, so both are named (see examples/dbmgr/app.css). */
+@source '.';
+@source '../../src/lib';
+
+html,
+body {
+	margin: 0;
+	background: var(--bg, #05080d);
+	color: var(--fg, #e2e8f0);
+	font-family: var(--sans, system-ui, sans-serif);
+}

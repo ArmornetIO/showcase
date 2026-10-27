@@ -33,9 +33,6 @@
 		border-radius: var(--radius-control);
 		padding: 16px 18px;
 	}
-	.setting-row + .setting-row {
-		margin-top: 12px;
-	}
 	.txt {
 		min-width: 0;
 	}

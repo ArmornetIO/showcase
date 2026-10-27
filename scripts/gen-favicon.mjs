@@ -19,8 +19,8 @@
  * from what they currently say.
  *
  * The module script of ArmornetCrestMesh.svelte is plain TypeScript with no
- * imports, so it is transpiled and executed rather than read as an AST — unlike
- * gen-api.mjs, the values wanted here are computed (mitred inner walls, fitted
+ * imports, so it is transpiled and executed rather than read as source — unlike
+ * the Go generators, the values wanted here are computed (mitred inner walls, fitted
  * figure transforms), not literals sitting in the source.
  *
  * What this file DOES decide is the favicon's treatment, and it is deliberately
@@ -47,6 +47,7 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { emit, report, Lang } from '../../scripts/emit.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const showcase = resolve(__dirname, '..');
@@ -106,6 +107,9 @@ if (!g) throw new Error(`LOGO_SHAPE '${shape}' is not a shape in CREST_MESH_GEOM
 
 const outline = mesh.outlinePath(g);
 const fit = mesh.fitTransform(g);
+// Centred on the shield's own bbox, same as the component — a tab icon that
+// rides low is the one place nobody can nudge it back.
+const box = mesh.viewBoxFor(g);
 const { CRESTLINK_SPOKES, CRESTLINK_NODES, CRESTLINK_HUB, CRESTLINK_NODE_R, CRESTLINK_HUB_R } =
 	mesh;
 
@@ -115,7 +119,7 @@ const nodes = CRESTLINK_NODES.map(
 	([cx, cy]) => `\t\t\t\t<circle cx="${cx}" cy="${cy}" r="${CRESTLINK_NODE_R}" />`
 ).join('\n');
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26" width="64" height="64" role="img" aria-labelledby="t">
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box}" width="64" height="64" role="img" aria-labelledby="t">
 	<title id="t">Armornet</title>
 
 	<!--
@@ -130,8 +134,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26" width
 
 	<defs>
 		<!-- White keeps, black cuts. -->
-		<mask id="cut" maskUnits="userSpaceOnUse" x="-1" y="-1" width="26" height="26">
-			<rect x="-1" y="-1" width="26" height="26" fill="#fff" />
+		<mask id="cut" maskUnits="userSpaceOnUse" x="-4" y="-4" width="32" height="32">
+			<rect x="-4" y="-4" width="32" height="32" fill="#fff" />
 			<g transform="${fit}" fill="none" stroke="#000" stroke-width="${WEIGHT}" stroke-linecap="round" stroke-linejoin="round">
 				<path d="${CRESTLINK_SPOKES}" />
 ${nodes}
@@ -144,27 +148,16 @@ ${nodes}
 </svg>
 `;
 
-let drift = false;
-for (const t of TARGETS) {
-	const path = resolve(repo, t);
-	const current = (() => {
-		try {
-			return readFileSync(path, 'utf8');
-		} catch {
-			return null;
-		}
-	})();
-	if (current === svg) continue;
-	if (check) {
-		console.error(`favicon drift: ${relative(repo, path)}`);
-		drift = true;
-	} else {
-		writeFileSync(path, svg);
-		console.log(`favicon → ${relative(repo, path)}`);
-	}
-}
-
-if (drift) {
-	console.error('\nRun `npm run gen:favicon` in showcase/ and commit the result.');
-	process.exit(1);
-}
+// Three identical copies, one per app's asset convention. Lang.none: an SVG
+// takes no comment banner here — the mark is the whole file, and a comment node
+// before the root element is a thing some tooling strips and some does not.
+//
+// This script's check mode was the reference the shared contract was written
+// from; adopting it aligns the reporting rather than correcting anything.
+const res = emit(
+	repo,
+	{ check, gen: 'gen-favicon' },
+	TARGETS.map((path) => ({ path, content: svg, lang: Lang.none }))
+);
+report(res, 'gen-favicon', 'npm run gen:favicon');
+if (!check) for (const t of TARGETS) console.log(`favicon → ${t}`);

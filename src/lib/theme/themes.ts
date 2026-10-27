@@ -9,6 +9,15 @@ export interface Theme {
 	mode: ThemeMode;
 	/** [background, accent, foreground, muted] — spec-only for the picker swatch. */
 	swatch: [string, string, string, string];
+	/**
+	 * Shown in pickers but not selectable, badged "coming soon".
+	 *
+	 * Distinct from `allowLight`, which REMOVES the light palettes for a host
+	 * that is dark-only. This says the palette exists and is being worked on —
+	 * so it is advertised rather than hidden, and a host cannot turn it on by
+	 * declaring a capability. Clearing the flag is the whole ship action.
+	 */
+	comingSoon?: boolean;
 }
 
 export const THEMES: readonly Theme[] = [
@@ -21,6 +30,7 @@ export const THEMES: readonly Theme[] = [
 	},
 	{
 		key: 'light',
+		comingSoon: true,
 		label: 'Light',
 		description: 'Bright off-white with a deep teal accent.',
 		mode: 'light',
@@ -28,6 +38,7 @@ export const THEMES: readonly Theme[] = [
 	},
 	{
 		key: 'paper',
+		comingSoon: true,
 		label: 'Paper',
 		description: 'Warm tan ground, white cards. Low glare for long reading.',
 		mode: 'light',
@@ -35,6 +46,7 @@ export const THEMES: readonly Theme[] = [
 	},
 	{
 		key: 'daylight',
+		comingSoon: true,
 		label: 'Daylight',
 		description: 'Cool slate ground, near-black ink. For a bright room.',
 		mode: 'light',

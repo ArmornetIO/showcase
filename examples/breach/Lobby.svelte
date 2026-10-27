@@ -23,15 +23,33 @@
 	// yourself around, with the size and mode sitting beside three people who
 	// had already sat down. Splitting it is the whole change.
 
+	import { onMount, untrack } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { Backdrop, LogoForge, prefersReducedMotion } from 'showcase';
 	import { BreachLobby } from './internal/lobby.svelte.js';
 	import type { AssignmentMode } from './internal/lobby.svelte.js';
-	import type { Faction, MatchSize } from './internal/rules.js';
+	import { defaultSizeFor, isOffice, type Faction, type MatchSize } from './internal/rules.js';
 	import ConnectionBanner from './hud/ConnectionBanner.svelte';
 	import WelcomeCard from './lobby/WelcomeCard.svelte';
 	import AgentSelect from './lobby/AgentSelect.svelte';
-	import { arrivedOnLink, inviteURL, openTable } from './api.js';
+	import StartScreen from './lobby/StartScreen.svelte';
+	import InsiderStartScreen from './lobby/InsiderStartScreen.svelte';
+	import { OutfitterState } from './outfitter/outfitter.svelte.js';
+	import {
+		MARKS_RETURN_PARAM,
+		arrivedForHalloween,
+		arrivedOnLink,
+		arrivedFromStepper,
+		hasSession,
+		insiderThreatOffered,
+		inviteURL,
+		isCtfPath,
+		isInsiderPath,
+		openTable,
+		pickInsider,
+		toOnboarding,
+		type TableVariant
+	} from './api.js';
 	import { TableSocket } from './net.svelte.js';
 
 	interface Props {
@@ -47,22 +65,9 @@
 		 *  Networked play has no equivalent: the server decides when the match
 		 *  begins and every client follows its snapshot. */
 		onenter?: (klassKey: string) => void;
-		/** Whether a player may take a demonstrator's chair mid-match. Owned by
-		 *  the match — a setting is a fact about the table, not about the screen
-		 *  that happens to be asking — so it is read and written through, never
-		 *  copied. */
-		takeover?: boolean;
-		ontakeover?: (v: boolean) => void;
 	}
 
-	let {
-		lobby,
-		socket = null,
-		onjoin,
-		onenter,
-		takeover = false,
-		ontakeover = () => {}
-	}: Props = $props();
+	let { lobby, socket = null, onjoin, onenter }: Props = $props();
 
 	// ── Where we are ─────────────────────────────────────────────────────────
 	// No flag and no setup step. A visitor lands on the sides screen with a
@@ -81,6 +86,68 @@
 	/** The local table's rules, and the ones a server table is opened WITH. The
 	 *  footer edits these before there is a socket and sends intents after. */
 	let size = $state<MatchSize>('2v2');
+
+	// ── You ──────────────────────────────────────────────────────────────────
+	// The local player's own character, owned HERE rather than inside the
+	// outfitter panel. A figure rebuilt every time the panel opened would not be
+	// a character — it would be a demo that resets, and the entire feature is
+	// that this thing is yours and persists.
+	//
+	// Every committed change goes two places: onto the local lobby so the ranks
+	// redraw immediately, and at the socket so everybody else's do. The local
+	// write is the only one there is when there is no socket — a single-player
+	// table is still a character — and when there is, the seat view that comes
+	// back overwrites it with the RESOLVED look. That is the correct order: the
+	// server filters a claim against what the account owns, so an item nobody
+	// has is worn locally for one frame and then falls back to its default in
+	// front of the person who tried it, rather than only in front of everybody
+	// else.
+	const fit = new OutfitterState({ key: 'you', name: 'You' });
+	// Whether this character is somebody's CHOICE yet — stored on the server or
+	// edited here. Until it is, you wear what the table deals you (see below).
+	let chosen = false;
+	fit.onchange = (look) => {
+		chosen = true;
+		lobby.setLook(lobby.youSeatId, look);
+		socket?.dress(look);
+	};
+	// The other direction, and the reason the editor is not the authority: the
+	// server hands back your STORED character when you arrive, and the resolved
+	// one when a claim had to be filtered. `load` is silent, so adopting it
+	// cannot bounce back out as another dress.
+	//
+	// In an effect because `lobby` is a prop: a bare assignment would wire the
+	// callback onto whichever table was passed FIRST, and a screen handed a new
+	// one would stop hearing about its own seat. Nothing reactive is written —
+	// `onyourlook` is a plain field — so this cannot re-enter.
+	$effect(() => {
+		lobby.onyourlook = (look) => {
+			chosen = true;
+			fit.load(look);
+		};
+	});
+	// A seat arrives after the character does — you dress before you have a
+	// chair — so the look has to be re-filed under whatever seat you land in.
+	//
+	// `untrack` is load-bearing, not tidiness. `setLook` reads `looks` in order
+	// to replace it, so an effect that both calls it and tracks what it touches
+	// depends on the thing it writes and re-runs for ever — this shipped once as
+	// `effect_update_depth_exceeded`, which froze the title curtain before any
+	// of this screen was reachable. The only dependency wanted here is the seat.
+	//
+	// With nothing stored and nothing edited, the look filed is the one the table
+	// DEALS this seat — the same outfit every other client draws for you from
+	// your id, so nobody has to be told. It is loaded silently: a dealt outfit
+	// only becomes yours, and goes on the wire, the first time you change it.
+	$effect(() => {
+		const seat = lobby.youSeatId;
+		if (!seat) return;
+		untrack(() => {
+			const here = lobby.seats.find((s) => s.id === seat);
+			if (!chosen && here) fit.load(lobby.dealtLook(here));
+			lobby.setLook(seat, fit.appearance);
+		});
+	});
 	// The table is opened WITH this, so the client's one mode is also the mode a
 	// hosted table runs — the server's own default is by-lot and nothing on this
 	// screen would ever change it now that the picker is gone.
@@ -104,7 +171,8 @@
 	 * everybody starts on the same screen, so the condition has to be stated
 	 * rather than inherited from where they happened to land.
 	 */
-	let titleDone = $state(prefersReducedMotion() || !!arrivedOnLink());
+	const fromStepper = arrivedFromStepper();
+	let titleDone = $state(prefersReducedMotion() || !!arrivedOnLink() || !!fromStepper);
 
 	/** Whether the forge has finished and the name is being said over the held
 	 *  frame. A second flag rather than a stage, because it is not a place: it
@@ -147,10 +215,92 @@
 	// question is the desync the authority split is here to prevent.
 	$effect(() => {
 		if (socket || !lobby.canChoose || lobby.phase !== 'waiting') return;
+		// Every mode drafts the same way: Insider Threat's characters are picked
+		// here like the CTF's, then "enter the match" walks into the office.
 		void lobby.issue();
 	});
 
 	const titleUp = $derived(!titleDone);
+
+	// ── The account, asked for during the curtain ────────────────────────────
+	// A signed-out first-time visitor used to walk straight out of the title
+	// into the agent-select screen and stay there: this screen only touches the
+	// server when somebody asks for an invite, so the 401 that sends a player to
+	// the stepper never fired. The game looked open and then refused the first
+	// thing they pressed.
+	//
+	// The probe starts on mount, so it runs UNDER the title rather than in front
+	// of it — the animation is the whole reason there is time to ask for free.
+	// `null` means the host does not answer the question (the standalone
+	// open-source build), and that visitor is left alone to play locally.
+	// `onMount` rather than an effect: this is asked once, and an effect with no
+	// reactive reads is a one-shot wearing a reaction's clothes.
+	let account = $state<boolean | null>(null);
+	onMount(() => void hasSession().then((v) => (account = v)));
+
+	// The outfitter's wallet: the signed-in player's real balance and inventory,
+	// or the demo account when there is no server. Coming back from a marks
+	// payment starts a re-read, since the webhook that credits it may trail the
+	// redirect; the parameter is dropped so a reload does not re-run it.
+	onMount(() => {
+		const params = new URLSearchParams(location.search);
+		const returned = params.get(MARKS_RETURN_PARAM) === 'success';
+		if (returned) {
+			params.delete(MARKS_RETURN_PARAM);
+			const q = params.toString();
+			history.replaceState(history.state, '', `${location.pathname}${q ? `?${q}` : ''}`);
+		}
+		void fit.connect().then(() => {
+			if (returned && fit.source === 'server') void fit.awaitMarks();
+		});
+	});
+
+	// ── The start screen ─────────────────────────────────────────────────────
+	// Between the title and everything else, so a visitor sees what the game is
+	// before being asked to sign in. Skipped on an invite link for the same
+	// reason the title is: a room is already waiting for that player.
+	let started = $state(!!arrivedOnLink() || !!fromStepper);
+
+	/** Insider Threat's start screen, and its table when Play is pressed, unless
+	 *  the visitor arrived on the CTF's link or switches to it on the bar. CTF
+	 *  where the deployment does not offer it, since the server would refuse the
+	 *  table anyway. */
+	const insiderOffered = insiderThreatOffered();
+	let insider = $state(insiderOffered && (fromStepper ? fromStepper === 'insider' : !isCtfPath()));
+	pickInsider(insider);
+
+	function pickGame(on: boolean) {
+		insider = on;
+		pickInsider(on);
+	}
+
+	const titles = $derived(
+		insiderOffered
+			? [
+					{ label: 'Insider', current: insider, select: () => pickGame(true) },
+					{ label: 'CTF', current: !insider, select: () => pickGame(false) }
+				]
+			: undefined
+	);
+
+	function play() {
+		pickVariant(insider ? 'insider_threat' : 'ctf');
+		// Signed in, Enter game still goes through the stepper: its last step
+		// teaches the picked game and opens the table.
+		if (account) toOnboarding();
+		else started = true;
+	}
+
+	// It stays up for a visitor known to be signed out even after Play, because
+	// the next thing on screen is the sign-in page and the character select
+	// flashing past on the way there reads as a broken page.
+	const startUp = $derived(!started || account === false);
+
+	// The redirect waits for Play, not for the curtain: it is the end of this
+	// page, and the start screen is the only chance to show what is behind it.
+	$effect(() => {
+		if (started && account === false) toOnboarding();
+	});
 
 	/**
 	 * Seat the first arrival, on a LOCAL table only.
@@ -171,7 +321,15 @@
 	$effect(() => {
 		if (socket || lobby.seated) return;
 		const seatId = lobby.firstOpenSeatOn('red');
-		if (seatId) lobby.joinSide('red');
+		if (!seatId) return;
+		lobby.joinSide('red');
+		// Remembered for the same reason `pickSide` remembers a deliberate pick:
+		// this chair was taken against seating the server is about to throw away.
+		// Without it a host who never touched a flag — the common case, since
+		// this effect seats them for free — opened a table and was silently left
+		// standing outside it, and `fill_ai` then took the chair they could see
+		// themselves sitting in.
+		localSide = 'red';
 	});
 
 	/**
@@ -192,7 +350,7 @@
 		opening = true;
 		openError = null;
 		try {
-			const table = await openTable({ size, mode });
+			const table = await openTable({ size, mode, variant: lobby.variant });
 			invite = inviteURL(table.invite);
 			onjoin?.(table.table_id);
 		} catch (err) {
@@ -246,7 +404,10 @@
 	 * you lives in `BreachLobby` either way, so the two paths cannot drift.
 	 */
 	function pickSide(side: Faction) {
-		const seatId = lobby.firstOpenSeatOn(side);
+		// Takeable, not open: on a table the host has filled there are no open
+		// chairs left and this is a guest who arrived on the link. The server
+		// allows displacing a demonstrator right up until the first move.
+		const seatId = lobby.firstTakeableSeatOn(side);
 		if (!seatId) return;
 		if (socket?.live) socket.takeSeat(seatId);
 		else {
@@ -258,13 +419,51 @@
 		}
 	}
 
-	/** Fill the rest of the table with demonstrators. The host's answer to
-	 *  "nobody else is coming", and one of the two ways the character gate
-	 *  opens — the other being three more people arriving. */
+	/** A fill asked for while a table was still being opened, held until it can
+	 *  be sent. See `fillWithAI`. */
+	let pendingFill = $state(false);
+
+	/**
+	 * Fill the rest of the table with demonstrators. The host's answer to
+	 * "nobody else is coming", and one of the two ways the character gate opens
+	 * — the other being three more people arriving.
+	 *
+	 * A fill asked for while a table is mid-open is DEFERRED rather than applied
+	 * locally, because a local fill in that window is worse than no fill: the
+	 * seating it writes is overwritten seconds later by `applyRemote`, so the
+	 * host presses the button, watches the chairs fill, and then watches them
+	 * empty again. Pressing it once more is the natural response and it lands on
+	 * the real table before the host's own chair has been re-taken — which fills
+	 * every seat with bots, closes the character gate, and leaves `pickSide` with
+	 * no open chair to give. That is the locked lobby: a full table nobody can
+	 * join, and the only way out is a new one.
+	 *
+	 * So the fill waits for the socket to be live AND for the host to be seated
+	 * on the server's seating, then goes out as an intent like every other
+	 * decision on this screen.
+	 */
 	function fillWithAI() {
-		if (socket?.live) socket.fillAI();
-		else lobby.fillWithAI();
+		if (socket?.live) {
+			socket.fillAI();
+			return;
+		}
+		// A table exists or is on its way: hold the intent for the flush below.
+		// Otherwise this is a genuinely local table and nothing is coming to
+		// overwrite it — but the flag is still set, harmlessly, so that a host who
+		// fills and THEN asks for an invite gets the bots they asked for on the
+		// table that replaces this one.
+		if (!socket && !opening) lobby.fillWithAI();
+		pendingFill = true;
 	}
+
+	// Flush a deferred fill. Gated on `localSide` being cleared as well as on the
+	// seat landing, so it can never overtake the re-seat above and fill the
+	// chair that re-seat is on its way to take.
+	$effect(() => {
+		if (!pendingFill || !socket?.live || localSide || !lobby.seated) return;
+		pendingFill = false;
+		socket.fillAI();
+	});
 
 	/** The table's rules, changed after it was opened.
 	 *
@@ -285,6 +484,27 @@
 		if (socket?.live) socket.setSize(s);
 		else lobby.setSize(s);
 	}
+
+	/** The game. Live until the characters are out, like size, and routed the
+	 *  same way. Offered only where the deployment has the feature on — the
+	 *  server enforces the same switch at both doors. */
+	const offerVariant = insiderThreatOffered();
+	function pickVariant(v: TableVariant) {
+		if (socket?.live) {
+			socket.setVariant(v);
+			return;
+		}
+		lobby.variant = v;
+		// The new game's own table when the old size is not one it is played at,
+		// as the server does for a hosted table (`Table.resize`).
+		if (isOffice(lobby.size) !== (v === 'insider_threat')) {
+			size = defaultSizeFor(v);
+			lobby.setSize(size);
+		}
+	}
+	// Back from the stepper the start screen is skipped, so Play never set the
+	// game picked there; the table would open as the CTF.
+	if (fromStepper && !arrivedOnLink()) pickVariant(insider ? 'insider_threat' : 'ctf');
 
 	// No `pickMode`. The character screen offers one way to hand characters out —
 	// the draft — so the only thing that still sets a mode is `openTable` below,
@@ -357,6 +577,22 @@
 	     every change after it — so there is nothing left for a separate screen
 	     to do. `inert` while the curtain is up, so the tab key never reaches a
 	     roster the reader cannot see. -->
+	{#if startUp}
+		<div class="relative z-10 min-h-full" inert={titleUp}>
+			{#if insider}
+				<InsiderStartScreen
+					{account}
+					leaving={started}
+					scene={!titleUp}
+					halloween={arrivedForHalloween()}
+					onplay={play}
+					{titles}
+				/>
+			{:else}
+				<StartScreen {account} leaving={started} globe={!titleUp} onplay={play} {titles} />
+			{/if}
+		</div>
+	{:else}
 	<div class="relative z-10 min-h-full grid" inert={titleUp}>
 		<!-- The host's levers used to float over this screen in their own panel,
 		     pinned above the footer — a second bar of controls on a screen that
@@ -366,17 +602,21 @@
 		<AgentSelect
 			{lobby}
 			{socket}
+			{fit}
 			{onenter}
 			{invite}
 			{copied}
 			busy={opening}
+			filling={pendingFill}
 			error={openError}
 			oncopy={copy}
 			onfill={fillWithAI}
 			onpickside={socket && !socket.live ? undefined : pickSide}
 			onsize={pickSize}
+			onvariant={offerVariant && (!socket || socket.live) ? pickVariant : undefined}
 		/>
 	</div>
+	{/if}
 
 
 	<!-- The curtain. Over the backdrop, the banner and whichever screen is behind
@@ -404,7 +644,10 @@
 			<!-- After the button, so the type paints over it, and inert so the frame
 			     stays one big skip target for the whole of the curtain. -->
 			{#if welcoming}
-				<WelcomeCard oncomplete={() => (titleDone = true)} />
+				<WelcomeCard
+					word={insiderOffered && isInsiderPath() ? 'Insider Threat' : undefined}
+					oncomplete={() => (titleDone = true)}
+				/>
 			{/if}
 			<span
 				class="pointer-events-none absolute right-6 bottom-5 font-mono text-[0.58rem]

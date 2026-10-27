@@ -1,5 +1,15 @@
 <script lang="ts" module>
-	import { CREST_MESH_GEOMETRY, type CrestMeshShape } from './ArmornetCrestMesh.svelte';
+	import {
+		CREST_MESH_GEOMETRY,
+		CRESTLINK_HUB,
+		CRESTLINK_HUB_R,
+		CRESTLINK_NODES,
+		CRESTLINK_NODE_R,
+		CRESTLINK_SPOKES,
+		fitTransform,
+		outlinePath,
+		type CrestMeshShape
+	} from './ArmornetCrestMesh.svelte';
 
 	/**
 	 * WHICH shield is the brand, as a value rather than as a string typed at a
@@ -12,6 +22,22 @@
 	 */
 	export const LOGO_SHAPE: CrestMeshShape = 'crestkey';
 	export const LOGO_GEOMETRY = CREST_MESH_GEOMETRY[LOGO_SHAPE];
+
+	/**
+	 * The mark as raw SVG interior, in the 24-unit box `ICONS` are drawn in.
+	 *
+	 * For the one consumer that cannot take a component: a mesh node carries its
+	 * glyph as `iconMarkup`, a string the canvas injects. `ICONS.armornet` is this
+	 * markup, so an icon by name and the logo cannot drift apart. Stroke weight is
+	 * the caller's, as for every other icon.
+	 */
+	export const LOGO_MARKUP =
+		`<path d="${outlinePath(LOGO_GEOMETRY)}"/>` +
+		`<g transform="${fitTransform(LOGO_GEOMETRY)}">` +
+		`<circle cx="${CRESTLINK_HUB[0]}" cy="${CRESTLINK_HUB[1]}" r="${CRESTLINK_HUB_R}" fill="currentColor" stroke="none"/>` +
+		`<path d="${CRESTLINK_SPOKES}"/>` +
+		CRESTLINK_NODES.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${CRESTLINK_NODE_R}"/>`).join('') +
+		`</g>`;
 </script>
 
 <script lang="ts">

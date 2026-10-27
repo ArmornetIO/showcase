@@ -18,7 +18,7 @@ that render them.
 | `trigger.svelte.ts` | Per-instance overlay state for triggerable components |
 | `TriggerOverlays.svelte` | The drawer/modal a trigger opens |
 | `chart-presets.ts` | Preview `ChartConfig`s, one per chart type |
-| `*Renderer.svelte` | One family each — primitives, forms, layout, navigation, metrics, data, display, code, marketing, brand, mesh, assessment, storyboard |
+| `*Renderer.svelte` | One family each — primitives, forms, layout, navigation, metrics, data, display, code, marketing, brand, mesh, assessment, storyboard (scene replay) |
 
 ## Adding a component
 

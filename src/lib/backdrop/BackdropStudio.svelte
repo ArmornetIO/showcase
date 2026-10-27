@@ -93,19 +93,26 @@
 		else if (!open && dialogEl.open) dialogEl.close();
 	});
 
+	// The studio takes a COPY of the preset at mount and edits that. Reopening
+	// with a different `preset` is a fresh dialog, not a live rebind — rebinding
+	// mid-edit would throw away whatever the user had dialled in.
+	// svelte-ignore state_referenced_locally
+	const seedId = initial;
+	const seed = resolvePreset(seedId);
+
 	let camera = $state<CanvasCamera | undefined>();
-	let preset = $state<PresetId>(initial);
-	let strips = $state<StripSpec[]>(resolvePreset(initial).strips);
-	let selectedId = $state<string>(resolvePreset(initial).strips[0]?.id ?? '');
+	let preset = $state<PresetId>(seedId);
+	let strips = $state<StripSpec[]>(seed.strips);
+	let selectedId = $state<string>(seed.strips[0]?.id ?? '');
 	let knobs = $state<Knob[]>(defaultKnobs());
 	let labels = $state(true);
-	let rainbow = $state(resolvePreset(initial).rainbow ?? false);
-	let rainbowSpeed = $state(resolvePreset(initial).rainbowSpeed ?? 18);
+	let rainbow = $state(seed.rainbow ?? false);
+	let rainbowSpeed = $state(seed.rainbowSpeed ?? 18);
 	let copied = $state(false);
 	let showOutput = $state(false);
 
 	/** Palette overrides from the loaded preset — a vibe's colours are its own. */
-	let presetTokens = $state<Record<string, string>>(resolvePreset(initial).tokens ?? {});
+	let presetTokens = $state<Record<string, string>>(seed.tokens ?? {});
 
 	/**
 	 * What the stage is showing, bottom layer first, and which one the rails are
@@ -116,8 +123,8 @@
 	 * `active` is the one being EDITED, which is a separate question from what is
 	 * visible, exactly as selecting a strip is.
 	 */
-	let stack = $state<BackdropId[]>([initial]);
-	let active = $state<BackdropId>(initial);
+	let stack = $state<BackdropId[]>([seedId]);
+	let active = $state<BackdropId>(seedId);
 	let blend = $state<BlendMode>(DEFAULT_BLEND);
 
 	/**

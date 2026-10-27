@@ -14,12 +14,9 @@
 		model: PresenceModel;
 		/** Open the full sheet for a seat. Omit to make the rows inert. */
 		oninspect?: (key: string) => void;
-		/** Sit down in a chair the demonstrator is playing. Omit — as a table whose
-		 *  settings did not offer it does — and no row grows the control. */
-		ontakeover?: (key: string) => void;
 	}
 
-	let { model, oninspect, ontakeover }: Props = $props();
+	let { model, oninspect }: Props = $props();
 
 	/** Everyone but you, in initiative order rather than roster order — the list
 	 *  should read in the order they will actually act on you. */
@@ -45,9 +42,6 @@
 	<div class="flex flex-col gap-1.5">
 		{#each others as seat (seat.key)}
 			{@const enemy = seat.relation === 'enemy'}
-			{@const takeable = !!ontakeover && seat.automatic}
-			<!-- The row's frame is a plain div so the take-over control can be a
-			     button without sitting inside one. -->
 			<div
 				class="flex flex-col gap-1 rounded border px-1.5 py-1 w-full"
 				style:border-color={seat.active
@@ -132,26 +126,6 @@
 					>
 						{lastSeen(seat.quietFor, seat.focus)}
 					</span>
-					{#if takeable}
-						<span class="flex-1"></span>
-						<!-- Only ever on a chair nobody is in: `automatic` is the seating,
-						     not a guess at the name. The engine refuses a person's chair
-						     as well, because a control that is merely hidden is a control
-						     that comes back the moment somebody calls the method. -->
-						<button
-							type="button"
-							onclick={() => ontakeover?.(seat.key)}
-							title="Take {seat.name} — you leave your own chair to a bot"
-							class="font-mono text-[0.46rem] font-bold tracking-[0.14em] uppercase px-1 py-px rounded
-							       border transition-colors hover:brightness-125
-							       focus-visible:outline focus-visible:outline-1"
-							style:color={seat.color}
-							style:border-color="color-mix(in srgb, {seat.color} 45%, transparent)"
-							style:background="color-mix(in srgb, {seat.color} 12%, transparent)"
-						>
-							take over
-						</button>
-					{/if}
 				</div>
 			</div>
 		{/each}

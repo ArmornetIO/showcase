@@ -27,9 +27,14 @@
 </div>
 
 <style>
+	/* Wraps. The strip is four fixed-width chips plus a caption sitting in a
+	   header that also carries the title and the gate — on a phone that is more
+	   than the row can hold, and a chip pushed past the edge is a seat the
+	   reader is never told about. */
 	.order {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
 		gap: 6px;
 	}
 	.pip {

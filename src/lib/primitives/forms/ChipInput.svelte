@@ -1,10 +1,15 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+
 	interface ChipInputProps {
 		value?: string[];
 		placeholder?: string;
 		id?: string;
 		class?: string;
 		disabled?: boolean;
+		/** Order is meaning (a priority list): chips are numbered, draggable,
+		 *  and move with Alt+←/→ when focused. */
+		sortable?: boolean;
 	}
 
 	let {
@@ -12,10 +17,55 @@
 		placeholder = 'Add tag…',
 		id,
 		class: cls = '',
-		disabled = false
+		disabled = false,
+		sortable = false
 	}: ChipInputProps = $props();
 
 	let inputVal = $state('');
+	let chipEls = $state<HTMLElement[]>([]);
+	let dragFrom = $state<number | null>(null);
+	let dropAt = $state<number | null>(null);
+	const canSort = $derived(sortable && !disabled);
+
+	function move(from: number, to: number) {
+		if (to < 0 || to >= value.length || from === to) return;
+		const next = [...value];
+		next.splice(to, 0, ...next.splice(from, 1));
+		value = next;
+	}
+
+	// Moving a focused node in the DOM blurs it; refocus so repeated Alt+arrow keeps going.
+	async function moveAndFocus(from: number, to: number) {
+		move(from, to);
+		await tick();
+		chipEls[Math.max(0, Math.min(to, value.length - 1))]?.focus();
+	}
+
+	function chipKeydown(e: KeyboardEvent, i: number) {
+		if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) {
+			e.preventDefault();
+			moveAndFocus(i, i - 1);
+		} else if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) {
+			e.preventDefault();
+			moveAndFocus(i, i + 1);
+		} else if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			chipEls[i - 1]?.focus();
+		} else if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			chipEls[i + 1]?.focus();
+		} else if (e.key === 'Delete' || e.key === 'Backspace') {
+			e.preventDefault();
+			removeChip(value[i]);
+			tick().then(() => chipEls[Math.min(i, value.length - 1)]?.focus());
+		}
+	}
+
+	function drop(e: DragEvent, i: number) {
+		e.preventDefault();
+		if (dragFrom !== null) move(dragFrom, i);
+		dragFrom = dropAt = null;
+	}
 
 	function addChip(raw: string) {
 		const v = raw
@@ -51,7 +101,47 @@
 
 <!-- A <label> natively focuses its nested input on click — no JS handler needed. -->
 <label class="chip-input {cls}" aria-label="Tag input">
-	{#each value as chip}
+	{#each value as chip, i (chip)}
+		{#if canSort}
+			<!-- preventDefault on click: the wrapping <label> would otherwise steal focus to the text input. -->
+			<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
+			<span
+				bind:this={chipEls[i]}
+				class="chip-item sortable"
+				class:dragging={dragFrom === i}
+				class:drop-before={dropAt === i && dragFrom !== null && dragFrom > i}
+				class:drop-after={dropAt === i && dragFrom !== null && dragFrom < i}
+				tabindex="0"
+				draggable="true"
+				aria-label="{chip}, {i + 1} of {value.length}. Alt+arrow to move."
+				onclick={(e) => {
+					e.preventDefault();
+					chipEls[i]?.focus();
+				}}
+				onkeydown={(e) => chipKeydown(e, i)}
+				ondragstart={(e) => {
+					dragFrom = i;
+					e.dataTransfer?.setData('text/plain', chip);
+				}}
+				ondragover={(e) => {
+					e.preventDefault();
+					dropAt = i;
+				}}
+				ondragleave={() => dropAt === i && (dropAt = null)}
+				ondrop={(e) => drop(e, i)}
+				ondragend={() => (dragFrom = dropAt = null)}
+			>
+				<span class="chip-ord">{i + 1}</span>
+				{chip}
+				<button
+					type="button"
+					class="chip-remove"
+					tabindex="-1"
+					onclick={(e) => { e.stopPropagation(); removeChip(chip); }}
+					aria-label="Remove {chip}"
+				>×</button>
+			</span>
+		{:else}
 		<span class="chip-item">
 			{chip}
 			{#if !disabled}
@@ -63,6 +153,7 @@
 				>×</button>
 			{/if}
 		</span>
+		{/if}
 	{/each}
 	{#if !disabled}
 		<input
@@ -110,6 +201,29 @@
 		color: var(--accent);
 		white-space: nowrap;
 		line-height: 1.6;
+	}
+	.chip-item.sortable {
+		cursor: grab;
+		position: relative;
+		outline: none;
+	}
+	.chip-item.sortable:focus-visible {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 1px var(--accent);
+	}
+	.chip-item.dragging {
+		opacity: 0.4;
+	}
+	.chip-item.drop-before {
+		box-shadow: -3px 0 0 var(--accent);
+	}
+	.chip-item.drop-after {
+		box-shadow: 3px 0 0 var(--accent);
+	}
+	.chip-ord {
+		font-size: 0.6rem;
+		opacity: 0.6;
+		margin-right: 2px;
 	}
 	.chip-remove {
 		display: inline-flex;

@@ -27,6 +27,7 @@
 // a structure. Which region somebody has been working in is the tell blue is
 // owed; which building is the thing red is spending the whole match hiding.
 
+import { SIDE_TONE } from './badge.js';
 import { audienceAllows, type LogEntry, type LogTone } from './log.js';
 import {
 	INITIATIVE,
@@ -88,6 +89,18 @@ export interface SeatPresence {
 	 *  unclaimed seat and false for one a person is holding; false is also what a
 	 *  local game with no seating information says, which is the old behaviour. */
 	automatic: boolean;
+	/**
+	 * The seat's hue — and it is the SIDE's, not the character's.
+	 *
+	 * It used to be `klass.color`: four roles, four fixed hues, which worked
+	 * precisely because a role was also a body and a face. Once a player builds
+	 * their own figure, a per-role hue is a colour with no owner — it belongs to
+	 * a role the player did not choose and cannot see themselves in, and it sits
+	 * beside a figure painted in colours they DID choose, competing with them.
+	 *
+	 * Red and blue are now the only hues on this table that are not somebody's
+	 * own, which is what makes them worth reading. See `internal/badge.ts`.
+	 */
 	color: string;
 	icon: string;
 	faction: Faction;
@@ -247,7 +260,7 @@ export function derivePresence(input: PresenceInput): PresenceModel {
 			name: klass.name,
 			player: input.players?.[key]?.name ?? null,
 			automatic: (input.players?.[key]?.kind ?? 'human') === 'ai',
-			color: klass.color,
+			color: SIDE_TONE[klass.faction],
 			icon: klass.icon,
 			faction: klass.faction,
 			relation: relationOf(viewer, klass),

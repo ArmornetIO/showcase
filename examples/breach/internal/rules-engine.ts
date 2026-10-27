@@ -38,7 +38,7 @@ const EXEC_URL = '/wasm_exec_tinygo.js';
  *  be awaited there. Only `load()` is async, and only once. */
 interface RulesModule {
 	version: string;
-	open(size: MatchSize, seed: number): { size: MatchSize };
+	open(size: MatchSize, seed: number, seating?: string): { size: MatchSize };
 	view(klassKey: string): string;
 	hardening(siteId: string): number;
 	odds(actorKey: string, playKey: string, siteId: string): string;
@@ -46,6 +46,55 @@ interface RulesModule {
 	endTurn(): void;
 	aiTurn(): string | null;
 	state(): string;
+	officeOpen(seed: number, seats: string): void;
+	officeView(seat: string): Uint8Array;
+	officeTick(seat: string): { changed: boolean; reactions: Uint8Array[]; walked: Uint8Array[] };
+	officeDo(seat: string, intent: string): void;
+	officePose(seat: string, x: number, z: number): void;
+}
+
+/** A chair at an offline office, as office.New takes it. */
+export interface OfficeSeat {
+	ID: string;
+	Handle: string;
+	KlassKey: string;
+	Bot: boolean;
+}
+
+/** The same module hosting an Insider Threat match: internal/breach/office,
+ *  bots and all. Views and reactions come back as the Line frames' bytes, so
+ *  the caller decodes them with the networked path's decoders. */
+export class OfficeEngine {
+	#mod: RulesModule;
+
+	private constructor(mod: RulesModule) {
+		this.#mod = mod;
+	}
+
+	static async open(seed: number, seats: OfficeSeat[]): Promise<OfficeEngine> {
+		const mod = await loadWasmModule<RulesModule>(WASM_URL, 'breachRules', EXEC_URL);
+		mod.officeOpen(seed, JSON.stringify(seats));
+		return new OfficeEngine(mod);
+	}
+
+	view(seat: string): Uint8Array {
+		return this.#mod.officeView(seat);
+	}
+
+	/** Runs the clock: whether any view changed, the reactions that reached
+	 *  `seat`, and a PoseFrame for every bot that moved. */
+	tick(seat: string): { changed: boolean; reactions: Uint8Array[]; walked: Uint8Array[] } {
+		return this.#mod.officeTick(seat);
+	}
+
+	/** One move, in the networked `Intent`'s own JSON. Throws on a refusal. */
+	do(seat: string, intent: object): void {
+		this.#mod.officeDo(seat, JSON.stringify(intent));
+	}
+
+	pose(seat: string, x: number, z: number): void {
+		this.#mod.officePose(seat, x, z);
+	}
 }
 
 /** The un-fogged frame a page needs to drive itself. Nothing here is hidden
@@ -72,9 +121,16 @@ export class RulesEngine {
 	 *  reproducible: the same seed plays the same match. That is what lets a
 	 *  vector generated against the server be replayed here and compared row for
 	 *  row, which is the only way to know the engines agree. */
-	static async open(size: MatchSize, seed: number): Promise<RulesEngine> {
+	/** `seating` is who sits where, in initiative order — any character may
+	 *  sit in either side's chair. Omitted, each sits in its own. */
+	static async open(
+		size: MatchSize,
+		seed: number,
+		seating?: Array<{ klass: string; side: 'red' | 'blue' }>
+	): Promise<RulesEngine> {
 		const mod = await loadWasmModule<RulesModule>(WASM_URL, 'breachRules', EXEC_URL);
-		mod.open(size, seed);
+		if (seating?.length) mod.open(size, seed, seating.map((c) => `${c.klass}:${c.side}`).join(','));
+		else mod.open(size, seed);
 		return new RulesEngine(mod);
 	}
 

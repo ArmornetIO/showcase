@@ -123,7 +123,23 @@
 	const fillWidth = $derived(animate && !indeterminate ? (mounted ? pct : 0) : pct);
 </script>
 
-{#if type === 'radial'}
+{#if type === 'read'}
+	<!-- ── Read progress ───────────────────────────────────────────────────────
+	     Page chrome, not an inline widget: fixed to the top, two pixels tall, no
+	     label and no percentage. A reader glances at how much is left; a number
+	     would invite them to do arithmetic about it instead of reading.
+
+	     aria-hidden because the value duplicates what a screen reader already
+	     conveys through position in the document, and announcing a percentage on
+	     every scroll tick is noise. -->
+	<div class="pb-read" aria-hidden="true">
+		<div
+			class="pb-read-fill pb-fill-{variant}"
+			style:width="{pct}%"
+			style:background={color}
+		></div>
+	</div>
+{:else if type === 'radial'}
 	<RadialProgress
 		{value}
 		{max}
@@ -202,6 +218,24 @@
 {/if}
 
 <style>
+	/* ── read ────────────────────────────────────────────────────────────────── */
+	.pb-read {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		z-index: 60;
+		background: transparent;
+		pointer-events: none;
+	}
+	.pb-read-fill {
+		height: 100%;
+		/* No transition: this tracks scroll, and easing a scroll-driven value makes
+		   the bar lag the page it is describing. */
+		background: var(--accent);
+	}
+
 	/* ── Linear bar ──────────────────────────────────────────────────────────── */
 	.pb-root {
 		width: 100%;

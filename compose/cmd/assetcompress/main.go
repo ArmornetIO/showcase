@@ -23,6 +23,7 @@ func main() {
 		min     = flag.Int64("min", 1024, "skip files smaller than this many bytes")
 		workers = flag.Int("workers", runtime.NumCPU(), "parallel compressions")
 		quiet   = flag.Bool("quiet", false, "suppress the summary line")
+		drop    = flag.Bool("drop-originals", false, "remove a file once its gzip sidecar is kept (HTML excepted)")
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: assetcompress [flags] <dir>...\n\n")
@@ -36,8 +37,9 @@ func main() {
 	}
 
 	stats, err := assetenc.Dirs(flag.Args(), assetenc.Options{
-		MinSize: *min,
-		Workers: *workers,
+		MinSize:       *min,
+		Workers:       *workers,
+		DropOriginals: *drop,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "assetcompress: %v\n", err)

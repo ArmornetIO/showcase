@@ -19,7 +19,7 @@ export type ChartType =
 	| 'waterfall'
 	| 'boxplot'
 	| 'horizon'
-	| 'timeline'
+	| 'swimlane'
 	| 'lollipop'
 	| 'gauge';
 
@@ -46,9 +46,9 @@ export interface ChartPoint {
 	y1?: number;
 	y2?: number;
 	y3?: number;
-	/** Box plot: upper whisker / timeline: event end */
+	/** Box plot: upper whisker */
 	y4?: number;
-	/** Timeline: event end time */
+	/** Swimlane: span end. Absent, the point is a milestone. */
 	x1?: number | Date;
 	/** Bubble chart: radius in px */
 	r?: number;
@@ -181,6 +181,17 @@ export interface GaugeConfig {
 	precision?: number;
 }
 
+// ── Swimlane ──────────────────────────────────────────────────────────────────
+
+/** A handoff between two lanes, keyed by series id. */
+export interface SwimlaneLink {
+	from: { lane: string; x: number | Date };
+	to: { lane: string; x: number | Date };
+	label?: string;
+	/** Async / fire-and-forget */
+	dashArray?: string;
+}
+
 // ── Root config ───────────────────────────────────────────────────────────────
 
 export interface ChartConfig {
@@ -206,6 +217,11 @@ export interface ChartConfig {
 	 * already fluent in the other chart types has one new object to learn.
 	 */
 	gauge?: GaugeConfig;
+	/**
+	 * Swimlane only. Lanes are series and spans are points with `x`→`x1`; a
+	 * handoff belongs to two lanes, so it cannot live on either series.
+	 */
+	links?: SwimlaneLink[];
 	/** Enable scroll-wheel zoom and drag pan on cartesian charts */
 	zoomable?: boolean;
 	/** Heatmap sequential/diverging color scale: [[t, color], ...] where t is 0–1 */

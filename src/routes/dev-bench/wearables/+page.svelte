@@ -13,6 +13,7 @@
 	//   ?walk=1              mid-stride, to catch anything that fails to ride the bob
 	//   ?only=emblem         items whose key starts with this
 	//   ?cell=240            bigger cells — a chest badge is unreadable at 104px
+	//   ?ground=%23FB7185    stand them on a platform of that colour
 	import Figure from '$lib/character/Figure.svelte';
 	import { CHARACTERS } from '$lib/character/characters.js';
 	import { WEARABLES } from '$lib/character/wearables.js';
@@ -26,6 +27,9 @@
 	const walk = params.get('walk') === '1';
 	const pick = params.get('only');
 	const cell = Number(params.get('cell') ?? 104);
+	// The platform is off by default: it is a seat's colour, and a sheet whose
+	// job is the WORN items should not paint a floor under every cell.
+	const ground = params.get('ground') ?? undefined;
 
 	const who = $derived(only ? CHARACTERS.filter((c) => c.shape === only) : CHARACTERS);
 	const items = Object.values(WEARABLES).filter((w) => !pick || w.key.startsWith(pick));
@@ -51,6 +55,7 @@
 								klass={k}
 								crop="hero"
 								shadow
+								{ground}
 								art={{ yaw, worn: [w.key], trim: TRIM, pose }}
 							/>
 							<span>{k.shape}</span>

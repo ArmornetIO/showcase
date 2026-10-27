@@ -25,15 +25,14 @@
 	import { knobKey, type Knob } from '../backdrop/backdrop-tokens.js';
 	import { downloadPng, downloadSvg, rasterSize } from '../dev/svg-export.js';
 	import Icon, { ICONS, type IconName } from './Icon.svelte';
-	import ArmornetCrest from './ArmornetCrest.svelte';
-	import ArmornetCrestHub from './ArmornetCrestHub.svelte';
-	import ArmornetCrestMesh, { type CrestMeshShape } from './ArmornetCrestMesh.svelte';
+	import ArmornetLogo from './ArmornetLogo.svelte';
 	import ArmornetCrestChrome, { type ChromeShape } from './ArmornetCrestChrome.svelte';
 	import {
 		filename,
 		MARKS,
 		readKnobs,
 		snippet,
+		propOf,
 		COLOR_TOKEN,
 		MESH_TOKEN,
 		type MarkId
@@ -49,7 +48,7 @@
 		icon?: IconName;
 		/** Same idea for the shield grids: you clicked `merlon`, so the shield
 		 *  knob opens on `merlon` rather than on the mark's default. */
-		shape?: CrestMeshShape;
+		shape?: ChromeShape;
 		onclose: () => void;
 	}
 
@@ -77,7 +76,7 @@
 		else if (shape) seedShape(shape);
 	});
 
-	function pick(n: number, seed?: CrestMeshShape) {
+	function pick(n: number, seed?: ChromeShape) {
 		i = n;
 		knobs = MARKS[n].knobs();
 		if (seed) seedShape(seed);
@@ -119,9 +118,16 @@
 		const now = next.find((k) => k.kind === 'color' && k.token === COLOR_TOKEN);
 		const mesh = knobs.find((k) => k.kind === 'color' && k.token === MESH_TOKEN);
 		const linked = was && mesh && was.value === mesh.value && now && now.value !== was.value;
-		knobs = linked
+		const edited = linked
 			? next.map((k) => (knobKey(k) === knobKey(mesh) ? ({ ...k, value: now.value } as Knob) : k))
 			: next;
+		// The panel is handed a FILTERED list (chrome-only knobs are hidden while
+		// Chrome is off), and BackdropControls round-trips whatever it was given.
+		// Assigning its output wholesale would delete the hidden knobs the moment
+		// you touched any control — and the Chrome toggle is one of them, so the
+		// mark could never be switched back. Merge by key instead.
+		const by = new Map(edited.map((k) => [knobKey(k), k]));
+		knobs = knobs.map((k) => by.get(knobKey(k)) ?? k);
 	}
 
 	// ── The glyph, for the Icon mark ────────────────────────────────────────
@@ -162,15 +168,38 @@
 		if (svg) downloadPng(svg, filename(current, knobs, base, 'png'), scale);
 	}
 
+	// Props only the chrome cut reads. With Chrome off they are inert, so they are
+	// hidden rather than left sitting there doing nothing — a panel that shows a
+	// Shield picker above a mark pinned to one shield is lying about what it does.
+	const CHROME_ONLY = ['shape', 'breakout', 'tethers', 'bloom', 'traces', 'rim', 'emboss'];
+	const live = $derived(
+		current.id === 'logo' && !s.chrome
+			? knobs.filter((k) => !CHROME_ONLY.includes(propOf(k)))
+			: knobs
+	);
+
+	// The line has to name the component actually on the stage, and `chrome` is a
+	// control of this panel, not a prop either component takes.
+	const emitted = $derived(
+		current.id === 'logo'
+			? { ...current, name: s.chrome ? 'ArmornetCrestChrome' : 'ArmornetLogo' }
+			: current
+	);
 	const code = $derived(
 		current.id === 'icon'
 			? `<Icon name="${glyph}" size={${s.size}}${s.strokeWidth === 1.5 ? '' : ` strokeWidth={${s.strokeWidth}}`} />`
-			: snippet(current, knobs, base)
+			: snippet(
+					emitted,
+					live.filter((k) => propOf(k) !== 'chrome'),
+					base
+				)
 	);
 
 	// Only the two shield-bearing marks get the card picker; the rest have short
 	// option sets where the word is the clearer control.
-	const hasShieldKnob = $derived(current.id === 'mesh' || current.id === 'chrome');
+	// Only the chrome cut still picks a silhouette; the flat logo is pinned to one
+	// shield on purpose (ArmornetLogo owns that choice so it is made once).
+	const hasShieldKnob = $derived(current.id === 'logo' && !!s.chrome);
 
 	const groups = $derived({
 		colour: base.some((k) => k.group === 'colour'),
@@ -215,30 +244,11 @@
 				<div class="is-art" bind:this={stageEl} style:color={s.ink}>
 					{#if current.id === 'icon'}
 						<Icon name={glyph} size={s.size} strokeWidth={s.strokeWidth} />
-					{:else if current.id === 'crest'}
-						<ArmornetCrest
+					{:else if !s.chrome}
+						<ArmornetLogo
 							size={s.size}
 							color={s.color}
-							meshColor={s.meshColor}
-							mesh={s.mesh}
-							glow={s.glow}
-						/>
-					{:else if current.id === 'hub'}
-						<ArmornetCrestHub
-							size={s.size}
-							color={s.color}
-							look={s.look}
-							spokes={s.spokes}
-							tethers={s.tethers}
-							glow={s.glow}
-						/>
-					{:else if current.id === 'mesh'}
-						<ArmornetCrestMesh
-							size={s.size}
-							color={s.color}
-							meshColor={s.meshColor}
-							shape={s.shape as CrestMeshShape}
-							variant={s.variant}
+							variant={s.variant as 'outline' | 'filled'}
 							innerWall={s.innerWall}
 							glow={s.glow}
 						/>
@@ -268,22 +278,15 @@
 				     of glowing marks at 26px is a grid of glowing blobs. -->
 				{#snippet shieldCards(prop: string, option: string)}
 					{#if prop === 'shape'}
-						{#if current.id === 'chrome' && option === 'traced'}
+						{#if option === 'traced'}
 							<ArmornetCrestChrome size={34} glow={false} traces={false} emboss={false} />
-						{:else if current.id === 'chrome'}
+						{:else}
 							<ArmornetCrestChrome
 								size={34}
 								shape={option as ChromeShape}
 								glow={false}
 								traces={false}
 								emboss={false}
-							/>
-						{:else}
-							<ArmornetCrestMesh
-								size={34}
-								shape={option as CrestMeshShape}
-								glow={false}
-								innerWall={false}
 							/>
 						{/if}
 					{/if}
@@ -293,7 +296,7 @@
 					<div class="is-group">
 						<div class="is-group-h">{title}</div>
 						<BackdropControls
-							{knobs}
+							knobs={live}
 							{group}
 							defaults={base}
 							showReset={false}

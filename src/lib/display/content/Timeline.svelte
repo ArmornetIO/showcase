@@ -5,9 +5,13 @@
 	/** How the same events are drawn.
 	 *  - `rail`  — dot-and-connector history. Few events, read top to bottom.
 	 *  - `feed`  — dense ticker rows with a tone bar and a right-aligned age.
-	 *              For a live stream in a narrow column. */
-	export type TimelineVariant = 'rail' | 'feed';
+	 *              For a live stream in a narrow column.
+	 *  - `hud`   — `feed` at half the height: one line per event on hairlines,
+	 *              the rail only on `major` rows, `group` dividers. For a feed
+	 *              floating among HUD readouts, where every row lit is none lit. */
+	export type TimelineVariant = 'rail' | 'feed' | 'hud';
 
+	import { fly } from 'svelte/transition';
 	import Icon from '../../icons/Icon.svelte';
 	import type { IconName } from '../../icons/Icon.svelte';
 
@@ -48,6 +52,8 @@
 		/** Significant: a glowing dot on `rail`, a lit rail on `feed`. */
 		major?: boolean;
 		tone?: TimelineTone;
+		/** `hud` only: a divider is drawn wherever this changes between rows. */
+		group?: string;
 	}
 
 	interface TimelineProps {
@@ -99,7 +105,46 @@
 	}
 </script>
 
-{#if variant === 'feed'}
+{#if variant === 'hud'}
+	<ul class="hud">
+		{#each events as event, i (keyOf(event))}
+			{#if event.group && event.group !== events[i - 1]?.group}
+				<li class="hud-group">{event.group}</li>
+			{/if}
+			<!-- A row that arrives after mount slides in; the first row flashes its
+			     tone so "streaming" is something you can see. -->
+			<li
+				class="hud-row"
+				class:major={event.major}
+				style:--tone={toneColor(event)}
+				in:fly={{ x: -16, duration: 260 }}
+			>
+				<svelte:element this={event.href ? 'a' : 'div'} href={event.href} class="hud-link">
+					{#if event.icon}<span class="hud-icon"><Icon name={event.icon} size={11} /></span>{/if}
+					<span
+						class="hud-subject"
+						style:color={event.subject ? subjectColor(event) : 'var(--fg-muted)'}
+						title={event.subject ?? event.title}>{midTruncate(event.subject ?? event.title)}</span
+					>
+					{#if event.transition}
+						<span class="hud-to">→ {event.transition.to}</span>
+					{:else if event.qualifiers?.length}
+						<span class="hud-qual" title={event.qualifiers.join(' · ')}
+							>{event.qualifiers.join(' · ')}</span
+						>
+					{/if}
+				</svelte:element>
+				{#if event.accent}<span class="hud-tone"><Icon name={event.accent} size={10} /></span>{/if}
+				{#if (event.count ?? 0) > 1}
+					<span class="hud-tone" title="{event.count} occurrences"
+						>×{compactCount(event.count!)}</span
+					>
+				{/if}
+				<span class="hud-when">{event.when}</span>
+			</li>
+		{/each}
+	</ul>
+{:else if variant === 'feed'}
 	<!-- Feed: two lines per event on a tone rail — ⟨verb glyph⟩ TARGET on top, the
 	     detail (a state change, or qualifier tokens) under it, with the streak and
 	     age pinned right across both.
@@ -124,7 +169,7 @@
 				<svelte:element
 					this={event.href ? 'a' : 'div'}
 					href={event.href}
-					class="flex-1 min-w-0 flex flex-col justify-center gap-0.5 font-[var(--mono)] no-underline
+					class="flex-1 min-w-0 flex flex-col justify-center gap-0.5 font-(family-name:--mono) no-underline
 					       {event.href ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}"
 				>
 					<!-- Line 1: the verb glyph and what it happened to. -->
@@ -180,12 +225,12 @@
 
 				{#if (event.count ?? 0) > 1}
 					<span
-						class="shrink-0 font-[var(--mono)] text-[0.6rem] tabular-nums opacity-75"
+						class="shrink-0 font-(family-name:--mono) text-[0.6rem] tabular-nums opacity-75"
 						style:color={toneColor(event)}
 						title="{event.count} occurrences">×{compactCount(event.count!)}</span
 					>
 				{/if}
-				<span class="shrink-0 font-[var(--mono)] text-[0.6rem] text-[var(--fg-muted)] tabular-nums"
+				<span class="shrink-0 font-(family-name:--mono) text-[0.6rem] text-[var(--fg-muted)] tabular-nums"
 					>{event.when}</span
 				>
 			</li>
@@ -211,9 +256,9 @@
 				</div>
 				<!-- Content -->
 				<div class="flex flex-col gap-[2px] pb-[16px] min-w-0">
-					<span class="font-[var(--mono)] text-[10px] text-[var(--fg-dim)]">{event.when}</span>
+					<span class="font-(family-name:--mono) text-[10px] text-[var(--fg-dim)]">{event.when}</span>
 					<span
-						class="font-[var(--sans-brand)] text-[14px] text-[var(--fg)] leading-[1.2]"
+						class="font-(family-name:--sans-brand) text-[14px] text-[var(--fg)] leading-[1.2]"
 					>
 						{event.title}{#if event.subject}&nbsp;<b
 								class="font-semibold"
@@ -221,10 +266,125 @@
 							>{#if event.trail}&nbsp;{event.trail}{/if}{/if}
 					</span>
 					{#if event.desc}
-						<span class="font-[var(--mono)] text-[10px] text-[var(--fg-dim)]">{event.desc}</span>
+						<span class="font-(family-name:--mono) text-[10px] text-[var(--fg-dim)]">{event.desc}</span>
 					{/if}
 				</div>
 			</div>
 		{/each}
 	</div>
 {/if}
+
+<style>
+	.hud {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		font-family: var(--mono);
+	}
+	.hud-group {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0.5rem 0 0.15rem;
+		font-size: 0.5rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--fg-dim);
+	}
+	.hud-group:first-child {
+		margin-top: 0;
+	}
+	.hud-group::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--border);
+	}
+	.hud-row {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 24px;
+		padding: 0 0.25rem 0 0.4rem;
+		border-left: 2px solid transparent;
+		border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+	}
+	.hud-row.major {
+		border-left-color: var(--tone);
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--tone) 14%, transparent),
+			transparent 70%
+		);
+	}
+	.hud > .hud-row:first-child,
+	.hud > .hud-group:first-child + .hud-row {
+		animation: hud-land 1.6s ease-out;
+	}
+	@keyframes hud-land {
+		from {
+			box-shadow: inset 0 0 0 1px var(--tone);
+			background-color: color-mix(in srgb, var(--tone) 22%, transparent);
+		}
+	}
+	.hud-link {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: baseline;
+		gap: 0.4rem;
+		color: inherit;
+		text-decoration: none;
+	}
+	a.hud-link:hover .hud-subject {
+		text-decoration: underline;
+	}
+	.hud-icon {
+		flex-shrink: 0;
+		display: flex;
+		align-self: center;
+		color: var(--tone);
+	}
+	.hud-subject {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 0.66rem;
+		font-weight: 600;
+	}
+	/* Qualifiers give way first; the subject and a transition's destination
+	   are what the row is for. */
+	.hud-qual,
+	.hud-to {
+		flex-shrink: 999;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 0.52rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--fg-dim);
+	}
+	.hud-to {
+		flex-shrink: 0;
+		font-weight: 700;
+		color: var(--tone);
+	}
+	.hud-tone {
+		flex-shrink: 0;
+		display: flex;
+		font-size: 0.58rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--tone);
+	}
+	.hud-when {
+		flex-shrink: 0;
+		width: 2.2em;
+		text-align: right;
+		font-size: 0.56rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--fg-dim);
+	}
+</style>

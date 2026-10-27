@@ -339,6 +339,10 @@
 	   SidebarNav owns its own internal vertical scroll (.nav-scroll). */
 	.app-shell-grid[data-rail]:not(.is-mobile) .app-shell-aside {
 		overflow: visible;
+		/* `sticky` makes the aside a stacking context, so the toggle's own z-index
+		   only ranks it inside the rail; without this, page content painted later
+		   covers the half of the chevron that sticks out. */
+		z-index: 45;
 	}
 
 	/* ── Collapsed layout: bare icon rail ────────────────────────────────────

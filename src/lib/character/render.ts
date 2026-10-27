@@ -202,6 +202,11 @@ export interface Painted {
 	 * of a shot is whatever the shot says it is.
 	 */
 	blur?: number;
+	/** Depth bias toward the viewer — see `Part.over`. */
+	over?: number;
+	/** The body tag or worn item this came from. The painter never reads it; a
+	 *  mesh export does, so a CAD tree says `visor` rather than `part_17`. */
+	name?: string;
 }
 
 /**
@@ -229,7 +234,7 @@ export function paint(items: readonly Painted[], frame: TangentFrame, glow = 1):
 				: [shade(it.color, b * t), shade(it.color, b * t * 0.4)];
 			rows.push({
 				tri: { d: f.d, fill, edge, glow: it.emits, blur: it.blur ?? 0 },
-				depth: f.depth
+				depth: f.depth + (it.over ?? 0)
 			});
 		}
 	}
@@ -285,7 +290,9 @@ export function figureParts(
 			// and two hundred faces.
 			color: colorOf(part),
 			emits: part.mat === 'lamp',
-			tint: part.tint
+			tint: part.tint,
+			over: part.over,
+			name: part.owner ?? part.tag
 		};
 	});
 }
@@ -347,7 +354,10 @@ export function art(k: CharacterSkin, opts: ArtOpts = {}): Art {
 	// The worn set and its colour are IN the signature, and have to be: this
 	// cache is keyed on everything that changes a pixel, so a loadout left out
 	// of it would hand back the figure wearing the previous hat for ever.
-	const id = `${k.key}|${k.color}|${suit}|${lamped}|${glow.toFixed(2)}|${yaw.toFixed(3)}|${pitch.toFixed(3)}|${poseKey(pose)}|${wornKey(worn)}|${opts.wornFit ?? ''}|${trim}|${tintKey(tints)}|${crest ? JSON.stringify(crest) : ''}`;
+	// `k.shape` is in the key even though `k.key` is documented as the stable id:
+	// a build picker draws ONE identity as four different bodies, and without the
+	// shape here all four tiles are whichever body rendered first.
+	const id = `${k.key}|${k.shape}|${k.color}|${suit}|${lamped}|${glow.toFixed(2)}|${yaw.toFixed(3)}|${pitch.toFixed(3)}|${poseKey(pose)}|${wornKey(worn)}|${opts.wornFit ?? ''}|${trim}|${tintKey(tints)}|${crest ? JSON.stringify(crest) : ''}`;
 	const cached = cache.get(id);
 	if (cached) return cached;
 	// One clip is 24 frames; a few characters, angles and tunings on top of that

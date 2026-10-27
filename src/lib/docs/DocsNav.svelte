@@ -48,6 +48,7 @@
 	}: DocsNavProps = $props();
 
 	let collapsed = $state<Record<string, boolean>>({});
+	// svelte-ignore state_referenced_locally
 	let drawerOpen = $state(defaultOpen);
 
 	function toggle(heading: string) {

@@ -64,6 +64,15 @@ const INTENTIONALLY_EXCLUDED: Record<string, string> = {
 	// Theme control — not a UI widget
 	ThemePicker: 'theme control',
 
+	// Hand-drawn storyboard pieces — for illustrated pages like /storyboard. In the
+	// builder a storyboard is real frames in the filmstrip, so these would draw a
+	// second, fake copy of each screen.
+	StoryboardCanvas: 'storyboard illustration — the builder builds storyboards from frames',
+	SwimLane: 'storyboard illustration — the builder builds storyboards from frames',
+	StoryboardFrame: 'storyboard illustration — the builder builds storyboards from frames',
+	StoryboardArrow: 'storyboard illustration — the builder builds storyboards from frames',
+	StoryboardBranch: 'storyboard illustration — the builder builds storyboards from frames',
+
 	// App shell — structural layout chrome, not a droppable builder widget
 	AppShell: 'app shell layout — requires injected sidebar/brand snippets',
 
@@ -116,6 +125,7 @@ const INTENTIONALLY_EXCLUDED: Record<string, string> = {
 	PerfPanel: 'performance budget panel — developer tooling, not a product UI component',
 	PerfHud: 'frame/allocation HUD toggled with ` — developer tooling, not a product UI component',
 	GlobeDevControls: 'dev-cog globe intro controls — developer tooling, not a product UI component',
+	GameDevTools: 'DevCog + GAME group + frame HUD for a game scene — developer tooling, not a product UI component',
 
 };
 

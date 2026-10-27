@@ -5,6 +5,8 @@
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<!-- This app mounts its own dev console; the framework's must not mount first. -->
+		<meta name="devcog" content="app" />
 		<!--
 		  Fonts are self-hosted from /fonts (see static/fonts/fonts.css). Loading
 		  them from Google's CDN would send every visitor's IP to Google on first

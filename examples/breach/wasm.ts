@@ -12,6 +12,7 @@
 // that file is somebody else's extraction.
 
 import { declareCapability } from 'showcase';
+import { WIRE_VERSION } from './wire.gen.js';
 
 /** Mirrors `breachproto.Capability` in Go. */
 export const CAP_BREACH = 'io.armornet.breach';
@@ -19,4 +20,4 @@ export const CAP_BREACH = 'io.armornet.breach';
 // At module scope, and net.svelte.ts imports this file, so breach is declared
 // before any TableSocket exists to subscribe — which is what lets the one
 // connection be dialled already knowing about it.
-declareCapability(CAP_BREACH);
+declareCapability(CAP_BREACH, WIRE_VERSION);

@@ -23,6 +23,7 @@
 	import type { TangentFrame } from '../../physics/sphere.js';
 	import { pieceFacets, pieceProjector } from './piece-facets.js';
 	import { HOLO_DEFAULTS, fresnelMix, type HoloLook } from './holo-look.js';
+	import { DAIS_R } from '../gl/piece-shaders.js';
 
 	let {
 		piece,
@@ -237,6 +238,13 @@
 		rot: (Math.atan2(frame.e.y, frame.e.x) * 180) / Math.PI
 	});
 
+	/** The dais, as the plot's ellipse at the base's own radius. */
+	const dais = $derived({
+		rx: Math.hypot(frame.e.x, frame.e.y) * DAIS_R,
+		ry: Math.max(0.5, Math.hypot(frame.n.x, frame.n.y) * DAIS_R),
+		rot: disc.rot
+	});
+
 	const poly = (pts: { x: number; y: number }[]) =>
 		`M ${pts.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' L ')} Z`;
 
@@ -295,6 +303,14 @@
 		</linearGradient>
 
 		{#if suspended}
+			<!-- The dais's falloff — `Figure`'s floor in the BREACH lobby, stop for
+			     stop, so the two surfaces are one material. -->
+			<radialGradient id="np-dais-{uid}">
+				<stop offset="0%" stop-color={color} stop-opacity="0.09" />
+				<stop offset="72%" stop-color={color} stop-opacity="0.2" />
+				<stop offset="93%" stop-color={color} stop-opacity="0.38" />
+				<stop offset="100%" stop-color={color} stop-opacity="0" />
+			</radialGradient>
 			<!-- The one filter in this component, and it earns its place only because
 			     the bloom is now a SINGLE path rather than one per facet. A stroke has
 			     a hard outer boundary however faint it is, so widening it reads as a
@@ -317,13 +333,33 @@
 	     not. Either way it is opaque enough to sit under the building rather
 	     than letting the mesh show through the hole it is standing in. -->
 	{#if suspended}
-		<!-- Nothing. Deliberately nothing.
-		     This is where the plot, the contact shadow and the terrain patch would
-		     go, and a projection has none of them: it is not standing anywhere. The
-		     empty branch is kept rather than folded into the condition below so the
-		     absence is legible as a decision — the shadow in particular is the
-		     single strongest "solid object on a surface" cue the eye has, and it is
-		     worth a reader seeing that it was taken out on purpose. -->
+		<!-- The hover dais — `piece-base`'s other kind of base, and the SVG twin of
+		     the GL pass. Still no plot and no contact shadow: those say STANDING,
+		     and this is not standing. What it says instead is that there is a place
+		     under the projection — a pool lit at its rim with a dark hole at the
+		     middle, and air between that and the piece.
+		     Lit at the RIM rather than through the middle for the same reason the
+		     lobby's floor is: a flat wash is a disc the piece is in front of, and
+		     light that falls off at the edge is a floor it hangs over. -->
+		<ellipse
+			rx={dais.rx}
+			ry={dais.ry}
+			transform="rotate({dais.rot})"
+			fill="url(#np-dais-{uid})"
+			stroke={color}
+			stroke-opacity={0.5}
+			stroke-width={1}
+			vector-effect="non-scaling-stroke"
+		/>
+		<!-- The hole. Dark rather than absent: the piece is over an opening, and
+		     what makes an opening read is that the ground's own lines stop. -->
+		<ellipse
+			rx={dais.rx * 0.5}
+			ry={dais.ry * 0.5}
+			transform="rotate({dais.rot})"
+			fill="#000"
+			opacity={0.55}
+		/>
 	{:else if patch}
 		<!-- Barely there. This is a clearing in the territory's own floor, not a
 		     plate laid on top of it — a dark disc under every piece punches a hole

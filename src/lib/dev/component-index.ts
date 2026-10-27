@@ -10,7 +10,7 @@ import routeMap from '$lib/generated/route-map.json' with { type: 'json' };
  * dead link is no longer expressible.
  *
  * What each page *contains* comes from `generated/route-map.json`
- * (`npm run gen:api`), which parses the components each `+page.svelte`
+ * (`cmd/propsgen`, run by `make generate`), which parses the components each `+page.svelte`
  * imports. A route the generator has not seen yet still lists, with its blurb.
  */
 

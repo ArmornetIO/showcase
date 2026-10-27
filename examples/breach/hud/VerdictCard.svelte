@@ -25,10 +25,24 @@
 
 	interface Props {
 		match: BreachMatch;
+		/**
+		 * The throw, and the word for it. Nothing else.
+		 *
+		 * In the rail this card is a full announcement — who, at what, off which
+		 * card — because it is standing in a column that is already reference. Off
+		 * a corner of a phone board the same five rows are a panel, and a panel
+		 * that appears in the middle of a turn is something you wait out rather
+		 * than watch. The dice ARE the event; the actor and the card are already
+		 * on the plate the player just tapped.
+		 *
+		 * The dice do not shrink here. Making the chip small by scaling the whole
+		 * card down would take the one thing it exists to show with it.
+		 */
+		terse?: boolean;
 		class?: string;
 	}
 
-	let { match, class: cls = '' }: Props = $props();
+	let { match, terse = false, class: cls = '' }: Props = $props();
 
 	const v = $derived(match.verdict);
 
@@ -107,13 +121,19 @@
 	     instead of morphing out of the first one's numbers. -->
 	{#key v.id}
 		<div
-			class="pointer-events-none flex flex-col items-center gap-3 {cls}"
+			class="pointer-events-none flex flex-col items-center {terse ? 'gap-1.5' : 'gap-3'} {cls}"
 			role="status"
 			aria-live="polite"
 		>
 			<!-- WHO, and at WHAT. Fogged moves name nobody — the component was
 			     never told, so there is nothing here to slip out. -->
-			<div class="flex items-center gap-2 font-mono text-[0.62rem] tracking-[0.16em] uppercase">
+			<!-- Wraps: this is mounted in the events COLUMN, whose width is the
+			     compact HUD's drawer rather than the board, and a long actor plus a
+			     long target on one unbreakable row is wider than a phone. -->
+			<div
+				class="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-center font-mono text-[0.62rem] tracking-[0.16em] uppercase"
+				class:hidden={terse}
+			>
 				{#if v.fogged}
 					<span class="text-[var(--fg-dim)]">something in</span>
 					<b style:color={v.hue}>{region}</b>
@@ -129,14 +149,15 @@
 			     was previously only ever drawn 40px tall on the board itself, where
 			     it competes with a spinning globe. -->
 			<div
-				class="font-mono text-[1.6rem] font-black leading-none tracking-[0.06em] uppercase"
+				class="text-center font-mono font-black leading-none tracking-[0.06em] break-words uppercase
+				       {terse ? 'text-[0.95rem]' : 'text-[1.6rem]'}"
 				style:color={tone}
 				style:text-shadow="0 0 34px color-mix(in srgb, {tone} 55%, transparent)"
 			>
 				{v.sealed ? 'blocked' : (v.fogged && !v.roll ? '—' : v.word)}
 			</div>
 
-			{#if !v.fogged && v.card}
+			{#if !v.fogged && v.card && !terse}
 				<div class="-mt-1 font-mono text-[0.6rem] tracking-[0.12em] text-[var(--fg-dim)]">
 					{v.card}
 				</div>

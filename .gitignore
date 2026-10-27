@@ -152,24 +152,21 @@ vite.config.ts.timestamp-*
 # the README for the directory, and it explains the rest.
 src/routes/mockups/*
 !src/routes/mockups/realtime-refinement/
-# The glass-theme ports. Un-ignored for a load-bearing reason beyond wanting
-# them committed: Tailwind v4's source detection SKIPS gitignored files, so a
-# mockup that styles itself with utility classes (rather than a scoped <style>)
-# gets none of them generated and renders unstyled. Any mockup carrying Tailwind
-# classes has to be visible to git for the same reason.
-!src/routes/mockups/glass-card/
-# The card work, un-ignored for the same reason: the faces are Tailwind all the
+# Not a sketch: the tool that fills in and copies the emails in $lib/email.
+!src/routes/mockups/emails/
+# Everything below is un-ignored for a load-bearing reason beyond wanting it
+# committed: Tailwind v4's source detection SKIPS gitignored files, so a mockup
+# that styles itself with utility classes (rather than a scoped <style>) gets
+# none of them generated and renders unstyled. Any mockup carrying Tailwind
+# classes has to be visible to git.
+#
+# The card work: the faces are Tailwind all the
 # way down, and half the type scale silently rendered at 16px because the only
 # arbitrary values that survived were the ones some tracked file happened to use
-# too. `breach-cards` prints `breach-locker`'s skin next to its own face, so
-# leaving either one ignored breaks the comparison the page exists to make.
+# too.
 !src/routes/mockups/breach-cards/
-!src/routes/mockups/breach-locker/
-!src/routes/mockups/breach-outfitter/
 !src/routes/mockups/glass-exposure/
 # Same reason: these are built almost entirely from utility classes.
-# `npm run check` enforces this rule — see scripts/check-sources.mjs.
-!src/routes/mockups/docs-editor/
 !src/routes/mockups/agent-installer/
 # Committed for a different reason than the two above: `agent-select` is not a
 # sketch that stayed on one machine. It is the design the breach lobby was
@@ -177,10 +174,6 @@ src/routes/mockups/*
 # — so the mockup is the reference the real screen is read against, and a
 # reference nobody else can open is not one.
 !src/routes/mockups/agent-select/
-# The breach HUD with the game removed. Committed for the Tailwind reason above
-# — it is almost entirely the positioning classes lifted out of `Breach.svelte`,
-# and gitignored they would never be generated.
-!src/routes/mockups/breach-hud/
 !src/routes/mockups/breach-verdict/
 # The vendor profile pair — `vendor-profile` reproduces the shipped page as the
 # BEFORE, `vendor-profile-v2` is the redesign read against it. Both are lifted
@@ -190,16 +183,26 @@ src/routes/mockups/*
 !src/routes/mockups/vendor-profile-v2/
 !src/routes/mockups/vendor-profile-v3/
 
+# Before/after storyboard of the sign-in and alpha flows, committed with the fix
+# it pictures so the PR's reviewers can open it. Utility classes, so the
+# Tailwind rule above applies too.
+!src/routes/mockups/login-fix-flow/
+
 # The alpha front page. Committed because it is the reference the marketing site
 # is built against, not a scratch sketch — and because the pipeline animation in
 # it is a component other pages are likely to want.
 !src/routes/mockups/marketing-landing/
 
-# The dev console redesign (spec 018). Committed for the same reason as
-# `agent-select`: it is not a sketch that stayed on one machine, it is the design
-# `devcog/console/` was ported from and `specs/018-devcog-console/measure.mjs`
-# still measures against. A gate nobody else can open is not one.
-!src/routes/mockups/qa-console/
+# Utility-class mockups the static validator refused while ignored — the
+# Tailwind reason above.
+!src/routes/mockups/alpha-welcome-email/
+!src/routes/mockups/capability-menus/
+!src/routes/mockups/date-select/
+!src/routes/mockups/hype-cycle-scorecard/
+!src/routes/mockups/magic-quadrant-scorecard/
+!src/routes/mockups/product-roadmap/
+# A 440 KB copy of app-ui's generated API island; it would only ever be stale.
+src/routes/docs/api/api.data.json
 
 # Marker for `make showcase-install`; its whole job is to carry the mtime of the
 # last npm ci. Committing it (which we did) makes that mtime the CHECKOUT time in
@@ -229,3 +232,10 @@ examples/breach/public/wasm_exec_tinygo.js
 /d.mjs
 /breach-verify.mjs
 **/overlay-tmp.mjs
+
+# The dev console bundle compose/devcog embeds. Built output like any other
+# dist, except its .gitkeep: `//go:embed all:dist` does not compile without the
+# directory, so a checkout that never ran the build must still carry it.
+!compose/devcog/dist/
+compose/devcog/dist/*
+!compose/devcog/dist/.gitkeep

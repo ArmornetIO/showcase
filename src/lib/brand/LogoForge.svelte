@@ -81,6 +81,16 @@
 		oncomplete
 	}: Props = $props();
 
+	// Phones and tablets get `RimLight` without its filters. Not a viewport
+	// question dressed up as one: `pointer: coarse` is the closest thing the
+	// platform offers to "this GPU is in a battery-powered thing", and the cost
+	// being avoided is per-frame filter rasterisation, which a large phone pays
+	// exactly as dearly as a small one. Read once — a device does not grow a
+	// mouse mid-intro, and this scene is over in ninety beats.
+	const lite =
+		typeof window !== 'undefined' &&
+		window.matchMedia('(pointer: coarse), (max-width: 900px)').matches;
+
 	const { A, EDGES } = markGeometry();
 	const { targets: sparkTargets, radii } = seatPlan();
 
@@ -497,6 +507,7 @@
 			figure={A.fig}
 			shield={A.outer}
 			intensity={settled}
+			{lite}
 		/>
 	</div>
 

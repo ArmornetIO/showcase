@@ -2,13 +2,13 @@
 	import { getContext, onDestroy } from 'svelte';
 	import { CANVAS_CTX } from './canvas-camera.js';
 	import type { CanvasContextValue, SelectionHandler } from './canvas-camera.js';
-	import { builder } from '$lib/builder/store.svelte.js';
-	import { REGISTRY_MAP } from '$lib/builder/registry.js';
-	import ComponentRenderer from '$lib/builder/ComponentRenderer.svelte';
-	import ConnectorLayer from '$lib/builder/ConnectorLayer.svelte';
-	import ClusterLayer from '$lib/builder/ClusterLayer.svelte';
-	import FrameLayer from '$lib/builder/FrameLayer.svelte';
-	import type { CanvasItem } from '$lib/builder/store.svelte.js';
+	import { builder } from '../../builder/store.svelte.js';
+	import { REGISTRY_MAP } from '../../builder/registry.js';
+	import ComponentRenderer from '../../builder/ComponentRenderer.svelte';
+	import ConnectorLayer from '../../builder/ConnectorLayer.svelte';
+	import ClusterLayer from '../../builder/ClusterLayer.svelte';
+	import FrameLayer from '../../builder/FrameLayer.svelte';
+	import type { CanvasItem } from '../../builder/store.svelte.js';
 
 	let {
 		onItemSelect,

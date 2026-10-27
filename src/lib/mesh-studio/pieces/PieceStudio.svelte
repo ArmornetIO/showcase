@@ -27,10 +27,9 @@
 	// their geometry is on paper. It lived as a local mockup and did not survive;
 	// this is it as a component, so it survives the next clone.
 	//
-	// Deliberately the same shape as CHARACTER STUDIO: a bare <dialog> rather
-	// than `Modal` (Modal is title/body/footer at a fixed size; this is a
-	// full-bleed stage), header of wordmark · pills · close, one live subject in
-	// the middle, and a panel down the side.
+	// One of the Builder's 3D-mode studios, the same shape as CHARACTER STUDIO:
+	// it fills its parent, header of wordmark · subject, one live subject in the
+	// middle, and a panel down the side.
 	//
 	// THE PANEL IS NOT HAND-WRITTEN. `piece-knobs.ts` declares what can be tuned
 	// and `BackdropControls` draws it — the same generated panel the backdrop and
@@ -52,21 +51,17 @@
 	import { pieceKnobs, readPieceKnobs, setPieceAngle } from './piece-knobs.js';
 
 	interface Props {
-		open: boolean;
 		items: StudioPiece[];
 		/** Which one is on the stage. Bindable so the page and the studio's own
 		 *  arrows move one selection rather than two that drift. */
 		index: number;
-		onclose: () => void;
 	}
 
-	let { open, items, index = $bindable(0), onclose }: Props = $props();
+	let { items, index = $bindable(0) }: Props = $props();
 
 	/** The stage's ink when the subject has no colour of its own — an unclaimed
 	 *  building has no mode and so no hue to borrow. */
 	const DEFAULT_INK = '#5eead4';
-
-	let dialogEl = $state<HTMLDialogElement | null>(null);
 
 	const subject = $derived(items[index] ?? items[0]);
 	const solid = $derived(ALL_PIECES[subject?.piece ?? '']);
@@ -101,19 +96,13 @@
 
 	const step = (d: number) => (index = (index + d + items.length) % items.length);
 
-	$effect(() => {
-		if (!dialogEl) return;
-		if (open && !dialogEl.open) dialogEl.showModal();
-		else if (!open && dialogEl.open) dialogEl.close();
-	});
-
 	// ── The turntable ───────────────────────────────────────────────────────
 	// Bearing lives in the knobs and the spin ADDS to it, rather than the spin
 	// owning an angle of its own: two sources for one rotation is how a panel
 	// starts disagreeing with the thing it describes, and stopping the spin
 	// would snap the model back to whatever the slider still said.
 	$effect(() => {
-		if (!open || !tuned.spin) return;
+		if (!tuned.spin) return;
 		// 20fps rather than rAF. The stage is one SVG re-cull per tick, and the
 		// turn reads as continuous well below the repaint rate.
 		const t = setInterval(() => {
@@ -174,17 +163,15 @@
 	let squint = $state(false);
 </script>
 
-<dialog
-	class="ps-modal"
-	bind:this={dialogEl}
+<!-- The arrows step the subject while anything inside has focus. -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<section
+	class="ps-root"
 	aria-labelledby="ps-wordmark"
-	{onclose}
+	tabindex="-1"
 	onkeydown={(e) => {
 		if (e.key === 'ArrowRight') step(1);
 		if (e.key === 'ArrowLeft') step(-1);
-	}}
-	onclick={(e) => {
-		if (e.target === dialogEl) onclose();
 	}}
 >
 	<div class="ps-shell" style:--pk={tuned.ink}>
@@ -200,7 +187,6 @@
 			</span>
 			<span class="ps-spacer"></span>
 			<button class="ps-squint" class:on={squint} onclick={() => (squint = !squint)}>Squint</button>
-			<button class="ps-close" onclick={onclose} aria-label="Close">✕</button>
 		</div>
 
 		<div class="ps-body">
@@ -296,24 +282,15 @@
 			{/if}
 		</div>
 	</div>
-</dialog>
+</section>
 
 <style>
-	.ps-modal {
-		width: 96vw;
-		height: 92vh;
-		max-width: none;
-		max-height: none;
-		padding: 0;
-		border: 1px solid var(--border);
-		border-radius: 12px;
+	.ps-root {
+		height: 100%;
 		background: var(--bg);
 		color: var(--fg);
 		overflow: hidden;
-	}
-	.ps-modal::backdrop {
-		background: rgba(3, 6, 10, 0.6);
-		backdrop-filter: blur(4px);
+		outline: none;
 	}
 	.ps-shell {
 		display: flex;
@@ -358,7 +335,6 @@
 		flex: 1;
 	}
 	.ps-squint,
-	.ps-close,
 	.ps-reset,
 	.ps-arrow {
 		background: transparent;
@@ -376,9 +352,6 @@
 	.ps-squint.on {
 		color: var(--pk);
 		border-color: var(--pk);
-	}
-	.ps-close {
-		padding: 0.2rem 0.5rem;
 	}
 	.ps-body {
 		flex: 1;

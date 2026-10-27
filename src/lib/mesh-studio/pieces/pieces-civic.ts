@@ -472,15 +472,9 @@ export const CIVIC_PIECES: Record<string, Piece> = {
 // an index signature hides which keys this half contributes, and the merged map
 // downstream needs to count them to prove it covers every mode.
 export const CIVIC_MODE_PIECES = {
-	intelligence: 'observatory',
+	rss: 'observatory',
 	language: 'court',
-	harness: 'forum',
 	momus: 'beacon',
-	hello_world: 'hut',
-	browser: 'pavilion',
-	// A mill takes material in from outside and hands back something usable,
-	// which is the whole job of the fetch mode.
-	fetch: 'mill',
 } satisfies Partial<Record<ModeKey, string>>;
 
 export type CivicPieceId = keyof typeof CIVIC_PIECES;

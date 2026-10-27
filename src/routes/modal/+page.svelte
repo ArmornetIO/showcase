@@ -332,11 +332,6 @@
 		border-color: rgba(94, 234, 212, 0.4);
 		background: rgba(94, 234, 212, 0.06);
 	}
-	.bc-btn.bc-active {
-		color: var(--accent);
-		border-color: rgba(94, 234, 212, 0.5);
-		background: rgba(94, 234, 212, 0.1);
-	}
 	.bc-btn.bc-success {
 		color: #34d399;
 		border-color: rgba(52, 211, 153, 0.3);

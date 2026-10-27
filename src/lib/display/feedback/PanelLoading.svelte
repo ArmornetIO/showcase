@@ -9,7 +9,7 @@
 </script>
 
 <div
-	class="flex items-center justify-center gap-2 text-[var(--fg-dim)] font-[var(--mono)] text-[0.72rem] tracking-widest {cls}"
+	class="flex items-center justify-center gap-2 text-[var(--fg-dim)] font-(family-name:--mono) text-[0.72rem] tracking-widest {cls}"
 >
 	<!-- Activity indicator (inline SVG; no external icon dep) -->
 	<svg

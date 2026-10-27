@@ -13,6 +13,7 @@ import { resolvePlacement, planPlacement, placementAt, globePoseAt } from './pla
 import { spin, project } from '../physics/sphere.js';
 import { serializeScene, sceneBrief } from './serialize.js';
 import { SAMPLE_SCENE } from './sample-scene.js';
+import { BRIDGE_SCENE } from './bridge-scene.js';
 import { CHANNELS, BURSTS, vocabularyFor, channelById } from './vocabulary.js';
 import {
 	COMPONENT_CHANNELS,
@@ -21,6 +22,7 @@ import {
 } from './component-channels.js';
 import { REGISTRY } from '../builder/registry.js';
 import { validateScene } from './validate.js';
+import { SCENES, SCENE_IDS, sceneById } from './catalogue.js';
 import type { Scene, SceneObject } from './types.js';
 
 const S = SAMPLE_SCENE;
@@ -532,6 +534,13 @@ describe('validateScene', () => {
 		expect(validateScene(S).filter((i) => i.severity === 'error')).toEqual([]);
 	});
 
+	it('passes the bridge scene', () => {
+		// Authored by hand for docs/blog/agent-bridge.md, which means it bypassed
+		// every picker that would have caught an invented channel id or a prop the
+		// component hides. This assertion is the only thing standing in for them.
+		expect(validateScene(BRIDGE_SCENE).filter((i) => i.severity === 'error')).toEqual([]);
+	});
+
 	it('catches a prop the component’s configuration hides', () => {
 		// The real defect: Card only renders `title` for composite/article/
 		// data-input/doc/hud, and defaults to 'stat'. Setting title on a stat Card
@@ -629,6 +638,32 @@ describe('serialisation', () => {
 		expect(brief).toContain('edge.style');
 		expect(brief).toContain('tighten the reroute');
 		expect(brief).toContain('preserving any explanatory comments');
+	});
+});
+
+describe('the document catalogue', () => {
+	it('offers only scenes that validate clean, under unique ids', () => {
+		// A document names a scene it cannot see. Anything reachable that way is
+		// published art, so it has to hold up without the editor's warnings panel.
+		expect(SCENE_IDS).toEqual([...new Set(SCENE_IDS)]);
+		for (const id of SCENE_IDS) {
+			const scene = sceneById(id);
+			expect(scene, id).toBeDefined();
+			expect(
+				validateScene(scene!).filter((i) => i.severity === 'error'),
+				id
+			).toEqual([]);
+		}
+		expect(SCENE_IDS).toHaveLength(SCENES.length);
+	});
+
+	it('is exactly what the registry offers a document', () => {
+		// The embeddable flag and the enum options are the whole trust boundary
+		// for a scene fence: an id outside this list resolves to nothing.
+		const meta = REGISTRY.find((r) => r.id === 'ScenePlayer');
+		expect(meta?.embeddable).toBe(true);
+		expect(meta?.props.scene.options).toEqual(SCENE_IDS);
+		expect(meta?.props.loop.default).toBe(false);
 	});
 });
 

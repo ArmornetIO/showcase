@@ -3,6 +3,7 @@
 	// control's appearance and states, it does not run a form.
 	import Input from '../../primitives/forms/Input.svelte';
 	import Textarea from '../../primitives/forms/Textarea.svelte';
+	import DateSelect from '../../primitives/forms/DateSelect.svelte';
 	import SearchInput from '../../primitives/forms/SearchInput.svelte';
 	import PasswordInput from '../../primitives/forms/PasswordInput.svelte';
 	import ChipInput from '../../primitives/forms/ChipInput.svelte';
@@ -44,6 +45,9 @@
 {:else if componentId === 'Textarea'}
 	<Textarea placeholder={s('placeholder', 'Enter text…')} rows={n('rows', 4)} />
 
+{:else if componentId === 'DateSelect'}
+	<DateSelect variant={e('variant', 'input')} disabled={b('disabled')} />
+
 {:else if componentId === 'SearchInput'}
 	<SearchInput value="" placeholder={s('placeholder', 'Search…')} />
 
@@ -56,7 +60,7 @@
 	/>
 
 {:else if componentId === 'ChipInput'}
-	<ChipInput value={chips} placeholder={s('placeholder', 'Add tag…')} disabled={b('disabled')} />
+	<ChipInput value={chips} placeholder={s('placeholder', 'Add tag…')} sortable={b('sortable')} disabled={b('disabled')} />
 
 {:else if componentId === 'FileUpload'}
 	<FileUpload

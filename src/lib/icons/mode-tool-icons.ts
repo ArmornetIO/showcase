@@ -21,50 +21,29 @@ export interface MeshIcon { name: string; desc: string; svg: string }
  *  because SVG paths are design work. Keyed by the mode's wire value.
  *  A mode with no entry here renders with no silhouette; it is still listed. */
 const MODE_GLYPHS: Record<string, IconOpt[]> = {
-	hello_world: [
-		{ name: 'Terminal', svg: `<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 8.5h18"/><circle cx="6" cy="6.5" r=".7" fill="currentColor" stroke="none"/><path d="M6.5 12l2.5 2-2.5 2"/><path d="M11.5 16h5"/>` },
-		{ name: 'Wave', svg: `<path d="M9 21v-6.5l-1.5-1.4a1 1 0 0 1 1.4-1.45l1.1 1V6a1 1 0 0 1 2 0v3.8m0-.3a1 1 0 0 1 2 0v3.7c0 3.2-1.8 5.3-4.3 5.3"/><path d="M15.5 5.5c1.7 1.7 1.7 4.3 0 6"/><path d="M18 3.2c2.6 2.6 2.6 7.2 0 9.8"/>` },
-		{ name: 'First light', svg: `<path d="M3 18h18"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 8V5.5M5.5 10 4 8.5M18.5 10 20 8.5M3.5 14H2M22 14h-1.5"/>` },
-		{ name: 'Sprout', svg: `<path d="M12 20v-8"/><path d="M12 12.5c-.6-3-3.2-4.6-6.2-4.4.2 3 2.6 5 6.2 4.4zM12 11c.4-2.6 2.6-4.2 5.6-4-.2 2.6-2.4 4.4-5.6 4z"/>` },
-		{ name: 'Sparkle', svg: `<path d="M12 3v5M12 16v5M3 12h5M16 12h5"/><path d="M7 7l2.6 2.6M14.4 14.4 17 17M17 7l-2.6 2.6M9.6 14.4 7 17"/>` },
-		{ name: 'Open hand', svg: `<path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L9 15"/>` },
-		{ name: 'Waving', svg: `<path d="M10 20.5c-2 0-3.6-1.1-4.6-2.9L3.6 14.4a1 1 0 0 1 1.7-1l1.2 1.7V8.2a1 1 0 0 1 2 0v3.3m0-4.3a1 1 0 0 1 2 0v3.8m0-2.8a1 1 0 0 1 2 0v5c0 3.6-1.6 6.3-4.4 6.3z"/><path d="M15.2 6.4c1.6 1.6 1.6 4.4 0 6M17.8 4c2.4 2.4 2.4 6.8 0 9.2"/>` },
-	],
-	intelligence: [
+	rss: [
 		{ name: 'Flushed', svg: `<path d="M2 16h20"/><path d="M5 16v-2M8 16v-1.5M15 16v-2M18 16v-1.5"/><path d="M11 16C11.5 12 12.5 9 15 6"/><path d="M15 6l-2.3.4M15 6l.6 2.3"/><path d="M9.5 15l-1 1M12.5 15l1 1"/>` },
 		{ name: 'Console', svg: `<rect x="4.5" y="4" width="15" height="11" rx="1.5"/><path d="M2.5 18.5h19l-2-3.5H4.5z"/><path d="M7 12.5h10"/><path d="M9 12.5v-1M11.5 12.5v-1.3M14.5 12.5v-1"/><path d="M10.5 12.5C11 9.5 12 8 14 6.5"/><path d="M14 6.5l-1.5.3M14 6.5l.4 1.4"/>` },
 		{ name: 'Covey', svg: `<path d="M2 17h20"/><path d="M5 17v-1.5M8 17v-2M17 17v-1.5"/><path d="M7.5 12.5l1.3-1 1.3 1M10.5 9.5l1.3-1 1.3 1M13.5 6.5l1.3-1 1.3 1"/><path d="M9.5 16l-.8 1M12 15.5l.8 1"/>` },
 		{ name: 'Breakout', svg: `<path d="M2 15h7M15 15h7"/><path d="M9 15 12 5.5 15 15z"/><path d="M7.5 13.5 9 15M16.5 13.5 15 15"/>` },
 		{ name: 'Startle', svg: `<path d="M2 17h20"/><path d="M4 17v-1.5M7 17v-2M16 17v-1.5M19 17v-2"/><path d="M10 16Q11 8 15 6"/><circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none"/><path d="M8.6 15.2l-1.2 1M10 14.6v1.4M11.4 15.2l1.2 1"/>` },
 	],
-	vendor_management: [
-		{ name: 'Storefront', svg: `<path d="M4 10 5.5 5.5h13L20 10"/><path d="M5 10v9h14v-9"/><path d="M4 10a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/><path d="M9 19v-5h6v5"/>` },
-		{ name: 'Buildings', svg: `<path d="M4 20V7a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v13"/><path d="M12 20V10h6a1 1 0 0 1 1 1v9"/><path d="M7 9h2M7 12h2M7 15h2M15 13h1M15 16h1"/><path d="M3 20h18"/>` },
-		{ name: 'Rating', svg: `<path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.2l5.4-.8z"/>` },
-		{ name: 'Exchange', svg: `<rect x="2.5" y="7.5" width="6" height="9" rx="1"/><rect x="15.5" y="7.5" width="6" height="9" rx="1"/><path d="M8.5 10.5H15.5M13.5 8.5 15.5 10.5 13.5 12.5M15.5 13.5H8.5M10.5 11.5 8.5 13.5 10.5 15.5"/>` },
-		{ name: 'Contract', svg: `<rect x="6" y="3.5" width="12" height="17" rx="1.5"/><path d="M9 8h6M9 11h6"/><path d="M9 16c1-1.2 2 1.2 3 0s2-1.2 3 0"/>` },
-	],
 	codebase_analysis: [
 		{ name: 'Source scan', svg: `<rect x="3" y="3.5" width="13" height="11" rx="1.5"/><path d="M6.5 7.5 8.5 9.5 6.5 11.5M10.5 11.5h3"/><circle cx="17" cy="17" r="3.4"/><path d="M19.4 19.4 21.8 21.8"/>` },
 	],
-	github_runner: [
-		{ name: 'Sandbox', svg: `<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><rect x="6.5" y="7.5" width="11" height="9" rx="1"/><path d="M10.5 10 14 12l-3.5 2z" fill="currentColor" stroke="none"/>` },
-		{ name: 'Secure shell', svg: `<path d="M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M8.5 9.5 11 12l-2.5 2.5M13 14.5h3.5"/>` },
-		{ name: 'Sealed artifact', svg: `<path d="M5 8 12 4l7 4v8l-7 4-7-4z"/><path d="M5 8 12 12 19 8"/><circle cx="12" cy="14.3" r="1.3"/><path d="M12 15.6v2.2"/>` },
-		{ name: 'Enclave', svg: `<path d="M7 4H4v16h3M17 4h3v16h-3"/><circle cx="12" cy="12" r="3"/><path d="M12 7.5v1.5M12 15v1.5M7.5 12h1.5M15 12h1.5"/>` },
-		{ name: 'Vault', svg: `<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.3"/><path d="M12 7.5V5M12 19v-2.5M16.5 12H19M5 12h2.5"/>` },
+	docs_sync: [
+		{ name: 'Doc sync', svg: `<path d="M5 3.5h8l4 4v6"/><path d="M13 3.5v4h4"/><path d="M5 3.5v17h7"/><path d="M8 9.5h5M8 12.5h6M8 15.5h3"/><path d="M15 18.5a3 3 0 0 1 5.2-2M21 19.5a3 3 0 0 1-5.2 2"/><path d="M20.2 14.8v1.7h-1.7M15.8 23.2v-1.7h1.7"/>` },
 	],
-	hardened_agent: [
+	package_scan: [
 		{ name: 'Contained', svg: `<path d="M12 4 18.5 7.2v6.6L12 17 5.5 13.8V7.2z"/><path d="M5.5 7.2 12 10.4l6.5-3.2M12 10.4V17"/><path d="M2.5 5.5V3h2.5M21.5 5.5V3h-2.5M2.5 18.5V21h2.5M21.5 18.5V21h-2.5"/>` },
 	],
-	supply_chain_proxy: [
+	// DNS and package relays share the mode; the DNS options are the last five.
+	relay: [
 		{ name: 'Funnel', svg: `<path d="M3.5 5h17l-6.5 7.5V19l-4-2v-4.5z"/>` },
 		{ name: 'Inspect line', svg: `<rect x="3" y="13.5" width="4.5" height="4.5" rx=".6"/><rect x="9.75" y="13.5" width="4.5" height="4.5" rx=".6"/><rect x="16.5" y="13.5" width="4.5" height="4.5" rx=".6"/><path d="M2 19h20"/><path d="M12 4v6M9 7.5l3 3 3-3"/>` },
 		{ name: 'Barcode', svg: `<rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M8 8.5v7M11 8.5v7M14 8.5v4M17 8.5v7"/>` },
 		{ name: 'Guarded pkg', svg: `<path d="M12 3 19 5.5v4.5c0 4-3 6.5-7 8-4-1.5-7-4-7-8V5.5z"/><path d="M8.5 8 12 6.3 15.5 8v3.5L12 13.2 8.5 11.5zM12 9.7v3.5M8.5 8 12 9.7 15.5 8"/>` },
 		{ name: 'Scanner', svg: `<path d="M5 4H3.5V6M19 4h1.5V6M5 20H3.5v-2M19 20h1.5v-2"/><rect x="7.5" y="7.5" width="9" height="9" rx="1"/><path d="M7.5 12h9"/>` },
-	],
-	dns_proxy: [
 		{ name: 'Globe filter', svg: `<circle cx="10" cy="11" r="6.5"/><path d="M3.5 11h13M10 4.5v13M6.5 6.5c-1.5 2.5-1.5 6.5 0 9M13.5 6.5c1.5 2.5 1.5 6.5 0 9"/><path d="M15 3.5h6l-2.3 3.2v3l-1.4-1.1V6.7z"/>` },
 		{ name: 'Routing', svg: `<path d="M12 3.5v17"/><path d="M12 5.5h6l2 2-2 2h-6"/><path d="M12 11.5H6l-2 2 2 2h6"/>` },
 		{ name: 'Block domain', svg: `<rect x="3" y="8.5" width="18" height="7" rx="2"/><circle cx="6.5" cy="12" r="1.2"/><path d="M9.5 12h9"/><path d="M5 7 19 17"/>` },
@@ -83,13 +62,19 @@ const MODE_GLYPHS: Record<string, IconOpt[]> = {
 		{ name: 'Neural', svg: `<circle cx="6" cy="7.5" r="1.5"/><circle cx="6" cy="16.5" r="1.5"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="7.5" r="1.5"/><circle cx="18" cy="16.5" r="1.5"/><path d="M7.4 8.3 10.6 11.2M7.4 15.7 10.6 12.8M13.4 11.2 16.6 8.3M13.4 12.8 16.6 15.7"/>` },
 		{ name: 'Jury', svg: `<circle cx="12" cy="5.5" r="1.9"/><circle cx="6" cy="9.5" r="1.9"/><circle cx="18" cy="9.5" r="1.9"/><circle cx="8.5" cy="16" r="1.9"/><circle cx="15.5" cy="16" r="1.9"/><circle cx="12" cy="11.5" r="1" fill="currentColor" stroke="none"/><path d="M12 7.4v2.6M7.4 10.4 11 11.2M16.6 10.4 13 11.2M9.4 14.4 11.2 12.4M14.6 14.4 12.8 12.4"/>` },
 	],
-	harness: [
-		{ name: 'Exchange line', svg: `<circle cx="4" cy="12" r="2.2"/><circle cx="20" cy="12" r="2.2"/><path d="M6.4 12h1.1M16.5 12h1.1"/><path d="M9.5 7.5h5A1.5 1.5 0 0 1 16 9v3a1.5 1.5 0 0 1-1.5 1.5H13l-2 1.9V13.5H9.5A1.5 1.5 0 0 1 8 12V9a1.5 1.5 0 0 1 1.5-1.5z"/>` },
+	// Envelope plus a rising tally, because the mail is not the product — the
+	// daily pass/fail totals the reports add up to are. An envelope alone reads
+	// as "sends mail", which is the one thing this mode never does.
+	dmarc_reports: [
+		{ name: 'Mail report', svg: `<rect x="2.5" y="5" width="14" height="10" rx="1.5"/><path d="M2.5 6.5 9.5 11 16.5 6.5"/><path d="M12.5 20.5h9M15 20.5v-4M18 20.5v-6.5M21 20.5v-3"/>` },
+	],
+	model_steward: [
+		{ name: 'Stack', svg: `<ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13"/><path d="M5 9.8c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5M5 14.2c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/>` },
 	],
 	momus: [
 		{ name: 'Dispatch', svg: `<path d="M5 14.5v-4a5 5 0 0 1 10 0v4l1.5 2.5h-13z"/><path d="M8 19.5a2 2 0 0 0 4 0"/><path d="M17.5 6.5h4.5M22 6.5 19.4 4M22 6.5 19.4 9"/>` },
 	],
-	vscode_enforcement: [
+	editor: [
 		{ name: 'Editor policy', svg: `<rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="M2.5 8.5h19"/><circle cx="5.5" cy="6.5" r=".7" fill="currentColor" stroke="none"/><path d="M7.5 11.5 5.5 14 7.5 16.5M10.5 17l2-6"/><path d="M17.5 11 21 12.1v2.4c0 2-1.4 3.3-3.5 4-2.1-.7-3.5-2-3.5-4v-2.4z"/>` },
 	],
 	// CLOSED, not an arc, and that is the one thing worth knowing about this
@@ -125,11 +110,13 @@ export const MODE_ICONS: ModeIcons[] = MODES.map((m) => ({
 // ── Outline injection seam ─────────────────────────────────────────────────
 // The agent-mesh mockup renders each node's silhouette from the agent's MODE.
 // MODE_GLYPH_CHOICE pins the chosen glyph per mode; anything not listed falls
-// back to the Terminal glyph (hello_world, intelligence, language).
+// back to the Terminal glyph.
 
 /** The Terminal glyph — the default node silhouette. */
-export const TERMINAL_GLYPH =
-	MODE_ICONS.find((m) => m.key === 'hello_world')!.options.find((o) => o.name === 'Terminal')!.svg;
+export const TERMINAL_GLYPH = `<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 8.5h18"/><circle cx="6" cy="6.5" r=".7" fill="currentColor" stroke="none"/><path d="M6.5 12l2.5 2-2.5 2"/><path d="M11.5 16h5"/>`;
+
+/** Two ends and a speech bubble between them: the alert-channels node. */
+export const EXCHANGE_GLYPH = `<circle cx="4" cy="12" r="2.2"/><circle cx="20" cy="12" r="2.2"/><path d="M6.4 12h1.1M16.5 12h1.1"/><path d="M9.5 7.5h5A1.5 1.5 0 0 1 16 9v3a1.5 1.5 0 0 1-1.5 1.5H13l-2 1.9V13.5H9.5A1.5 1.5 0 0 1 8 12V9a1.5 1.5 0 0 1 1.5-1.5z"/>`;
 
 /** The chosen silhouette (a MODE_ICONS option name) per agent mode.
  *  Generated from agent/modes.go — edit the Go catalog, not this. Modes with an
@@ -154,29 +141,35 @@ export function glyphForMode(mode: string): string {
 // `mode-<key>` and merged into ICONS. Written out key by key rather than mapped
 // from MODES: a literal keeps `IconName` a union of real names, and a mapped
 // object would widen it to `string` and take every icon typo with it.
-export const MODE_ICON_GLYPHS = {
-	'mode-hello_world': glyphForMode('hello_world'),
-	'mode-intelligence': glyphForMode('intelligence'),
-	'mode-vendor_management': glyphForMode('vendor_management'),
+const MODE_KEYED_GLYPHS = {
+	'mode-rss': glyphForMode('rss'),
 	'mode-codebase_analysis': glyphForMode('codebase_analysis'),
-	'mode-github_runner': glyphForMode('github_runner'),
-	'mode-hardened_agent': glyphForMode('hardened_agent'),
-	'mode-supply_chain_proxy': glyphForMode('supply_chain_proxy'),
-	'mode-dns_proxy': glyphForMode('dns_proxy'),
+	'mode-docs_sync': glyphForMode('docs_sync'),
+	'mode-package_scan': glyphForMode('package_scan'),
+	'mode-relay': glyphForMode('relay'),
+	// No glyph drawn yet, so this resolves to the Terminal fallback. The entry
+	// still has to exist: without a key here `modeIconName` silently answers
+	// `mode-unknown`, with nothing to say it was a substitution.
+	'mode-access': glyphForMode('access'),
 	'mode-language': glyphForMode('language'),
-	'mode-harness': glyphForMode('harness'),
 	'mode-momus': glyphForMode('momus'),
-	// Declared with an empty glyph in modes.gen.ts, so this resolves to the
-	// Terminal fallback for now. Registering it anyway is the point of the entry:
-	// without a key here `modeIconName` silently answers `mode-hello_world`, and
-	// the browser agent would draw a terminal in every list and drawer with
-	// nothing to say it was a substitution.
-	'mode-browser': glyphForMode('browser'),
-	'mode-vscode_enforcement': glyphForMode('vscode_enforcement'),
+	'mode-editor': glyphForMode('editor'),
 	'mode-posture': glyphForMode('posture'),
-	// Same situation as mode-browser above: no glyph drawn yet, so this resolves
-	// to the Terminal fallback. The entry still has to exist.
-	'mode-fetch': glyphForMode('fetch')
+	'mode-dmarc_reports': glyphForMode('dmarc_reports'),
+	'mode-model_steward': glyphForMode('model_steward'),
+	'mode-github': glyphForMode('github'),
+	'mode-github_work': glyphForMode('github_work'),
+	// No glyph drawn yet: Terminal fallback, as above.
+	'mode-preview': glyphForMode('preview'),
+	'mode-armory': glyphForMode('armory'),
+	// No glyph drawn yet for either shard mode: Terminal fallback, as above.
+	'mode-shard_store': glyphForMode('shard_store'),
+	'mode-shard_coordinator': glyphForMode('shard_coordinator'),
+	'mode-printer': glyphForMode('printer'),
+	// No glyph drawn yet: Terminal fallback, as above.
+	'mode-mailer': glyphForMode('mailer'),
+	// No glyph drawn yet for the actuator mode: Terminal fallback, as above.
+	'mode-scada': glyphForMode('scada')
 	// `satisfies`, applied to the template-keyed record, is what makes a missing
 	// mode a BUILD error instead of a silent terminal in the drawer. It checks
 	// every mode has a `mode-<key>` entry while leaving the literal type intact,
@@ -184,23 +177,56 @@ export const MODE_ICON_GLYPHS = {
 	// have widened the keys to `string` and taken every icon typo with it.
 } as const satisfies Record<`mode-${ModeKey}`, string>;
 
-/** The Icon name for an agent mode. Unknown keys fall back to the Terminal
- *  glyph's own name, so a caller can never hand Icon a missing entry. */
+// `mode-unknown` sits outside MODE_KEYED_GLYPHS because `satisfies` rejects a
+// key that names no mode.
+export const MODE_ICON_GLYPHS = { ...MODE_KEYED_GLYPHS, 'mode-unknown': TERMINAL_GLYPH } as const;
+
+/** The Icon name for an agent mode. Unknown keys fall back to `mode-unknown`,
+ *  so a caller can never hand Icon a missing entry. */
 export function modeIconName(mode: string): keyof typeof MODE_ICON_GLYPHS {
 	const name = `mode-${mode}` as keyof typeof MODE_ICON_GLYPHS;
-	return name in MODE_ICON_GLYPHS ? name : 'mode-hello_world';
+	return name in MODE_ICON_GLYPHS ? name : 'mode-unknown';
 }
 
 export const TOOL_ICONS: ToolIcon[] = [
 	{ key: 'alert', desc: 'raise event / notify', color: '#5eead4', svg: `<path d="M6 16v-4.5a6 6 0 0 1 12 0V16l2 2.5H4z"/><path d="M9.5 19.5a2.5 2.5 0 0 0 5 0"/>` },
 	{ key: 'echo', desc: 'reflect input', color: '#5eead4', svg: `<path d="M4 9.5v5h3l4.5 3.5v-12L7 9.5z"/><path d="M15 9a4 4 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11"/>` },
 	{ key: 'dnsquery', desc: 'resolve a name', color: '#5eead4', svg: `<circle cx="10" cy="10" r="6"/><path d="M4 10h12M10 4v12M6.8 6c-1.4 2.2-1.4 5.8 0 8M13.2 6c1.4 2.2 1.4 5.8 0 8"/><path d="M14.5 14.5 20 20"/>` },
-	{ key: 'dnsproxy', desc: 'filter DNS traffic', color: '#5eead4', svg: `<circle cx="10" cy="11" r="6"/><path d="M4 11h12M10 5v12M7 6.8c-1.3 2.1-1.3 5.3 0 8.4M13 6.8c1.3 2.1 1.3 5.3 0 8.4"/><path d="M14.5 3.5h6l-2.3 3.2v3l-1.4-1.1V6.7z"/>` },
 	{ key: 'feedfetch', desc: 'pull a threat feed', color: '#5eead4', svg: `<circle cx="5.5" cy="18.5" r="1.3" fill="currentColor" stroke="none"/><path d="M5.5 13a6.5 6.5 0 0 1 6.5 6.5M5.5 7.5A13 13 0 0 1 18.5 20.5"/><path d="M18 4v6M15 7l3 3 3-3"/>` },
 	{ key: 'httprequest', desc: 'call an endpoint', color: '#5eead4', svg: `<path d="M4 9.5h13l-3-3M20 14.5H7l3 3"/>` },
 	{ key: 'unicode_detect', desc: 'spot spoof glyphs', color: '#5eead4', svg: `<circle cx="10" cy="10" r="6"/><path d="M14.5 14.5 20 20"/><path d="M8 7.5v3a2 2 0 0 0 4 0v-3"/>` },
 	{ key: 'unicode_inject', desc: 'insert test glyphs', color: '#5eead4', svg: `<path d="M15.5 2.5 21.5 8.5M18.5 5.5 7 17l-2.5.5.5-2.5L16.5 3.5z"/><path d="M12 9l3 3M9 12l3 3"/><path d="M6 17.5 3.5 20"/>` },
 ];
+
+/** The tool glyphs, keyed as Icon names. Same move as MODE_ICON_GLYPHS above
+ *  and for the same reason: a caller should be able to write
+ *  `name="tool-dnsquery"` instead of hand-rolling an <svg> around the raw
+ *  markup, and the icons page needs them addressable to open one in the studio.
+ *
+ *  Built from TOOL_ICONS rather than retyped, so the two can never disagree —
+ *  but the keys are written out literally so `IconName` stays a union of real
+ *  names. A mapped type over TOOL_ICONS would widen them to `string` and take
+ *  every icon typo in the codebase with it. */
+const toolGlyph = (key: string): string => TOOL_ICONS.find((t) => t.key === key)?.svg ?? TERMINAL_GLYPH;
+
+export const TOOL_ICON_GLYPHS = {
+	'tool-alert': toolGlyph('alert'),
+	'tool-echo': toolGlyph('echo'),
+	'tool-dnsquery': toolGlyph('dnsquery'),
+	'tool-feedfetch': toolGlyph('feedfetch'),
+	'tool-httprequest': toolGlyph('httprequest'),
+	'tool-unicode_detect': toolGlyph('unicode_detect'),
+	'tool-unicode_inject': toolGlyph('unicode_inject')
+} as const;
+
+/** The Icon name for a tool type. Unknown keys fall back to the Terminal
+ *  glyph's own name, so a caller can never hand Icon a missing entry — the
+ *  same contract as modeIconName. Tools declared by a factory but never drawn
+ *  (docsync, githubpropose, vscodepolicy, vscodeinv) take that fallback. */
+export function toolIconName(tool: string): keyof typeof TOOL_ICON_GLYPHS | 'mode-unknown' {
+	const name = `tool-${tool}` as keyof typeof TOOL_ICON_GLYPHS;
+	return name in TOOL_ICON_GLYPHS ? name : 'mode-unknown';
+}
 
 // ── Mesh-node candidate glyphs ─────────────────────────────────────────────
 // A short-list to PICK THE MESH NODE symbol. Each glyph riffs on the Armornet

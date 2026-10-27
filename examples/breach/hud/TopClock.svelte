@@ -40,10 +40,20 @@
 
 <!-- Sized by its contents now, not to a strip below it: the seats moved out to
      either side, so this plate is the middle of a row rather than the top of a
-     stack, and a fixed width would just pad it. -->
-<div class="pointer-events-auto flex flex-col gap-1.5">
+     stack, and a fixed width would just pad it.
+
+     `shrink-0` with a ceiling, not a shrinkable box. The rosters either side are
+     the ones that give way when the top row runs out of room — this plate is the
+     one thing on it nobody can afford to have squeezed. The ceiling is the only
+     width it will ever yield to, and it is the viewport minus its own notches:
+     on a phone the rosters are gone and this stands alone, so nothing else is
+     left to absorb the overflow. -->
+<div
+	class="pointer-events-auto flex min-w-0 shrink-0 flex-col gap-1.5
+	       max-w-[calc(100vw_-_var(--safe-l)_-_var(--safe-r)_-_0.75rem)]"
+>
 	<div
-		class="relative flex items-stretch gap-2.5 overflow-hidden rounded-[10px] border px-2.5 py-1.5"
+		class="relative flex min-w-0 items-stretch gap-1.5 overflow-hidden rounded-[10px] border px-2 py-1.5 xl:gap-2.5 xl:px-2.5"
 		style:border-color={running
 			? `color-mix(in srgb, ${state.color} 70%, transparent)`
 			: 'var(--border)'}
@@ -58,7 +68,10 @@
 		     rhythm and the caption under one lines up with the drain under the
 		     other. Two number blocks of different widths either side of a score is
 		     the kind of near-miss that reads as a layout bug. -->
-		<div class="flex w-[62px] shrink-0 flex-col items-center justify-center gap-1.5">
+		<!-- No `shrink-0`: a flex item's automatic minimum is its MIN-CONTENT, so
+		     dropping it lets the column give back its padding on a narrow screen
+		     and stop dead at the numerals — squeezing is bounded, clipping is not. -->
+		<div class="flex w-[62px] flex-col items-center justify-center gap-1.5">
 			<span class="flex items-baseline gap-0.5 leading-none">
 				<b class="font-mono text-[1.5rem] leading-none font-black tabular-nums text-[var(--fg)]">
 					{match.round}
@@ -92,7 +105,7 @@
 
 		     Same 62px as the round block, and the drain runs the width of the
 		     counter rather than the width of a sentence that is no longer here. -->
-		<div class="flex w-[62px] shrink-0 flex-col items-center justify-center gap-1.5">
+		<div class="flex w-[62px] flex-col items-center justify-center gap-1.5">
 			<b
 				class="font-mono text-[1.5rem] leading-none font-black tabular-nums"
 				class:pulse={critical}

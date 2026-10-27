@@ -99,6 +99,9 @@ function frame(key: string, thick: number, rivets = false): Wearable {
 		key: `frame.${key}`,
 		anchor: 'hand',
 		parts: (a) => {
+			// No frame is no geometry — four zero-thickness bars are flat plates
+			// with no inside, which a mesh export hands a slicer as broken shells.
+			if (!thick) return [];
 			const c = slate(a);
 			const bw = c.w * thick;
 			const d = -c.t * 1.6;
@@ -116,8 +119,12 @@ function frame(key: string, thick: number, rivets = false): Wearable {
 					[1, -1],
 					[1, 1]
 				] as const) {
+					// Built about its centre so the floor is always below the roof; the
+					// bottom rivets used to take `h = -1` straight into the height span,
+					// which wound them inside out.
+					const mid = h * (c.h - bw * 1.5);
 					parts.push(
-						bar(at(lump(bw * 0.5, c.t * 0.6, h * c.h - h * bw * 2, h * c.h - h * bw, 0.4), e * (c.w - bw * 1.4), 0))
+						bar(at(lump(bw * 0.5, c.t * 0.6, mid - bw / 2, mid + bw / 2, 0.4), e * (c.w - bw * 1.4), 0))
 					);
 				}
 			}

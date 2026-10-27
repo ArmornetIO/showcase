@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Icon from '../icons/Icon.svelte';
+	import Select from '../primitives/forms/Select.svelte';
 	import { ICONS } from '../icons/Icon.svelte';
 	import type { IconName } from '../icons/Icon.svelte';
 	import type { ComponentMeta } from './registry.js';
@@ -127,16 +128,14 @@
 						{/each}
 					</div>
 				{:else if def.kind === 'enum'}
-					<select
+					<Select
 						id="pe-{meta.id}-{key}"
-						class="pe-select"
-						value={current}
-						onchange={(e) => onchange(key, e.currentTarget.value)}
-					>
-						{#each def.options ?? [] as opt}
-							<option value={opt}>{opt}</option>
-						{/each}
-					</select>
+						size="sm"
+						width="100%"
+						value={String(current ?? '')}
+						options={(def.options ?? []).map((o) => ({ value: String(o), label: String(o) }))}
+						onchange={(v) => onchange(key, v)}
+					/>
 				{:else if def.kind === 'boolean'}
 					<label class="pe-toggle-wrap">
 						<input
@@ -313,7 +312,6 @@
 		background: var(--accent-faint);
 	}
 
-	.pe-select,
 	.pe-input {
 		width: 100%;
 		padding: 4px 6px;
@@ -326,7 +324,6 @@
 		font-family: var(--sans);
 		transition: border-color 0.12s;
 	}
-	.pe-select:focus,
 	.pe-input:focus {
 		border-color: var(--accent);
 	}

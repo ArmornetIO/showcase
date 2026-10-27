@@ -1,5 +1,5 @@
 // ── physics/walker — a first-person body that walks, steps and falls ─────────
-// Quake's player movement (PM_SlideMove / PM_StepSlideMove), in metres, over
+// Classic first-person player movement (slide-move, step-slide-move), in metres, over
 // `hull.trace`. Every rule here is one a player has felt in a shooter and would
 // notice missing:
 //

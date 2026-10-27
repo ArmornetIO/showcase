@@ -2,9 +2,13 @@
 
 **A Svelte 5 component library written by an AI, for AI.**
 
-235 components. 310 exports. Zero hardcoded colors. Every prop typed, every
+300+ components. 480+ exports. Zero hardcoded colors. Every prop typed, every
 prop machine-readable, every component placeable, animatable, and inspectable
 by an agent that has never seen the source.
+
+**See it live:** the showcase app at [armornet.io/showcase](https://armornet.io/showcase),
+and BREACH, a game built entirely from this library, at
+[armornet.io/breach](https://armornet.io/breach).
 
 Most component libraries are built for humans and then, reluctantly, described
 to machines — a docs site scraped into a context window, a `.d.ts` file an
@@ -60,10 +64,10 @@ contracts — those are enforced mechanically, so they cannot rot quietly.
 | `builder/` `scene/` `storyboard/` | **Evolving** | The agentic layer, and the part most likely to be renamed as the vocabulary settles — `presentation`, `showWhen` and the channel/burst split are still being argued with |
 | `chart/` | **Evolving** | 12 renderers behind a composable engine; the engine is sound, the per-renderer prop names are not final |
 | `devcog/` | **Evolving** | Works, framework-agnostic, but the export format will change as agents get better at consuming it |
-| `mesh-studio/` `physics/` | **Experimental** | Heavily tested (27 spec files between them) yet shaped entirely by one product's topology, and the GL paths want a real GPU |
+| `mesh-studio/` `physics/` `game/` | **Experimental** | Heavily tested (27 spec files between them) yet shaped entirely by one product's topology, and the GL paths want a real GPU |
 | `backdrop/` `brand/` `character/` `docs/` `model-explorer/` `seo/` `settings/` `perf/` `dev/` `agent/` | **Experimental** | Product surfaces published because they were useful to lift, not because they are general |
 
-`examples/` is demo code, not part of the package.
+`examples/` is demo code, not part of the package — see [Examples](#examples).
 
 ---
 
@@ -97,16 +101,16 @@ your bundle. `sideEffects` is honest, so tree-shaking actually works.
 
 | | |
 |---|---|
-| **235** Svelte 5 components | runes-only — no `export let`, no stores, no `$:` |
+| **300+** Svelte 5 components | runes-only — no `export let`, no stores, no `$:` |
 | **103** registry entries | every one drag-placeable, prop-editable, scriptable |
 | **105** icons | one `<Icon name="…" />`, typed against the catalog |
 | **12** chart renderers | line, bar, donut, pie, radar, scatter, heatmap, horizon, waterfall, candlestick, box-plot, stacked-area |
 | **4** themes | dark, light, OLED, and a WCAG-AAA high-contrast mode |
-| **118** spec files | Vitest, real Chromium via Playwright — not jsdom |
+| **150** spec files | Vitest, real Chromium via Playwright — not jsdom |
 
 Organized by intent, not by alphabet: `primitives/`, `layout/`, `navigation/`,
 `display/`, `chart/`, `builder/`, `storyboard/`, `scene/`, `motion/`,
-`frames/`, `icons/`, `theme/`, `docs/`.
+`frames/`, `icons/`, `theme/`, `docs/`, `game/`, `physics/`.
 
 ---
 
@@ -270,9 +274,54 @@ built and battle-tested inside a production security platform:
 
 - **`mesh-studio/`** — GL-accelerated mesh canvas, node glyphs resolved per agent
   mode, live topology rendering
-- **`physics/`** — orbit simulation with real spec coverage
-- **`chart/`** — a composable chart engine: shared context, scales, axis,
+- **`physics/`** — layout solvers, the globe and its terrain, and the 3D
+  collision below, all pure functions with property tests
+- **`chart/`** — a composable chart engine: shared context, scales and axes,
+  with 12 renderers on top
 
+---
+
+## 3D, without a 3D library
+
+No three.js. The 3D stack is a handful of small WebGL2 programs built on one idea:
+everything is a list of **convex solids**. A convex solid is cheap to draw,
+cheap to collide with, and the same data serves both.
+
+- **`mesh-studio/pieces`** — solids authored in a local east / north / height
+  frame. They are the buildings that stand on the mesh globe, and the raw
+  material for everything below.
+- **`game/`** — first-person maps. `composeMap` takes a map written as data
+  (a prop catalogue, seeded slots, placements) and returns triangles batched
+  by material *and* walkable hulls, in one pass, so what you see and what you
+  bump into cannot disagree. `map-gl` draws it with colours read from the
+  theme tokens; `createSky` paints the view out of the windows (a city, for
+  one) with a single full-screen triangle; `text3d` builds signs from a 5×7 pixel font as boxes.
+- **`physics/hull` + `physics/walker`** — a box swept through convex hulls,
+  solved rather than sampled, so it cannot tunnel at any speed; and a
+  first-person body on top that slides along walls, steps up kerbs, stands on
+  slopes up to 45° and falls.
+- **Builder 3D pages** — a Builder page whose items are 3D objects. It saves,
+  undoes and pages like any other page, is drawn with the game's own shaders,
+  and exports as a map the game can load.
+- **Model Studio** — a Builder studio for physical, 3D-printable parts
+  (enclosures, mounts), modelled in millimetres on the same renderer.
+- **`GameDevTools`** — live tunables and debug overlays (hulls, walkable vs
+  wall faces) in DevCog's GAME group.
+
+BREACH's first-person Insider Threat mode, in `examples/breach/`, is built on
+this stack.
+
+---
+
+## Examples
+
+Each is a plain Vite + Svelte app on the package, under `examples/`:
+
+| | |
+|---|---|
+| [`breach/`](examples/breach) | A 2v2 card game and a first-person social-deduction mode. Play it at [armornet.io/breach](https://armornet.io/breach). The rules engine is Go compiled to wasm in the armornet repository, so the example does not run from this repo alone. |
+| [`dbmgr/`](examples/dbmgr) | The web console for [dbmgr](https://github.com/ArmornetIO/dbmgr). |
+| [`roadmap/`](examples/roadmap) | Armornet's product roadmap as a month-by-month Gantt. |
 
 ---
 

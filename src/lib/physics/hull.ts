@@ -3,7 +3,8 @@
 // planes and a bounding box, with no idea what it stands for. Whatever adapts a
 // building, a crate or a cliff into hulls lives with that thing, not here.
 //
-// The model is the one Quake and Source walked on for twenty years. A convex
+// The model is the brush collision first-person engines have walked on for
+// decades. A convex
 // solid IS the intersection of its face planes' back half-spaces, so testing a
 // moving box against it collapses to testing a moving POINT against the same
 // planes pushed out by how far the box reaches along each normal. That turns
@@ -14,8 +15,8 @@
 // Pushing a plane out is exact on a face and generous at an edge: two pushed
 // planes meeting at a sharp ridge cross well beyond the real corner, so a gable
 // apex would grow an invisible spike. Six axis-aligned bevel planes at each
-// solid's bounding box cap that spike at the box's own half-size. Quake 3 adds
-// edge bevels too; they are left out until somebody actually snags on one.
+// solid's bounding box cap that spike at the box's own half-size. Edge bevels
+// would go further; they are left out until somebody actually snags on one.
 //
 // Pure: no Svelte, no DOM, no dependencies, no knowledge of what a hull is.
 import type { Vec3 } from './sphere.js';
@@ -168,8 +169,8 @@ interface Best {
 }
 
 /**
- * Clip the centre's path against one solid's pushed-out planes — Quake's
- * CM_ClipBoxToBrush, in metres. Enter is the latest plane crossed going in,
+ * Clip the centre's path against one solid's pushed-out planes — the classic
+ * clip-box-to-brush, in metres. Enter is the latest plane crossed going in,
  * leave the earliest going out; a hit is enter < leave.
  */
 function clip(planes: Plane[], from: Vec3, to: Vec3, half: Vec3, best: Best): void {

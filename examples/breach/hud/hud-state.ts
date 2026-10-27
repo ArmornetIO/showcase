@@ -8,8 +8,8 @@
 //
 // So there is one ladder, here, and every surface derives off it. When it goes
 // amber the whole HUD goes amber in the same frame — which is the entire
-// tactical-shooter treatment. Valorant and CS do not tell you you are in
-// trouble in one widget; they tell you in the chrome.
+// tactical-shooter treatment. A tactical shooter does not tell you you are in
+// trouble in one widget; it tells you in the chrome.
 //
 // A pure function rather than a store on purpose: a store is a second source of
 // truth that has to be kept in step with the match, and this has none of its own
